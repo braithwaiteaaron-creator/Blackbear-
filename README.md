@@ -1,36 +1,94 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Bear Hub Pro - Tree Care Management System
 
-## Getting Started
+A professional job and quote management system built for Blackbear tree care services. Manage customers, jobs, quotes, and transactions all in one place instead of using notepad.
+
+## ✨ Features
+
+### 📋 Job Management
+- Create and track tree care jobs (removals, trimming, stump grinding, etc.)
+- Set job status (Quote, Scheduled, In Progress, Completed, Cancelled)
+- Track job values and requirements (permits, clearance, climbing)
+- Add detailed notes and tree types
+- Upload photos and documentation
+- Quick view job details
+
+### 💰 Quote Management
+- Generate professional quotes with auto-numbered quote IDs
+- Track quote status (Pending, Sent, Approved, Declined, Expired)
+- Link quotes to customers
+- Set quote validity dates
+- Monitor pending quotes at a glance
+
+### 👥 Customer Management
+- Store complete customer information (name, email, phone, address)
+- Track customer history and notes
+- Monitor total jobs and spending per customer
+- Quick access to customer details
+
+### 📊 Dashboard Overview
+- Real-time statistics (total customers, active jobs, pending quotes, completed jobs)
+- Color-coded status indicators
+- Quick action buttons for creating new records
+- Professional dark theme UI
+
+## 🛠 Technology Stack
+
+- **Frontend**: Next.js 16 with TypeScript & Turbopack
+- **Styling**: Tailwind CSS v4
+- **Components**: shadcn/ui
+- **Database**: Supabase (PostgreSQL)
+- **Icons**: Lucide React
+
+## 🚀 Getting Started
 
 First, run the development server:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the application.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 📁 Database Schema
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Your Supabase database includes the following tables:
 
-## Learn More
+- **customers** - Client information and metrics
+- **jobs** - Tree care work orders with status tracking
+- **quotes** - Service quotes with auto-generated numbers
+- **leads** - Potential customers and opportunities
+- **agents** - Team member profiles and performance
+- **transactions** - Payment tracking and revenue
+- **route_stops** - Job scheduling and route planning
+- **spotted_damage** - Potential damage opportunities with GPS
 
-To learn more about Next.js, take a look at the following resources:
+## 🔧 Core Features Ready to Use
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+1. **Add Customers** - Build your customer database
+2. **Create Jobs** - Log tree care work with all details
+3. **Generate Quotes** - Professional quote system with status tracking
+4. **Track Progress** - Monitor jobs from quote to completion
+5. **View Statistics** - Dashboard with real-time business metrics
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## 📝 Environment Variables
 
-## Deploy on Vercel
+Configure these in `.env.development.local`:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 🚢 Deploy on Vercel
+
+The easiest way to deploy is to use the [Vercel Platform](https://vercel.com):
+
+```bash
+npm run build
+vercel deploy
+```
+
+---
+
+**Built with ❤️ for Blackbear Tree Care** | Replace your notepad with a professional system
