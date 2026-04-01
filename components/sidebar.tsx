@@ -7,9 +7,6 @@ import {
   Briefcase,
   Users,
   MapPin,
-  UserCircle,
-  DollarSign,
-  ShoppingBag,
   X,
   ExternalLink,
   Star,
@@ -32,6 +29,7 @@ const navItems = [
   { id: "jobs" as const, label: "Jobs & Quotes", icon: Briefcase },
   { id: "customers" as const, label: "Customers", icon: Users },
   { id: "schedule" as const, label: "Schedule", icon: MapPin },
+  { id: "referrals" as const, label: "Referrals", icon: Gift },
 ]
 
 export function Sidebar({ activeView, setActiveView, isOpen, onToggle }: SidebarProps) {

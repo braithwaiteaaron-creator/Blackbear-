@@ -32,17 +32,16 @@ import {
   MapPin,
   Clock,
   DollarSign,
-  AlertTriangle,
   QrCode,
-  Mountain,
   Loader2,
 } from "lucide-react"
 import { JobPhotoUpload } from "./job-photo-upload"
-import { useJobs } from "@/lib/supabase/hooks"
+import { useJobs, useReferrers } from "@/lib/supabase/hooks"
 import { toast } from "sonner"
 
 export function JobsPanel() {
   const { jobs, loading, createJob } = useJobs()
+  const { referrers } = useReferrers()
   const [searchQuery, setSearchQuery] = useState("")
   const [isNewJobOpen, setIsNewJobOpen] = useState(false)
   const [newJobPhotos, setNewJobPhotos] = useState<File[]>([])
@@ -52,13 +51,11 @@ export function JobsPanel() {
   const [formData, setFormData] = useState({
     address: "",
     customer_name: "",
+    customer_phone: "",
     job_type: "",
     value: "",
-    trees: "",
+    referral_code: "",
     notes: "",
-    permit_required: false,
-    clearance_required: false,
-    climbing_required: false,
   })
 
   const filteredJobs = jobs.filter(
@@ -70,21 +67,27 @@ export function JobsPanel() {
 
   const handleSubmit = async () => {
     if (!formData.address || !formData.customer_name || !formData.job_type) {
-      toast.error("Please fill in required fields")
+      toast.error("Please fill in address, customer name, and job type")
       return
     }
 
     setIsSubmitting(true)
+    
+    // Find referrer if code provided
+    const matchedReferrer = formData.referral_code 
+      ? referrers.find(r => r.referral_code.toLowerCase() === formData.referral_code.toLowerCase())
+      : null
+
     const { data, error } = await createJob({
       address: formData.address,
       customer_name: formData.customer_name,
       job_type: formData.job_type,
       value: parseFloat(formData.value) || 0,
-      trees: formData.trees ? formData.trees.split(",").map((t) => t.trim()) : [],
-      notes: formData.notes,
-      permit_required: formData.permit_required,
-      clearance_required: formData.clearance_required,
-      climbing_required: formData.climbing_required,
+      trees: [],
+      notes: formData.notes + (matchedReferrer ? ` [Referral: ${matchedReferrer.name}]` : ""),
+      permit_required: false,
+      clearance_required: false,
+      climbing_required: false,
       status: "quote",
       photos: [],
     })
@@ -93,18 +96,16 @@ export function JobsPanel() {
     if (error) {
       toast.error("Failed to create job")
     } else {
-      toast.success("Job created successfully!")
+      toast.success(matchedReferrer ? `Job created! Referral from ${matchedReferrer.name}` : "Job created!")
       setIsNewJobOpen(false)
       setFormData({
         address: "",
         customer_name: "",
+        customer_phone: "",
         job_type: "",
         value: "",
-        trees: "",
+        referral_code: "",
         notes: "",
-        permit_required: false,
-        clearance_required: false,
-        climbing_required: false,
       })
     }
   }
@@ -149,28 +150,44 @@ export function JobsPanel() {
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
+              {/* Address */}
               <div className="grid gap-2">
-                <Label htmlFor="address">Property Address *</Label>
+                <Label htmlFor="address">Address *</Label>
                 <div className="relative">
                   <MapPin className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <Input 
                     id="address" 
-                    placeholder="Enter address..." 
+                    placeholder="123 Main St..." 
                     className="pl-9"
                     value={formData.address}
                     onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                   />
                 </div>
               </div>
-              <div className="grid gap-2">
-                <Label htmlFor="customer">Customer Name *</Label>
-                <Input 
-                  id="customer" 
-                  placeholder="Customer name..."
-                  value={formData.customer_name}
-                  onChange={(e) => setFormData({ ...formData, customer_name: e.target.value })}
-                />
+
+              {/* Customer Name + Phone */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="customer">Customer *</Label>
+                  <Input 
+                    id="customer" 
+                    placeholder="Name..."
+                    value={formData.customer_name}
+                    onChange={(e) => setFormData({ ...formData, customer_name: e.target.value })}
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="phone">Phone</Label>
+                  <Input 
+                    id="phone" 
+                    placeholder="(555) 123-4567"
+                    value={formData.customer_phone}
+                    onChange={(e) => setFormData({ ...formData, customer_phone: e.target.value })}
+                  />
+                </div>
               </div>
+
+              {/* Job Type + Price */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
                   <Label htmlFor="type">Job Type *</Label>
@@ -179,27 +196,25 @@ export function JobsPanel() {
                     onValueChange={(value) => setFormData({ ...formData, job_type: value })}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Select type" />
+                      <SelectValue placeholder="Select..." />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="Tree Removal">Tree Removal</SelectItem>
                       <SelectItem value="Pruning">Pruning</SelectItem>
                       <SelectItem value="Stump Grinding">Stump Grinding</SelectItem>
                       <SelectItem value="Storm Damage">Storm Damage</SelectItem>
-                      <SelectItem value="Tree Installation">Tree Installation</SelectItem>
-                      <SelectItem value="Camera Install">Security Camera Install</SelectItem>
-                      <SelectItem value="Emergency">Emergency Service</SelectItem>
+                      <SelectItem value="Emergency">Emergency</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="value">Estimated Value</Label>
+                  <Label htmlFor="value">Price</Label>
                   <div className="relative">
                     <DollarSign className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                     <Input 
                       id="value" 
                       type="number" 
-                      placeholder="0.00" 
+                      placeholder="0" 
                       className="pl-9"
                       value={formData.value}
                       onChange={(e) => setFormData({ ...formData, value: e.target.value })}
@@ -207,43 +222,35 @@ export function JobsPanel() {
                   </div>
                 </div>
               </div>
+
+              {/* Referral Code */}
               <div className="grid gap-2">
-                <Label htmlFor="trees">Trees on Property</Label>
-                <Input 
-                  id="trees" 
-                  placeholder="e.g., Large Oak, 2x Maple, Dead Pine..."
-                  value={formData.trees}
-                  onChange={(e) => setFormData({ ...formData, trees: e.target.value })}
-                />
+                <Label htmlFor="referral">Referral Code (optional)</Label>
+                <div className="relative">
+                  <QrCode className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input 
+                    id="referral" 
+                    placeholder="e.g. JOHN10"
+                    className="pl-9"
+                    value={formData.referral_code}
+                    onChange={(e) => setFormData({ ...formData, referral_code: e.target.value })}
+                  />
+                </div>
+                {formData.referral_code && referrers.find(r => r.referral_code.toLowerCase() === formData.referral_code.toLowerCase()) && (
+                  <p className="text-xs text-primary">Referral from: {referrers.find(r => r.referral_code.toLowerCase() === formData.referral_code.toLowerCase())?.name}</p>
+                )}
               </div>
+
+              {/* Notes */}
               <div className="grid gap-2">
                 <Label htmlFor="notes">Notes</Label>
                 <Textarea 
                   id="notes" 
-                  placeholder="Special instructions, access details, etc..."
+                  placeholder="Any details..."
+                  rows={2}
                   value={formData.notes}
                   onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                 />
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <Button 
-                  type="button"
-                  variant={formData.permit_required ? "default" : "outline"} 
-                  size="sm"
-                  onClick={() => setFormData({ ...formData, permit_required: !formData.permit_required })}
-                >
-                  <AlertTriangle className="mr-1 h-3 w-3" />
-                  Permit Required
-                </Button>
-                <Button 
-                  type="button"
-                  variant={formData.climbing_required ? "default" : "outline"} 
-                  size="sm"
-                  onClick={() => setFormData({ ...formData, climbing_required: !formData.climbing_required })}
-                >
-                  <Mountain className="mr-1 h-3 w-3" />
-                  Climbing Required
-                </Button>
               </div>
             </div>
 

@@ -7,9 +7,10 @@ import { DashboardOverview } from "@/components/dashboard-overview"
 import { JobsPanel } from "@/components/jobs-panel"
 import { CustomersPanel } from "@/components/customers-panel"
 import { SchedulePanel } from "@/components/schedule-panel"
+import { ReferralsPanel } from "@/components/referrals-panel"
 import { VoiceCommand } from "@/components/voice-command"
 
-export type ActiveView = "dashboard" | "jobs" | "customers" | "schedule"
+export type ActiveView = "dashboard" | "jobs" | "customers" | "schedule" | "referrals"
 
 export default function BearHubPro() {
   const [activeView, setActiveView] = useState<ActiveView>("dashboard")
@@ -25,6 +26,8 @@ export default function BearHubPro() {
         return <CustomersPanel />
       case "schedule":
         return <SchedulePanel />
+      case "referrals":
+        return <ReferralsPanel />
       default:
         return <DashboardOverview onNavigate={setActiveView} />
     }
