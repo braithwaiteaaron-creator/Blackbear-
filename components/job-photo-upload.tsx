@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { Upload, X, Image as ImageIcon, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
@@ -22,10 +22,15 @@ export function JobPhotoUpload({ jobId, onPhotosChange }: JobPhotoUploadProps) {
   const [photos, setPhotos] = useState<UploadedPhoto[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  // Call parent callback whenever photos change via useEffect (not during render)
-  useEffect(() => {
+  // Memoize the callback so it doesn't change on every render
+  const handlePhotosChange = useCallback(() => {
     onPhotosChange?.(photos.map((p) => p.file))
   }, [photos, onPhotosChange])
+
+  // Call parent callback whenever photos change via useEffect (not during render)
+  useEffect(() => {
+    handlePhotosChange()
+  }, [handlePhotosChange])
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || [])
