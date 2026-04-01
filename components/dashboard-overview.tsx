@@ -12,12 +12,13 @@ import {
   TrendingUp,
   Clock,
   ArrowRight,
-  Camera,
-  Zap,
   Mountain,
   Shield,
   QrCode,
   Loader2,
+  AlertCircle,
+  Phone,
+  CheckCircle,
 } from "lucide-react"
 import Image from "next/image"
 import { QRCodeCard } from "./qr-code-card"
@@ -36,6 +37,21 @@ export function DashboardOverview({ onNavigate }: DashboardOverviewProps) {
   const revenueMTD = transactions.filter(t => t.status === "completed").reduce((sum, t) => sum + Number(t.amount || 0), 0)
   const activeLeads = leads.filter(l => l.status !== "converted" && l.status !== "lost")
   const recentJobs = jobs.slice(0, 5)
+
+  // Follow-up tracking - quotes that need attention
+  const now = new Date()
+  const getJobAge = (job: typeof jobs[0]) => {
+    const created = new Date(job.created_at)
+    const diffMs = now.getTime() - created.getTime()
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+    return diffDays
+  }
+
+  const needsFollowUp = jobs
+    .filter(j => j.status === "quote")
+    .map(j => ({ ...j, ageDays: getJobAge(j) }))
+    .filter(j => j.ageDays >= 1) // Show quotes 1+ days old
+    .sort((a, b) => b.ageDays - a.ageDays) // Oldest first (most urgent)
 
   const stats = [
     { label: "Active Jobs", value: activeJobs.length.toString(), change: activeJobs.length > 0 ? `${jobs.filter(j => j.status === "quote").length} quotes pending` : "Add your first job", icon: TreeDeciduous, color: "text-primary" },
@@ -121,6 +137,68 @@ export function DashboardOverview({ onNavigate }: DashboardOverviewProps) {
           </Card>
         ))}
       </div>
+
+      {/* Follow-Up Needed - Most Important Section */}
+      {needsFollowUp.length > 0 && (
+        <Card className="bg-gradient-to-r from-amber-500/10 to-amber-500/5 border-amber-500/30">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <AlertCircle className="h-5 w-5 text-amber-500" />
+                <CardTitle className="text-amber-600">Follow-Up Needed</CardTitle>
+                <Badge variant="outline" className="bg-amber-500/20 text-amber-600 border-amber-500/30">
+                  {needsFollowUp.length} quotes waiting
+                </Badge>
+              </div>
+            </div>
+            <CardDescription>These quotes need a follow-up call</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {needsFollowUp.slice(0, 5).map((job) => (
+                <div
+                  key={job.id}
+                  className={`flex items-center justify-between rounded-lg p-3 ${
+                    job.ageDays >= 4
+                      ? "bg-destructive/20 border border-destructive/30"
+                      : job.ageDays >= 2
+                      ? "bg-amber-500/20 border border-amber-500/30"
+                      : "bg-secondary/50"
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`flex h-10 w-10 items-center justify-center rounded-full ${
+                      job.ageDays >= 4 ? "bg-destructive/30" : job.ageDays >= 2 ? "bg-amber-500/30" : "bg-primary/10"
+                    }`}>
+                      <span className="text-sm font-bold">{job.ageDays}d</span>
+                    </div>
+                    <div>
+                      <p className="font-medium">{job.customer_name || "Unknown"}</p>
+                      <p className="text-xs text-muted-foreground">{job.address}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold text-accent">${Number(job.value).toLocaleString()}</span>
+                    <Button size="sm" variant="outline" className="h-8 gap-1">
+                      <Phone className="h-3 w-3" />
+                      Call
+                    </Button>
+                    <Button size="sm" className="h-8 gap-1 bg-primary">
+                      <CheckCircle className="h-3 w-3" />
+                      Done
+                    </Button>
+                  </div>
+                </div>
+              ))}
+              {needsFollowUp.length > 5 && (
+                <p className="text-sm text-center text-muted-foreground pt-2">
+                  +{needsFollowUp.length - 5} more quotes need follow-up
+                </p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Main Content Grid */}
       <div className="grid gap-6 lg:grid-cols-3">
@@ -230,17 +308,17 @@ export function DashboardOverview({ onNavigate }: DashboardOverviewProps) {
               <TreeDeciduous className="h-6 w-6 text-primary" />
               <span>New Quote</span>
             </Button>
-            <Button variant="secondary" className="h-auto flex-col gap-2 p-4" onClick={() => onNavigate("routes")}>
-              <MapPin className="h-6 w-6 text-chart-2" />
-              <span>Plan Route</span>
+            <Button variant="secondary" className="h-auto flex-col gap-2 p-4" onClick={() => onNavigate("customers")}>
+              <Users className="h-6 w-6 text-chart-2" />
+              <span>Find Customer</span>
             </Button>
-            <Button variant="secondary" className="h-auto flex-col gap-2 p-4">
-              <Camera className="h-6 w-6 text-accent" />
-              <span>Spot Damage</span>
+            <Button variant="secondary" className="h-auto flex-col gap-2 p-4" onClick={() => onNavigate("schedule")}>
+              <Clock className="h-6 w-6 text-accent" />
+              <span>View Schedule</span>
             </Button>
-            <Button variant="secondary" className="h-auto flex-col gap-2 p-4" onClick={() => onNavigate("routes")}>
-              <Zap className="h-6 w-6 text-destructive" />
-              <span>Storm Chase</span>
+            <Button variant="secondary" className="h-auto flex-col gap-2 p-4" onClick={() => onNavigate("referrals")}>
+              <QrCode className="h-6 w-6 text-primary" />
+              <span>Referral Codes</span>
             </Button>
           </div>
         </CardContent>
