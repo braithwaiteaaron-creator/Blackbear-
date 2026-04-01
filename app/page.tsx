@@ -5,7 +5,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
-import { Plus, Briefcase, FileText, Users, TrendingUp, Clock, CheckCircle, AlertCircle } from 'lucide-react'
+import { Plus, Briefcase, FileText, Users, TrendingUp, Clock, CheckCircle, AlertCircle, Bot, Calculator, Wrench, Camera } from 'lucide-react'
+import { AIChat } from '@/components/ai-chat'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 
 // Demo data
@@ -208,6 +209,18 @@ export default function Dashboard() {
               <Users className="w-4 h-4 mr-2" />
               Customers
             </TabsTrigger>
+            <TabsTrigger value="ai-quote" className="text-slate-300 data-[state=active]:text-emerald-400">
+              <Calculator className="w-4 h-4 mr-2" />
+              AI Quote
+            </TabsTrigger>
+            <TabsTrigger value="ai-assistant" className="text-slate-300 data-[state=active]:text-emerald-400">
+              <Wrench className="w-4 h-4 mr-2" />
+              AI Assistant
+            </TabsTrigger>
+            <TabsTrigger value="ai-photo" className="text-slate-300 data-[state=active]:text-emerald-400">
+              <Camera className="w-4 h-4 mr-2" />
+              AI Photo
+            </TabsTrigger>
           </TabsList>
 
           {/* Overview Tab */}
@@ -403,6 +416,126 @@ export default function Dashboard() {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* AI Quote Generator Tab */}
+          <TabsContent value="ai-quote">
+            <div className="grid grid-cols-2 gap-6">
+              <div>
+                <Card className="bg-slate-800 border-slate-700 mb-4">
+                  <CardHeader>
+                    <CardTitle className="text-white flex items-center gap-2">
+                      <Calculator className="text-emerald-500" />
+                      AI Quote Generator
+                    </CardTitle>
+                    <CardDescription className="text-slate-400">
+                      Describe the job and let AI help you create a professional quote with pricing
+                    </CardDescription>
+                  </CardHeader>
+                </Card>
+                <AIChat 
+                  endpoint="/api/ai/quote"
+                  title="Quote Generator"
+                  placeholder="Describe the tree job... e.g., 'Customer needs a 50ft oak tree removed near their house'"
+                />
+              </div>
+              <Card className="bg-slate-800 border-slate-700 h-fit">
+                <CardHeader>
+                  <CardTitle className="text-white">Quick Tips</CardTitle>
+                </CardHeader>
+                <CardContent className="text-slate-300 space-y-3">
+                  <p><strong>Include these details for best quotes:</strong></p>
+                  <ul className="list-disc pl-5 space-y-1 text-sm">
+                    <li>Tree type and approximate size</li>
+                    <li>Location and accessibility</li>
+                    <li>Nearby structures or hazards</li>
+                    <li>Specific work needed</li>
+                    <li>Urgency level</li>
+                  </ul>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
+          {/* AI Job Assistant Tab */}
+          <TabsContent value="ai-assistant">
+            <div className="grid grid-cols-2 gap-6">
+              <div>
+                <Card className="bg-slate-800 border-slate-700 mb-4">
+                  <CardHeader>
+                    <CardTitle className="text-white flex items-center gap-2">
+                      <Wrench className="text-emerald-500" />
+                      AI Job Assistant
+                    </CardTitle>
+                    <CardDescription className="text-slate-400">
+                      Get expert advice on planning jobs, equipment needs, and tree care best practices
+                    </CardDescription>
+                  </CardHeader>
+                </Card>
+                <AIChat 
+                  endpoint="/api/ai/assistant"
+                  title="Job Assistant"
+                  placeholder="Ask about equipment, timing, crew size, tree species, or anything else..."
+                />
+              </div>
+              <Card className="bg-slate-800 border-slate-700 h-fit">
+                <CardHeader>
+                  <CardTitle className="text-white">Ask About</CardTitle>
+                </CardHeader>
+                <CardContent className="text-slate-300 space-y-3">
+                  <div className="flex flex-wrap gap-2">
+                    <Badge className="bg-emerald-900 text-emerald-300">Equipment needs</Badge>
+                    <Badge className="bg-emerald-900 text-emerald-300">Crew sizing</Badge>
+                    <Badge className="bg-emerald-900 text-emerald-300">Time estimates</Badge>
+                    <Badge className="bg-emerald-900 text-emerald-300">Tree species</Badge>
+                    <Badge className="bg-emerald-900 text-emerald-300">Safety tips</Badge>
+                    <Badge className="bg-emerald-900 text-emerald-300">Permits</Badge>
+                    <Badge className="bg-emerald-900 text-emerald-300">Pricing advice</Badge>
+                    <Badge className="bg-emerald-900 text-emerald-300">Seasonal timing</Badge>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
+          {/* AI Photo Analysis Tab */}
+          <TabsContent value="ai-photo">
+            <div className="grid grid-cols-2 gap-6">
+              <div>
+                <Card className="bg-slate-800 border-slate-700 mb-4">
+                  <CardHeader>
+                    <CardTitle className="text-white flex items-center gap-2">
+                      <Camera className="text-emerald-500" />
+                      AI Photo Analysis
+                    </CardTitle>
+                    <CardDescription className="text-slate-400">
+                      Upload tree photos for AI analysis of health, damage, and recommended services
+                    </CardDescription>
+                  </CardHeader>
+                </Card>
+                <AIChat 
+                  endpoint="/api/ai/analyze"
+                  title="Photo Analyzer"
+                  placeholder="Upload a tree photo and ask for analysis..."
+                  allowImages={true}
+                />
+              </div>
+              <Card className="bg-slate-800 border-slate-700 h-fit">
+                <CardHeader>
+                  <CardTitle className="text-white">Photo Tips</CardTitle>
+                </CardHeader>
+                <CardContent className="text-slate-300 space-y-3">
+                  <p><strong>For best analysis, include photos of:</strong></p>
+                  <ul className="list-disc pl-5 space-y-1 text-sm">
+                    <li>Full tree from a distance</li>
+                    <li>Trunk close-up</li>
+                    <li>Any damaged or diseased areas</li>
+                    <li>Surrounding structures</li>
+                    <li>Access points to property</li>
+                  </ul>
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
         </Tabs>
       </div>
