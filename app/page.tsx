@@ -274,7 +274,7 @@ export default function Dashboard() {
                 <div className="space-y-2">
                   {demoJobs.map(job => (
                     <Dialog key={job.id}>
-                      <DialogTrigger asChild>
+                      <DialogTrigger>
                         <div className="p-4 bg-slate-700 rounded-lg hover:bg-slate-600 cursor-pointer transition">
                           <div className="flex justify-between items-start">
                             <div>
@@ -333,7 +333,7 @@ export default function Dashboard() {
                 <div className="space-y-2">
                   {demoQuotes.map(quote => (
                     <Dialog key={quote.id}>
-                      <DialogTrigger asChild>
+                      <DialogTrigger>
                         <div className="p-4 bg-slate-700 rounded-lg hover:bg-slate-600 cursor-pointer transition">
                           <div className="flex justify-between items-start">
                             <div>
