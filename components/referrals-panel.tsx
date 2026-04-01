@@ -1,6 +1,5 @@
 "use client"
 
-// Referral Code Tracking Panel
 import { useState } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -20,10 +19,8 @@ import {
   Plus,
   Copy,
   Phone,
-  DollarSign,
   Loader2,
   CheckCircle,
-  Users,
 } from "lucide-react"
 import { useReferrers, useJobs } from "@/lib/supabase/hooks"
 import { toast } from "sonner"
@@ -39,14 +36,20 @@ export function ReferralsPanel() {
     name: "",
     phone: "",
     code: "",
-    type: "new", // "new" = new customers, "loyal" = repeat customers, "referrer" = person promoting
+    type: "new" as "new" | "loyal" | "referrer",
     discount: 10,
   })
 
-  // Count jobs per referrer (jobs with referral info in notes)
-  const getReferralStats = (referrerName: string, code: string) => {
+  const copyCode = (code: string) => {
+    navigator.clipboard.writeText(code)
+    setCopiedCode(code)
+    toast.success(`Copied ${code} to clipboard`)
+    setTimeout(() => setCopiedCode(null), 2000)
+  }
+
+  const getReferralStats = (name: string, code: string) => {
     const referredJobs = jobs.filter(j => 
-      j.notes?.toLowerCase().includes(`referral: ${referrerName.toLowerCase()}`) ||
+      j.notes?.toLowerCase().includes(`referral: ${name.toLowerCase()}`) ||
       j.notes?.toLowerCase().includes(code.toLowerCase())
     )
     return {
@@ -61,20 +64,18 @@ export function ReferralsPanel() {
       return
     }
 
-    // For new/loyal types, just need the code. For referrer, need name too
     if (formData.type === "referrer" && !formData.name) {
       toast.error("Please enter the person's name")
       return
     }
 
-    // Check if code already exists
     if (referrers.find(r => r.referral_code.toLowerCase() === formData.code.toLowerCase())) {
       toast.error("This code already exists")
       return
     }
 
     setIsSubmitting(true)
-    const { data, error } = await createReferrer({
+    const { error } = await createReferrer({
       name: formData.type === "new" ? "New Customer" : formData.type === "loyal" ? "Repeat Customer" : formData.name,
       phone: formData.phone,
       referral_code: formData.code.toUpperCase(),
@@ -90,39 +91,31 @@ export function ReferralsPanel() {
     if (error) {
       toast.error("Failed to create code")
     } else {
-      const typeLabel = formData.type === "new" ? "New Customer" : formData.type === "loyal" ? "Repeat Customer" : formData.name
       toast.success(`${formData.discount}% off code created: ${formData.code.toUpperCase()}`)
       setIsNewOpen(false)
       setFormData({ name: "", phone: "", code: "", type: "new", discount: 10 })
     }
   }
 
-  const copyCode = (code: string) => {
-    navigator.clipboard.writeText(code)
-    setCopiedCode(code)
-    toast.success(`Copied: ${code}`)
-    setTimeout(() => setCopiedCode(null), 2000)
-  }
-
-  // Generate a simple code from name
-  const generateCode = (name: string) => {
-    const firstName = name.split(" ")[0].toUpperCase()
-    const random = Math.floor(Math.random() * 100)
-    return `${firstName}${random}`
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    )
   }
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Referral Codes</h1>
-          <p className="text-muted-foreground">Track who sends you business</p>
+          <h1 className="text-2xl font-bold">Discount Codes</h1>
+          <p className="text-muted-foreground">Manage referral and loyalty codes</p>
         </div>
         <Dialog open={isNewOpen} onOpenChange={setIsNewOpen}>
           <DialogTrigger asChild>
-            <Button>
-              <Plus className="mr-2 h-4 w-4" />
+            <Button className="gap-2">
+              <Plus className="h-4 w-4" />
               New Code
             </Button>
           </DialogTrigger>
@@ -135,13 +128,12 @@ export function ReferralsPanel() {
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
-                <Label htmlFor="type">Code Type</Label>
+                <Label>Code Type</Label>
                 <select
-                  id="type"
-                  className="flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                  className="flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
                   value={formData.type}
                   onChange={(e) => {
-                    const newType = e.target.value
+                    const newType = e.target.value as "new" | "loyal" | "referrer"
                     let newDiscount = 10
                     if (newType === "loyal") newDiscount = 15
                     setFormData({ ...formData, type: newType, discount: newDiscount })
@@ -154,33 +146,29 @@ export function ReferralsPanel() {
               </div>
 
               {formData.type === "referrer" && (
-                <div className="grid gap-2">
-                  <Label htmlFor="name">Person's Name</Label>
-                  <Input 
-                    id="name" 
-                    placeholder="John Smith"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  />
-                </div>
-              )}
-
-              {formData.type === "referrer" && (
-                <div className="grid gap-2">
-                  <Label htmlFor="phone">Phone (optional)</Label>
-                  <Input 
-                    id="phone" 
-                    placeholder="(555) 123-4567"
-                    value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  />
-                </div>
+                <>
+                  <div className="grid gap-2">
+                    <Label>Person&apos;s Name</Label>
+                    <Input 
+                      placeholder="John Smith"
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label>Phone (optional)</Label>
+                    <Input 
+                      placeholder="(555) 123-4567"
+                      value={formData.phone}
+                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    />
+                  </div>
+                </>
               )}
 
               <div className="grid gap-2">
-                <Label htmlFor="code">Code</Label>
+                <Label>Code</Label>
                 <Input 
-                  id="code" 
                   placeholder={formData.type === "new" ? "BLACKBEAR10" : formData.type === "loyal" ? "LOYAL15" : "JOHN10"}
                   value={formData.code}
                   onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
@@ -189,14 +177,13 @@ export function ReferralsPanel() {
               </div>
 
               <div className="grid gap-2">
-                <Label htmlFor="discount">Discount %</Label>
+                <Label>Discount %</Label>
                 <Input 
-                  id="discount" 
                   type="number"
                   min="1"
                   max="50"
                   value={formData.discount}
-                  onChange={(e) => setFormData({ ...formData, discount: parseInt(e.target.value) })}
+                  onChange={(e) => setFormData({ ...formData, discount: parseInt(e.target.value) || 10 })}
                 />
               </div>
             </div>
@@ -213,77 +200,23 @@ export function ReferralsPanel() {
         </Dialog>
       </div>
 
-      {/* Stats */}
-      <div className="grid gap-4 sm:grid-cols-3">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                <Users className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{referrers.length}</p>
-                <p className="text-sm text-muted-foreground">Active Codes</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-accent/10">
-                <Gift className="h-5 w-5 text-accent" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">
-                  {referrers.reduce((sum, r) => {
-                    const stats = getReferralStats(r.name, r.referral_code)
-                    return sum + stats.count
-                  }, 0)}
-                </p>
-                <p className="text-sm text-muted-foreground">Total Referrals</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-500/10">
-                <DollarSign className="h-5 w-5 text-green-500" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">
-                  ${referrers.reduce((sum, r) => {
-                    const stats = getReferralStats(r.name, r.referral_code)
-                    return sum + stats.value
-                  }, 0).toLocaleString()}
-                </p>
-                <p className="text-sm text-muted-foreground">Referral Value</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Loading */}
-      {loading && (
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-      )}
-
-      {/* Referrer List */}
-      {!loading && (
-        <div className="grid gap-4">
-          {referrers.length === 0 && (
-            <div className="flex flex-col items-center justify-center rounded-lg bg-secondary/30 p-8 text-center">
-              <Gift className="h-10 w-10 text-muted-foreground mb-3" />
-              <p className="font-medium text-muted-foreground">No referral codes yet</p>
-              <p className="text-sm text-muted-foreground mt-1">Create codes for people who send you business</p>
-            </div>
-          )}
-          {referrers.map((referrer) => {
+      <div className="grid gap-4">
+        {referrers.length === 0 ? (
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center p-8 text-center">
+              <Gift className="h-12 w-12 text-muted-foreground mb-4" />
+              <h3 className="font-semibold mb-2">No discount codes yet</h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                Create codes for new customers, loyal repeat clients, and referral partners
+              </p>
+              <Button onClick={() => setIsNewOpen(true)}>
+                <Plus className="mr-2 h-4 w-4" />
+                Create Your First Code
+              </Button>
+            </CardContent>
+          </Card>
+        ) : (
+          referrers.map((referrer) => {
             const stats = getReferralStats(referrer.name, referrer.referral_code)
             const discountPercent = Math.round(referrer.commission_rate * 100)
             const isNewCustomer = referrer.name === "New Customer"
@@ -297,7 +230,7 @@ export function ReferralsPanel() {
                       <div className={`flex h-12 w-12 items-center justify-center rounded-lg font-bold text-white ${
                         isNewCustomer ? "bg-blue-500" : isRepeatCustomer ? "bg-purple-500" : "bg-primary"
                       }`}>
-                        {isNewCustomer ? "🆕" : isRepeatCustomer ? "⭐" : referrer.name.split(" ").map(n => n[0]).join("").toUpperCase()}
+                        {isNewCustomer ? "NEW" : isRepeatCustomer ? "VIP" : referrer.name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2)}
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
@@ -354,9 +287,9 @@ export function ReferralsPanel() {
                 </CardContent>
               </Card>
             )
-          })}
-        </div>
-      )}
+          })
+        )}
+      </div>
     </div>
   )
 }

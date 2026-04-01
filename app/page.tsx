@@ -1,5 +1,6 @@
 "use client"
 
+// Bear Hub Pro - Streamlined Tree Service Management
 import { useState } from "react"
 import { Sidebar } from "@/components/sidebar"
 import { Header } from "@/components/header"
