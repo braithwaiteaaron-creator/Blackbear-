@@ -28,14 +28,10 @@ interface SidebarProps {
 }
 
 const navItems = [
-  { id: "dashboard" as const, label: "Command Center", icon: LayoutDashboard },
+  { id: "dashboard" as const, label: "Dashboard", icon: LayoutDashboard },
   { id: "jobs" as const, label: "Jobs & Quotes", icon: Briefcase },
-  { id: "leads" as const, label: "Lead Generator", icon: Users },
-  { id: "routes" as const, label: "Route Planner", icon: MapPin },
-  { id: "agents" as const, label: "Agents", icon: UserCircle },
-  { id: "financials" as const, label: "Financials", icon: DollarSign },
-  { id: "merch" as const, label: "Merchandise", icon: ShoppingBag },
-  { id: "referrals" as const, label: "Winners Circle", icon: Gift },
+  { id: "customers" as const, label: "Customers", icon: Users },
+  { id: "schedule" as const, label: "Schedule", icon: MapPin },
 ]
 
 export function Sidebar({ activeView, setActiveView, isOpen, onToggle }: SidebarProps) {

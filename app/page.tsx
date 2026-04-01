@@ -5,16 +5,11 @@ import { Sidebar } from "@/components/sidebar"
 import { Header } from "@/components/header"
 import { DashboardOverview } from "@/components/dashboard-overview"
 import { JobsPanel } from "@/components/jobs-panel"
-import { LeadsPanel } from "@/components/leads-panel"
-import { RoutePanel } from "@/components/route-panel"
-import { AgentsPanel } from "@/components/agents-panel"
-import { FinancialsPanel } from "@/components/financials-panel"
-import { MerchPanel } from "@/components/merch-panel"
-import { ReferralPanel } from "@/components/referral-panel"
-import { WeatherAlerts } from "@/components/weather-alerts"
+import { CustomersPanel } from "@/components/customers-panel"
+import { SchedulePanel } from "@/components/schedule-panel"
 import { VoiceCommand } from "@/components/voice-command"
 
-export type ActiveView = "dashboard" | "jobs" | "leads" | "routes" | "agents" | "financials" | "merch" | "referrals"
+export type ActiveView = "dashboard" | "jobs" | "customers" | "schedule"
 
 export default function BearHubPro() {
   const [activeView, setActiveView] = useState<ActiveView>("dashboard")
@@ -26,18 +21,10 @@ export default function BearHubPro() {
         return <DashboardOverview onNavigate={setActiveView} />
       case "jobs":
         return <JobsPanel />
-      case "leads":
-        return <LeadsPanel />
-      case "routes":
-        return <RoutePanel />
-      case "agents":
-        return <AgentsPanel />
-      case "financials":
-        return <FinancialsPanel />
-      case "merch":
-        return <MerchPanel />
-      case "referrals":
-        return <ReferralPanel />
+      case "customers":
+        return <CustomersPanel />
+      case "schedule":
+        return <SchedulePanel />
       default:
         return <DashboardOverview onNavigate={setActiveView} />
     }
@@ -54,27 +41,22 @@ export default function BearHubPro() {
       <div className="flex flex-1 flex-col overflow-hidden">
         <Header onMenuToggle={() => setSidebarOpen(!sidebarOpen)} />
         <main className="flex-1 overflow-auto p-4 lg:p-6">
-          <WeatherAlerts />
           {renderContent()}
         </main>
         <VoiceCommand 
-          onCommand={(command, address) => {
+          onCommand={(command) => {
             switch (command) {
               case "quote":
                 setActiveView("jobs")
                 break
-              case "damage":
-                setActiveView("routes")
-                break
-              case "route":
-              case "route-plan":
-                setActiveView("routes")
-                break
-              case "weather":
-                // Weather alerts are already visible at top
-                break
               case "follow-up":
-                setActiveView("leads")
+                setActiveView("jobs")
+                break
+              case "schedule":
+                setActiveView("schedule")
+                break
+              case "customers":
+                setActiveView("customers")
                 break
             }
           }}

@@ -22,7 +22,7 @@ export function JobPhotoUpload({ jobId, onPhotosChange }: JobPhotoUploadProps) {
   const [photos, setPhotos] = useState<UploadedPhoto[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  // Call parent callback whenever photos change
+  // Call parent callback whenever photos change via useEffect (not during render)
   useEffect(() => {
     onPhotosChange?.(photos.map((p) => p.file))
   }, [photos, onPhotosChange])
@@ -52,11 +52,7 @@ export function JobPhotoUpload({ jobId, onPhotosChange }: JobPhotoUploadProps) {
           uploading: false,
         }
 
-        setPhotos((prev) => {
-          const updated = [...prev, newPhoto]
-          return updated
-        })
-
+        setPhotos((prev) => [...prev, newPhoto])
         toast.success(`${file.name} added`)
       }
       reader.readAsDataURL(file)
@@ -69,9 +65,7 @@ export function JobPhotoUpload({ jobId, onPhotosChange }: JobPhotoUploadProps) {
   }
 
   const removePhoto = (id: string) => {
-    setPhotos((prev) => {
-      return prev.filter((p) => p.id !== id)
-    })
+    setPhotos((prev) => prev.filter((p) => p.id !== id))
   }
 
   return (
@@ -156,7 +150,7 @@ export function JobPhotoUpload({ jobId, onPhotosChange }: JobPhotoUploadProps) {
       {photos.length > 0 && (
         <div className="bg-secondary/50 p-3 rounded-lg text-xs text-muted-foreground">
           <p>Photos are stored locally until you save this job.</p>
-          <p>After saving, they'll be uploaded to the cloud and linked to this job.</p>
+          <p>After saving, they&apos;ll be uploaded to the cloud and linked to this job.</p>
         </div>
       )}
     </div>
