@@ -39,94 +39,17 @@ interface Lead {
   priority: "hot" | "warm" | "cold"
 }
 
-const mockLeads: Lead[] = [
-  {
-    id: 1,
-    name: "Sarah Mitchell",
-    address: "890 Willow Court",
-    phone: "(555) 123-4567",
-    email: "sarah.m@email.com",
-    source: "instagram",
-    status: "new",
-    value: 2500,
-    trees: 8,
-    properties: 1,
-    notes: "Saw our storm damage post, has multiple dead trees",
-    lastContact: "2026-03-21",
-    priority: "hot",
-  },
-  {
-    id: 2,
-    name: "Commercial Properties Inc",
-    address: "Multiple Locations",
-    phone: "(555) 987-6543",
-    email: "facilities@commprop.com",
-    source: "linkedin",
-    status: "quoted",
-    value: 15000,
-    trees: 50,
-    properties: 5,
-    notes: "Annual maintenance contract potential - 5 properties",
-    lastContact: "2026-03-19",
-    priority: "hot",
-  },
-  {
-    id: 3,
-    name: "James Peterson",
-    address: "234 Elm Street",
-    phone: "(555) 456-7890",
-    email: "jpete@email.com",
-    source: "spotted",
-    status: "contacted",
-    value: 800,
-    trees: 3,
-    properties: 1,
-    notes: "Spotted overgrown oak while driving - left card",
-    lastContact: "2026-03-18",
-    priority: "warm",
-  },
-  {
-    id: 4,
-    name: "Green Acres HOA",
-    address: "Green Acres Subdivision",
-    phone: "(555) 321-0987",
-    email: "hoa@greenacres.org",
-    source: "referral",
-    status: "follow-up",
-    value: 8000,
-    trees: 30,
-    properties: 1,
-    notes: "Referred by Johnson Family - community tree maintenance",
-    lastContact: "2026-03-15",
-    priority: "warm",
-  },
-  {
-    id: 5,
-    name: "Mike Wilson",
-    address: "567 Oak Avenue",
-    phone: "(555) 654-3210",
-    email: "mwilson@email.com",
-    source: "website",
-    status: "converted",
-    value: 1200,
-    trees: 2,
-    properties: 1,
-    notes: "Converted! Job scheduled for next week",
-    lastContact: "2026-03-20",
-    priority: "hot",
-  },
-]
-
 const marketingStats = {
-  instagram: { posts: 24, reach: 12500, leads: 8 },
-  linkedin: { posts: 12, reach: 5200, leads: 4 },
-  totalLeads: 28,
-  hotLeads: 8,
-  conversionRate: 32,
+  instagram: { posts: 0, reach: 0, leads: 0 },
+  linkedin: { posts: 0, reach: 0, leads: 0 },
+  totalLeads: 0,
+  hotLeads: 0,
+  conversionRate: 0,
 }
 
 export function LeadsPanel() {
-  const [leads] = useState<Lead[]>(mockLeads)
+  const [leads, setLeads] = useState<Lead[]>([])
+  // TODO: Replace with useLeads hook from @/lib/supabase/hooks
   const [searchQuery, setSearchQuery] = useState("")
 
   const filteredLeads = leads.filter(
@@ -261,6 +184,13 @@ export function LeadsPanel() {
 
         <TabsContent value="all" className="mt-4">
           <div className="grid gap-4">
+            {filteredLeads.length === 0 && (
+              <div className="flex flex-col items-center justify-center rounded-lg bg-secondary/30 p-8 text-center">
+                <Users className="h-10 w-10 text-muted-foreground mb-3" />
+                <p className="font-medium text-muted-foreground">No leads yet</p>
+                <p className="text-sm text-muted-foreground mt-1">Tap &quot;Add Lead&quot; to start tracking potential customers</p>
+              </div>
+            )}
             {filteredLeads.map((lead) => (
               <Card key={lead.id} className="bg-card border-border">
                 <CardContent className="p-4">

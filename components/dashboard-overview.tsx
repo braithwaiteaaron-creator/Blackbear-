@@ -27,25 +27,15 @@ interface DashboardOverviewProps {
 }
 
 const stats = [
-  { label: "Active Jobs", value: "12", change: "+3 this week", icon: TreeDeciduous, color: "text-primary" },
-  { label: "Revenue MTD", value: "$24,850", change: "+18%", icon: DollarSign, color: "text-accent" },
-  { label: "Active Leads", value: "28", change: "8 hot leads", icon: Users, color: "text-chart-2" },
-  { label: "Routes Today", value: "3", change: "14 stops", icon: MapPin, color: "text-chart-5" },
+  { label: "Active Jobs", value: "0", change: "Add your first job", icon: TreeDeciduous, color: "text-primary" },
+  { label: "Revenue MTD", value: "$0", change: "No revenue yet", icon: DollarSign, color: "text-accent" },
+  { label: "Active Leads", value: "0", change: "No leads yet", icon: Users, color: "text-chart-2" },
+  { label: "Routes Today", value: "0", change: "No routes planned", icon: MapPin, color: "text-chart-5" },
 ]
 
-const recentJobs = [
-  { id: 1, address: "Bridle Path Mansion", type: "Huge Red Oak Removal", status: "Featured", value: "$18,500", permit: true, featured: true },
-  { id: 2, address: "456 Maple Ave, Toronto", type: "Tree Removal", status: "In Progress", value: "$1,200", permit: true },
-  { id: 3, address: "Storm Damage - Scarborough", type: "Emergency Removal", status: "Urgent", value: "$2,800", permit: true },
-  { id: 4, address: "321 Pine Road, Markham", type: "Pruning & Stump Grinding", status: "Scheduled", value: "$950", permit: false },
-]
+const recentJobs: { id: number; address: string; type: string; status: string; value: string; permit: boolean; featured?: boolean }[] = []
 
-const upcomingTasks = [
-  { time: "9:00 AM", task: "Quote at 567 Birch Drive", type: "quote" },
-  { time: "11:30 AM", task: "Tree removal - 456 Maple Ave", type: "job" },
-  { time: "2:00 PM", task: "Follow up with Johnson Family", type: "lead" },
-  { time: "4:00 PM", task: "Storm damage assessment route", type: "route" },
-]
+const upcomingTasks: { time: string; task: string; type: string }[] = []
 
 export function DashboardOverview({ onNavigate }: DashboardOverviewProps) {
   return (
@@ -139,47 +129,48 @@ export function DashboardOverview({ onNavigate }: DashboardOverviewProps) {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {recentJobs.map((job) => (
-                <div
-                  key={job.id}
-                  className={`flex items-center justify-between rounded-lg p-3 ${
-                    job.status === "Featured" 
-                      ? "bg-gradient-to-r from-yellow-500/20 to-amber-500/10 border border-yellow-500/30" 
-                      : "bg-secondary/50"
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                      <TreeDeciduous className="h-5 w-5 text-primary" />
-                    </div>
-                    <div>
-                      <p className="font-medium">{job.address}</p>
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <span>{job.type}</span>
-                        {job.permit && (
-                          <Badge variant="outline" className="text-[10px] px-1.5 py-0">
-                            Permit Needed
-                          </Badge>
-                        )}
+              {recentJobs.length === 0 ? (
+                <div className="flex flex-col items-center justify-center rounded-lg bg-secondary/30 p-8 text-center">
+                  <TreeDeciduous className="h-10 w-10 text-muted-foreground mb-3" />
+                  <p className="font-medium text-muted-foreground">No jobs yet</p>
+                  <p className="text-sm text-muted-foreground mt-1">Head to Jobs & Quotes to add your first job</p>
+                  <Button size="sm" className="mt-4" onClick={() => onNavigate("jobs")}>Add First Job</Button>
+                </div>
+              ) : (
+                recentJobs.map((job) => (
+                  <div
+                    key={job.id}
+                    className={`flex items-center justify-between rounded-lg p-3 ${
+                      job.status === "Featured"
+                        ? "bg-gradient-to-r from-yellow-500/20 to-amber-500/10 border border-yellow-500/30"
+                        : "bg-secondary/50"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+                        <TreeDeciduous className="h-5 w-5 text-primary" />
+                      </div>
+                      <div>
+                        <p className="font-medium">{job.address}</p>
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <span>{job.type}</span>
+                          {job.permit && (
+                            <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                              Permit Needed
+                            </Badge>
+                          )}
+                        </div>
                       </div>
                     </div>
+                    <div className="flex items-center gap-3">
+                      <span className="font-semibold text-accent">{job.value}</span>
+                      <Badge variant={job.status === "Urgent" ? "destructive" : job.status === "In Progress" ? "default" : "secondary"}>
+                        {job.status}
+                      </Badge>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <span className="font-semibold text-accent">{job.value}</span>
-                    <Badge
-                      variant={
-                        job.status === "Urgent"
-                          ? "destructive"
-                          : job.status === "In Progress"
-                          ? "default"
-                          : "secondary"
-                      }
-                    >
-                      {job.status}
-                    </Badge>
-                  </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </CardContent>
         </Card>
@@ -194,14 +185,21 @@ export function DashboardOverview({ onNavigate }: DashboardOverviewProps) {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {upcomingTasks.map((item, index) => (
-                <div key={index} className="flex gap-3 rounded-lg bg-secondary/50 p-3">
-                  <span className="text-xs text-muted-foreground whitespace-nowrap">{item.time}</span>
-                  <div className="flex-1">
-                    <p className="text-sm">{item.task}</p>
-                  </div>
+              {upcomingTasks.length === 0 ? (
+                <div className="flex flex-col items-center justify-center rounded-lg bg-secondary/30 p-6 text-center">
+                  <Clock className="h-8 w-8 text-muted-foreground mb-2" />
+                  <p className="text-sm text-muted-foreground">No tasks scheduled today</p>
                 </div>
-              ))}
+              ) : (
+                upcomingTasks.map((item, index) => (
+                  <div key={index} className="flex gap-3 rounded-lg bg-secondary/50 p-3">
+                    <span className="text-xs text-muted-foreground whitespace-nowrap">{item.time}</span>
+                    <div className="flex-1">
+                      <p className="text-sm">{item.task}</p>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </CardContent>
         </Card>

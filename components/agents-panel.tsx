@@ -34,58 +34,16 @@ interface Agent {
   treesThisMonth: number
 }
 
-const mockAgents: Agent[] = [
-  {
-    id: 1,
-    name: "Owner",
-    role: "manager",
-    avatar: "BB",
-    avatarImage: "/images/owner-climbing.jpg",
-    jobsCompleted: 156,
-    monthlyRevenue: 42500,
-    commission: 0,
-    rating: 5.0,
-    status: "on-job",
-    investmentBalance: 12800,
-    treesThisMonth: 67,
-  },
-  {
-    id: 2,
-    name: "Store Manager",
-    role: "manager",
-    avatar: "SM",
-    jobsCompleted: 32,
-    monthlyRevenue: 18200,
-    commission: 2730,
-    rating: 4.8,
-    status: "active",
-    investmentBalance: 3200,
-    treesThisMonth: 18,
-  },
-  {
-    id: 3,
-    name: "Tree Sales Agent",
-    role: "sales",
-    avatar: "TS",
-    jobsCompleted: 45,
-    monthlyRevenue: 24800,
-    commission: 3720,
-    rating: 4.9,
-    status: "active",
-    investmentBalance: 4500,
-    treesThisMonth: 28,
-  },
-]
-
 const investmentStats = {
-  totalPool: 15000,
-  litecoinPrice: 85.50,
-  monthlyDistribution: 2850,
-  participants: 4,
+  totalPool: 0,
+  litecoinPrice: 0,
+  monthlyDistribution: 0,
+  participants: 0,
 }
 
 export function AgentsPanel() {
-  const [agents] = useState<Agent[]>(mockAgents)
+  const [agents, setAgents] = useState<Agent[]>([])
+  // TODO: Replace with useAgents hook from @/lib/supabase/hooks
 
   const getRoleBadge = (role: Agent["role"]) => {
     switch (role) {
@@ -197,6 +155,13 @@ export function AgentsPanel() {
 
         <TabsContent value="team" className="mt-4">
           <div className="grid gap-4 lg:grid-cols-2">
+            {agents.length === 0 && (
+              <div className="col-span-2 flex flex-col items-center justify-center rounded-lg bg-secondary/30 p-8 text-center">
+                <UserCircle className="h-10 w-10 text-muted-foreground mb-3" />
+                <p className="font-medium text-muted-foreground">No agents yet</p>
+                <p className="text-sm text-muted-foreground mt-1">Tap &quot;Add Agent&quot; to add your team members</p>
+              </div>
+            )}
             {agents.map((agent) => (
               <Card key={agent.id} className="bg-card border-border">
                 <CardContent className="p-4">

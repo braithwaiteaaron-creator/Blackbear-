@@ -30,79 +30,17 @@ interface Transaction {
   jobType: string
 }
 
-const mockTransactions: Transaction[] = [
-  {
-    id: 1,
-    customer: "Johnson Family",
-    address: "456 Maple Avenue",
-    amount: 1200,
-    type: "e-transfer",
-    status: "completed",
-    date: "2026-03-21",
-    jobType: "Tree Removal",
-  },
-  {
-    id: 2,
-    customer: "Smith Residence",
-    address: "789 Cedar Lane",
-    amount: 450,
-    type: "qr-payment",
-    status: "pending",
-    date: "2026-03-20",
-    jobType: "Pruning",
-  },
-  {
-    id: 3,
-    customer: "Municipal Parks",
-    address: "123 Oak Street",
-    amount: 2800,
-    type: "invoice",
-    status: "pending",
-    date: "2026-03-19",
-    jobType: "Storm Damage",
-  },
-  {
-    id: 4,
-    customer: "Thompson Estate",
-    address: "321 Pine Road",
-    amount: 350,
-    type: "e-transfer",
-    status: "completed",
-    date: "2026-03-18",
-    jobType: "Stump Grinding",
-  },
-  {
-    id: 5,
-    customer: "Anderson Corp",
-    address: "555 Birch Drive",
-    amount: 1800,
-    type: "e-transfer",
-    status: "completed",
-    date: "2026-03-15",
-    jobType: "Tree Installation",
-  },
-  {
-    id: 6,
-    customer: "Green Acres HOA",
-    address: "Green Acres Subdivision",
-    amount: 3500,
-    type: "invoice",
-    status: "overdue",
-    date: "2026-03-01",
-    jobType: "Community Maintenance",
-  },
-]
-
 const financialStats = {
-  mtdRevenue: 24850,
-  mtdExpenses: 8200,
-  pendingPayments: 6750,
-  overduePayments: 3500,
-  monthlyGrowth: 18,
+  mtdRevenue: 0,
+  mtdExpenses: 0,
+  pendingPayments: 0,
+  overduePayments: 0,
+  monthlyGrowth: 0,
 }
 
 export function FinancialsPanel() {
-  const [transactions] = useState<Transaction[]>(mockTransactions)
+  const [transactions, setTransactions] = useState<Transaction[]>([])
+  // TODO: Replace with useTransactions hook from @/lib/supabase/hooks
 
   const getStatusIcon = (status: Transaction["status"]) => {
     switch (status) {
@@ -275,6 +213,13 @@ export function FinancialsPanel() {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
+                {transactions.length === 0 && (
+                  <div className="flex flex-col items-center justify-center rounded-lg bg-secondary/30 p-8 text-center">
+                    <DollarSign className="h-10 w-10 text-muted-foreground mb-3" />
+                    <p className="font-medium text-muted-foreground">No transactions yet</p>
+                    <p className="text-sm text-muted-foreground mt-1">Transactions will appear here as you log payments</p>
+                  </div>
+                )}
                 {transactions.map((tx) => (
                   <div
                     key={tx.id}
