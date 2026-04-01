@@ -1,224 +1,410 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase/client'
+import { useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Plus, Download, MoreVertical } from 'lucide-react'
-import JobsList from '@/components/jobs-list'
-import CustomersList from '@/components/customers-list'
-import QuotesList from '@/components/quotes-list'
-import JobForm from '@/components/job-form'
-import CustomerForm from '@/components/customer-form'
-import QuoteForm from '@/components/quote-form'
+import { Badge } from '@/components/ui/badge'
+import { Plus, Briefcase, FileText, Users, TrendingUp, Clock, CheckCircle, AlertCircle } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 
-interface Job {
-  id: string
-  customer_id: string | null
-  quote_id: string | null
-  job_number: string
-  description: string
-  service_type: string
-  status: string
-  scheduled_date: string | null
-  completed_date: string | null
-  amount: number
-  paid: boolean
-  notes: string | null
-  address: string | null
-  created_at: string
-  updated_at: string
+// Demo data
+const demoJobs = [
+  {
+    id: '1',
+    job_number: 'J-20260401-001',
+    description: 'Oak tree removal - 40ft height',
+    service_type: 'Tree Removal',
+    status: 'in_progress',
+    customer: 'John Smith',
+    amount: 1500,
+    scheduled_date: '2026-04-01',
+    address: '123 Oak Street, Austin, TX',
+  },
+  {
+    id: '2',
+    job_number: 'J-20260401-002',
+    description: 'Pine tree trimming and cleanup',
+    service_type: 'Tree Trimming',
+    status: 'scheduled',
+    customer: 'Sarah Johnson',
+    amount: 800,
+    scheduled_date: '2026-04-03',
+    address: '456 Pine Ave, Austin, TX',
+  },
+  {
+    id: '3',
+    job_number: 'J-20260330-001',
+    description: 'Stump grinding - 24 inch diameter',
+    service_type: 'Stump Grinding',
+    status: 'completed',
+    customer: 'Mike Davis',
+    amount: 600,
+    scheduled_date: '2026-03-30',
+    address: '789 Elm Drive, Austin, TX',
+  },
+]
+
+const demoQuotes = [
+  {
+    id: '1',
+    quote_number: 'Q-20260401-001',
+    customer: 'Robert Wilson',
+    description: 'Large oak removal with stump grinding',
+    amount: 2500,
+    status: 'pending',
+    created_date: '2026-04-01',
+  },
+  {
+    id: '2',
+    quote_number: 'Q-20260401-002',
+    customer: 'Emily Brown',
+    description: 'Tree health assessment and pruning',
+    amount: 450,
+    status: 'sent',
+    created_date: '2026-03-31',
+  },
+  {
+    id: '3',
+    quote_number: 'Q-20260330-001',
+    customer: 'David Miller',
+    description: 'Multiple tree removal project',
+    amount: 5000,
+    status: 'approved',
+    created_date: '2026-03-30',
+  },
+]
+
+const demoCustomers = [
+  { id: '1', name: 'John Smith', email: 'john@email.com', phone: '(512) 555-0001', city: 'Austin' },
+  { id: '2', name: 'Sarah Johnson', email: 'sarah@email.com', phone: '(512) 555-0002', city: 'Austin' },
+  { id: '3', name: 'Mike Davis', email: 'mike@email.com', phone: '(512) 555-0003', city: 'Austin' },
+  { id: '4', name: 'Robert Wilson', email: 'robert@email.com', phone: '(512) 555-0004', city: 'Austin' },
+]
+
+const getStatusColor = (status: string) => {
+  switch (status) {
+    case 'completed':
+    case 'approved':
+      return 'bg-emerald-100 text-emerald-800'
+    case 'in_progress':
+      return 'bg-blue-100 text-blue-800'
+    case 'scheduled':
+    case 'sent':
+      return 'bg-amber-100 text-amber-800'
+    case 'pending':
+      return 'bg-slate-100 text-slate-800'
+    default:
+      return 'bg-slate-100 text-slate-800'
+  }
 }
 
-interface Customer {
-  id: string
-  name: string
-  email: string | null
-  phone: string | null
-  address: string | null
-  city: string | null
-  state: string | null
-  zip: string | null
-  notes: string | null
-  created_at: string
-  updated_at: string
-}
-
-interface Quote {
-  id: string
-  customer_id: string | null
-  quote_number: string
-  description: string
-  service_type: string
-  amount: number
-  status: string
-  valid_until: string | null
-  notes: string | null
-  created_at: string
-  updated_at: string
+const getStatusIcon = (status: string) => {
+  switch (status) {
+    case 'completed':
+    case 'approved':
+      return <CheckCircle className="w-4 h-4" />
+    case 'in_progress':
+      return <Clock className="w-4 h-4" />
+    case 'pending':
+      return <AlertCircle className="w-4 h-4" />
+    default:
+      return <TrendingUp className="w-4 h-4" />
+  }
 }
 
 export default function Dashboard() {
-  const [activeTab, setActiveTab] = useState('jobs')
-  const [jobsData, setJobsData] = useState<Job[]>([])
-  const [customersData, setCustomersData] = useState<Customer[]>([])
-  const [quotesData, setQuotesData] = useState<Quote[]>([])
-  const [loading, setLoading] = useState(false)
-  const [showJobForm, setShowJobForm] = useState(false)
-  const [showCustomerForm, setShowCustomerForm] = useState(false)
-  const [showQuoteForm, setShowQuoteForm] = useState(false)
+  const [activeTab, setActiveTab] = useState('overview')
+  const [selectedJob, setSelectedJob] = useState<typeof demoJobs[0] | null>(null)
+  const [selectedQuote, setSelectedQuote] = useState<typeof demoQuotes[0] | null>(null)
 
-  const supabase = createClient()
-
-  useEffect(() => {
-    fetchData()
-  }, [])
-
-  const fetchData = async () => {
-    setLoading(true)
-    try {
-      const [jobsRes, customersRes, quotesRes] = await Promise.all([
-        supabase.from('jobs').select('*').order('created_at', { ascending: false }),
-        supabase.from('customers').select('*').order('created_at', { ascending: false }),
-        supabase.from('quotes').select('*').order('created_at', { ascending: false }),
-      ])
-
-      if (jobsRes.data) setJobsData(jobsRes.data as Job[])
-      if (customersRes.data) setCustomersData(customersRes.data as Customer[])
-      if (quotesRes.data) setQuotesData(quotesRes.data as Quote[])
-    } catch (error) {
-      console.error('Error fetching data:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleJobCreated = () => {
-    setShowJobForm(false)
-    fetchData()
-  }
-
-  const handleCustomerCreated = () => {
-    setShowCustomerForm(false)
-    fetchData()
-  }
-
-  const handleQuoteCreated = () => {
-    setShowQuoteForm(false)
-    fetchData()
-  }
+  const activeJobsCount = demoJobs.filter(j => j.status === 'in_progress').length
+  const completedJobsCount = demoJobs.filter(j => j.status === 'completed').length
+  const pendingQuotesCount = demoQuotes.filter(q => q.status === 'pending').length
+  const totalRevenue = demoJobs.filter(j => j.status === 'completed').reduce((sum, j) => sum + j.amount, 0)
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-      <div className="container mx-auto px-4 py-8">
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-900">
+      <div className="p-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-4xl font-bold text-white mb-2">Bear Hub Pro</h1>
-          <p className="text-slate-300">Professional tree care job and quote management</p>
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h1 className="text-4xl font-bold text-white mb-2">Bear Hub Pro</h1>
+              <p className="text-slate-400">Tree Care Management System</p>
+            </div>
+            <div className="flex gap-3">
+              <Button className="bg-emerald-600 hover:bg-emerald-700">
+                <Plus className="w-4 h-4 mr-2" />
+                New Job
+              </Button>
+              <Button className="bg-emerald-600 hover:bg-emerald-700">
+                <Plus className="w-4 h-4 mr-2" />
+                New Quote
+              </Button>
+            </div>
+          </div>
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-4 gap-4 mb-8">
           <Card className="bg-slate-800 border-slate-700">
-            <CardContent className="p-6">
-              <p className="text-slate-400 text-sm mb-2">Total Customers</p>
-              <p className="text-3xl font-bold text-white">{customersData.length}</p>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium text-slate-400">Active Jobs</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-white">{activeJobsCount}</div>
+              <p className="text-sm text-emerald-400 mt-1">In progress</p>
             </CardContent>
           </Card>
+
           <Card className="bg-slate-800 border-slate-700">
-            <CardContent className="p-6">
-              <p className="text-slate-400 text-sm mb-2">Active Jobs</p>
-              <p className="text-3xl font-bold text-white">{jobsData.filter(j => j.status !== 'completed').length}</p>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium text-slate-400">Customers</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-white">{demoCustomers.length}</div>
+              <p className="text-sm text-emerald-400 mt-1">Total clients</p>
             </CardContent>
           </Card>
+
           <Card className="bg-slate-800 border-slate-700">
-            <CardContent className="p-6">
-              <p className="text-slate-400 text-sm mb-2">Pending Quotes</p>
-              <p className="text-3xl font-bold text-white">{quotesData.filter(q => q.status === 'pending').length}</p>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium text-slate-400">Pending Quotes</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-white">{pendingQuotesCount}</div>
+              <p className="text-sm text-amber-400 mt-1">Awaiting response</p>
             </CardContent>
           </Card>
+
           <Card className="bg-slate-800 border-slate-700">
-            <CardContent className="p-6">
-              <p className="text-slate-400 text-sm mb-2">Completed Jobs</p>
-              <p className="text-3xl font-bold text-white">{jobsData.filter(j => j.status === 'completed').length}</p>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium text-slate-400">Completed Jobs</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-white">{completedJobsCount}</div>
+              <p className="text-sm text-emerald-400 mt-1">${totalRevenue.toLocaleString()}</p>
             </CardContent>
           </Card>
         </div>
 
-        {/* Main Tabs */}
-        <Card className="bg-slate-800 border-slate-700">
-          <CardHeader>
-            <CardTitle className="text-white">Management</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="bg-slate-700 mb-6">
-                <TabsTrigger value="jobs">Jobs</TabsTrigger>
-                <TabsTrigger value="quotes">Quotes</TabsTrigger>
-                <TabsTrigger value="customers">Customers</TabsTrigger>
-              </TabsList>
+        {/* Tabs */}
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="bg-slate-800 border-slate-700 mb-6">
+            <TabsTrigger value="overview" className="text-slate-300 data-[state=active]:text-emerald-400">
+              <Briefcase className="w-4 h-4 mr-2" />
+              Overview
+            </TabsTrigger>
+            <TabsTrigger value="jobs" className="text-slate-300 data-[state=active]:text-emerald-400">
+              <Briefcase className="w-4 h-4 mr-2" />
+              Jobs
+            </TabsTrigger>
+            <TabsTrigger value="quotes" className="text-slate-300 data-[state=active]:text-emerald-400">
+              <FileText className="w-4 h-4 mr-2" />
+              Quotes
+            </TabsTrigger>
+            <TabsTrigger value="customers" className="text-slate-300 data-[state=active]:text-emerald-400">
+              <Users className="w-4 h-4 mr-2" />
+              Customers
+            </TabsTrigger>
+          </TabsList>
 
-              <div className="mb-4 flex justify-between items-center">
-                <h2 className="text-xl font-semibold text-white">
-                  {activeTab === 'jobs' && 'Job Management'}
-                  {activeTab === 'quotes' && 'Quote Management'}
-                  {activeTab === 'customers' && 'Customer Management'}
-                </h2>
-                <Dialog 
-                  open={activeTab === 'jobs' && showJobForm || activeTab === 'quotes' && showQuoteForm || activeTab === 'customers' && showCustomerForm}
-                  onOpenChange={(open) => {
-                    if (activeTab === 'jobs') setShowJobForm(open)
-                    if (activeTab === 'quotes') setShowQuoteForm(open)
-                    if (activeTab === 'customers') setShowCustomerForm(open)
-                  }}
-                >
-                  <DialogTrigger asChild>
-                    <Button className="bg-emerald-600 hover:bg-emerald-700 text-white">
-                      <Plus className="w-4 h-4 mr-2" />
-                      Add {activeTab === 'jobs' ? 'Job' : activeTab === 'quotes' ? 'Quote' : 'Customer'}
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="bg-slate-800 border-slate-700 max-w-2xl">
-                    <DialogHeader>
-                      <DialogTitle className="text-white">
-                        Add New {activeTab === 'jobs' ? 'Job' : activeTab === 'quotes' ? 'Quote' : 'Customer'}
-                      </DialogTitle>
-                    </DialogHeader>
-                    {activeTab === 'jobs' && <JobForm customers={customersData} onSuccess={handleJobCreated} />}
-                    {activeTab === 'quotes' && <QuoteForm customers={customersData} onSuccess={handleQuoteCreated} />}
-                    {activeTab === 'customers' && <CustomerForm onSuccess={handleCustomerCreated} />}
-                  </DialogContent>
-                </Dialog>
-              </div>
+          {/* Overview Tab */}
+          <TabsContent value="overview" className="space-y-6">
+            <Card className="bg-slate-800 border-slate-700">
+              <CardHeader>
+                <CardTitle className="text-white">Recent Jobs</CardTitle>
+                <CardDescription className="text-slate-400">Your most recent tree care jobs</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {demoJobs.slice(0, 3).map(job => (
+                    <div key={job.id} className="flex items-center justify-between p-3 bg-slate-700 rounded-lg hover:bg-slate-600 transition">
+                      <div className="flex-1">
+                        <p className="font-semibold text-white">{job.job_number}</p>
+                        <p className="text-sm text-slate-400">{job.description}</p>
+                        <p className="text-xs text-slate-500 mt-1">{job.address}</p>
+                      </div>
+                      <div className="text-right">
+                        <Badge className={getStatusColor(job.status)}>
+                          {getStatusIcon(job.status)}
+                          <span className="ml-1">{job.status.replace('_', ' ')}</span>
+                        </Badge>
+                        <p className="text-lg font-bold text-emerald-400 mt-2">${job.amount}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
 
-              <TabsContent value="jobs" className="space-y-4">
-                {loading ? (
-                  <p className="text-slate-400">Loading...</p>
-                ) : (
-                  <JobsList jobs={jobsData} customers={customersData} onRefresh={fetchData} />
-                )}
-              </TabsContent>
+            <Card className="bg-slate-800 border-slate-700">
+              <CardHeader>
+                <CardTitle className="text-white">Pending Quotes</CardTitle>
+                <CardDescription className="text-slate-400">Quotes waiting for customer approval</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {demoQuotes.filter(q => q.status === 'pending').map(quote => (
+                    <div key={quote.id} className="flex items-center justify-between p-3 bg-slate-700 rounded-lg hover:bg-slate-600 transition">
+                      <div className="flex-1">
+                        <p className="font-semibold text-white">{quote.quote_number}</p>
+                        <p className="text-sm text-slate-400">{quote.customer}</p>
+                        <p className="text-xs text-slate-500 mt-1">{quote.description}</p>
+                      </div>
+                      <div className="text-right">
+                        <Badge className="bg-amber-100 text-amber-800">Pending</Badge>
+                        <p className="text-lg font-bold text-emerald-400 mt-2">${quote.amount.toLocaleString()}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
 
-              <TabsContent value="quotes" className="space-y-4">
-                {loading ? (
-                  <p className="text-slate-400">Loading...</p>
-                ) : (
-                  <QuotesList quotes={quotesData} customers={customersData} onRefresh={fetchData} />
-                )}
-              </TabsContent>
+          {/* Jobs Tab */}
+          <TabsContent value="jobs">
+            <Card className="bg-slate-800 border-slate-700">
+              <CardHeader>
+                <CardTitle className="text-white">All Jobs</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  {demoJobs.map(job => (
+                    <Dialog key={job.id}>
+                      <DialogTrigger asChild>
+                        <div className="p-4 bg-slate-700 rounded-lg hover:bg-slate-600 cursor-pointer transition">
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <p className="font-semibold text-white">{job.job_number} - {job.description}</p>
+                              <p className="text-sm text-slate-400">{job.customer}</p>
+                            </div>
+                            <Badge className={getStatusColor(job.status)}>
+                              {job.status.replace('_', ' ')}
+                            </Badge>
+                          </div>
+                        </div>
+                      </DialogTrigger>
+                      <DialogContent className="bg-slate-800 border-slate-700 text-white">
+                        <DialogHeader>
+                          <DialogTitle>{job.job_number}</DialogTitle>
+                        </DialogHeader>
+                        <div className="space-y-4">
+                          <div>
+                            <p className="text-sm text-slate-400">Description</p>
+                            <p className="font-semibold">{job.description}</p>
+                          </div>
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <p className="text-sm text-slate-400">Service Type</p>
+                              <p className="font-semibold">{job.service_type}</p>
+                            </div>
+                            <div>
+                              <p className="text-sm text-slate-400">Amount</p>
+                              <p className="font-semibold text-emerald-400">${job.amount}</p>
+                            </div>
+                          </div>
+                          <div>
+                            <p className="text-sm text-slate-400">Address</p>
+                            <p className="font-semibold">{job.address}</p>
+                          </div>
+                          <div>
+                            <p className="text-sm text-slate-400">Customer</p>
+                            <p className="font-semibold">{job.customer}</p>
+                          </div>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
 
-              <TabsContent value="customers" className="space-y-4">
-                {loading ? (
-                  <p className="text-slate-400">Loading...</p>
-                ) : (
-                  <CustomersList customers={customersData} onRefresh={fetchData} />
-                )}
-              </TabsContent>
-            </Tabs>
-          </CardContent>
-        </Card>
+          {/* Quotes Tab */}
+          <TabsContent value="quotes">
+            <Card className="bg-slate-800 border-slate-700">
+              <CardHeader>
+                <CardTitle className="text-white">All Quotes</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  {demoQuotes.map(quote => (
+                    <Dialog key={quote.id}>
+                      <DialogTrigger asChild>
+                        <div className="p-4 bg-slate-700 rounded-lg hover:bg-slate-600 cursor-pointer transition">
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <p className="font-semibold text-white">{quote.quote_number}</p>
+                              <p className="text-sm text-slate-400">{quote.customer}</p>
+                            </div>
+                            <Badge className={getStatusColor(quote.status)}>
+                              {quote.status}
+                            </Badge>
+                          </div>
+                        </div>
+                      </DialogTrigger>
+                      <DialogContent className="bg-slate-800 border-slate-700 text-white">
+                        <DialogHeader>
+                          <DialogTitle>{quote.quote_number}</DialogTitle>
+                        </DialogHeader>
+                        <div className="space-y-4">
+                          <div>
+                            <p className="text-sm text-slate-400">Customer</p>
+                            <p className="font-semibold">{quote.customer}</p>
+                          </div>
+                          <div>
+                            <p className="text-sm text-slate-400">Description</p>
+                            <p className="font-semibold">{quote.description}</p>
+                          </div>
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <p className="text-sm text-slate-400">Amount</p>
+                              <p className="font-semibold text-emerald-400">${quote.amount.toLocaleString()}</p>
+                            </div>
+                            <div>
+                              <p className="text-sm text-slate-400">Status</p>
+                              <Badge className={getStatusColor(quote.status)}>
+                                {quote.status}
+                              </Badge>
+                            </div>
+                          </div>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Customers Tab */}
+          <TabsContent value="customers">
+            <Card className="bg-slate-800 border-slate-700">
+              <CardHeader>
+                <CardTitle className="text-white">All Customers</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  {demoCustomers.map(customer => (
+                    <div key={customer.id} className="p-4 bg-slate-700 rounded-lg hover:bg-slate-600 transition">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <p className="font-semibold text-white">{customer.name}</p>
+                          <p className="text-sm text-slate-400">{customer.email}</p>
+                          <p className="text-sm text-slate-500">{customer.phone}</p>
+                        </div>
+                        <Badge className="bg-emerald-100 text-emerald-800">{customer.city}</Badge>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   )
