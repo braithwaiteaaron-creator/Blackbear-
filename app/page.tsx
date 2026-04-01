@@ -14,11 +14,57 @@ import CustomerForm from '@/components/customer-form'
 import QuoteForm from '@/components/quote-form'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 
+interface Job {
+  id: string
+  customer_id: string | null
+  quote_id: string | null
+  job_number: string
+  description: string
+  service_type: string
+  status: string
+  scheduled_date: string | null
+  completed_date: string | null
+  amount: number
+  paid: boolean
+  notes: string | null
+  address: string | null
+  created_at: string
+  updated_at: string
+}
+
+interface Customer {
+  id: string
+  name: string
+  email: string | null
+  phone: string | null
+  address: string | null
+  city: string | null
+  state: string | null
+  zip: string | null
+  notes: string | null
+  created_at: string
+  updated_at: string
+}
+
+interface Quote {
+  id: string
+  customer_id: string | null
+  quote_number: string
+  description: string
+  service_type: string
+  amount: number
+  status: string
+  valid_until: string | null
+  notes: string | null
+  created_at: string
+  updated_at: string
+}
+
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState('jobs')
-  const [jobsData, setJobsData] = useState([])
-  const [customersData, setCustomersData] = useState([])
-  const [quotesData, setQuotesData] = useState([])
+  const [jobsData, setJobsData] = useState<Job[]>([])
+  const [customersData, setCustomersData] = useState<Customer[]>([])
+  const [quotesData, setQuotesData] = useState<Quote[]>([])
   const [loading, setLoading] = useState(false)
   const [showJobForm, setShowJobForm] = useState(false)
   const [showCustomerForm, setShowCustomerForm] = useState(false)
@@ -39,9 +85,9 @@ export default function Dashboard() {
         supabase.from('quotes').select('*').order('created_at', { ascending: false }),
       ])
 
-      if (jobsRes.data) setJobsData(jobsRes.data)
-      if (customersRes.data) setCustomersData(customersRes.data)
-      if (quotesRes.data) setQuotesData(quotesRes.data)
+      if (jobsRes.data) setJobsData(jobsRes.data as Job[])
+      if (customersRes.data) setCustomersData(customersRes.data as Customer[])
+      if (quotesRes.data) setQuotesData(quotesRes.data as Quote[])
     } catch (error) {
       console.error('Error fetching data:', error)
     } finally {
