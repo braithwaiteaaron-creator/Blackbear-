@@ -5,335 +5,410 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
-import { Plus, Briefcase, FileText, Users, TrendingUp, Clock, CheckCircle, AlertCircle, Bot, Calculator, Wrench, Camera } from 'lucide-react'
+import { Briefcase, FileText, Users, TrendingUp, Bot, Calculator, Wrench, Camera, TreeDeciduous, ArrowRight, Sparkles } from 'lucide-react'
 import { SimpleAIChat } from '@/components/simple-ai-chat'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 
 // Demo data
-const demoJobs = [
-  {
-    id: '1',
-    job_number: 'J-20260401-001',
-    description: 'Oak tree removal - 40ft height',
-    service_type: 'Tree Removal',
-    status: 'in_progress',
-    customer: 'John Smith',
-    amount: 1500,
-    scheduled_date: '2026-04-01',
-    address: '123 Oak Street, Austin, TX',
-  },
-  {
-    id: '2',
-    job_number: 'J-20260401-002',
-    description: 'Pine tree trimming and cleanup',
-    service_type: 'Tree Trimming',
-    status: 'scheduled',
-    customer: 'Sarah Johnson',
-    amount: 800,
-    scheduled_date: '2026-04-03',
-    address: '456 Pine Ave, Austin, TX',
-  },
-  {
-    id: '3',
-    job_number: 'J-20260330-001',
-    description: 'Stump grinding - 24 inch diameter',
-    service_type: 'Stump Grinding',
-    status: 'completed',
-    customer: 'Mike Davis',
-    amount: 600,
-    scheduled_date: '2026-03-30',
-    address: '789 Elm Drive, Austin, TX',
-  },
+const stats = [
+  { label: 'Active Jobs', value: '12', change: '+3 this week', icon: Briefcase },
+  { label: 'Pending Quotes', value: '8', change: '4 awaiting response', icon: FileText },
+  { label: 'Total Customers', value: '47', change: '+5 this month', icon: Users },
+  { label: 'Revenue MTD', value: '$24,350', change: '+18% vs last month', icon: TrendingUp },
 ]
 
-const demoQuotes = [
-  {
-    id: '1',
-    quote_number: 'Q-20260401-001',
-    customer: 'Robert Wilson',
-    description: 'Large oak removal with stump grinding',
-    amount: 2500,
-    status: 'pending',
-    created_date: '2026-04-01',
-  },
-  {
-    id: '2',
-    quote_number: 'Q-20260401-002',
-    customer: 'Emily Brown',
-    description: 'Tree health assessment and pruning',
-    amount: 450,
-    status: 'sent',
-    created_date: '2026-03-31',
-  },
-  {
-    id: '3',
-    quote_number: 'Q-20260330-001',
-    customer: 'David Miller',
-    description: 'Multiple tree removal project',
-    amount: 5000,
-    status: 'approved',
-    created_date: '2026-03-30',
-  },
+const recentJobs = [
+  { id: '1', number: 'J-001', customer: 'John Smith', service: 'Tree Removal', status: 'in_progress', amount: '$2,400' },
+  { id: '2', number: 'J-002', customer: 'Sarah Johnson', service: 'Trimming', status: 'scheduled', amount: '$850' },
+  { id: '3', number: 'J-003', customer: 'Mike Davis', service: 'Stump Grinding', status: 'completed', amount: '$450' },
 ]
 
-const demoCustomers = [
-  { id: '1', name: 'John Smith', email: 'john@email.com', phone: '(512) 555-0001', city: 'Austin' },
-  { id: '2', name: 'Sarah Johnson', email: 'sarah@email.com', phone: '(512) 555-0002', city: 'Austin' },
-  { id: '3', name: 'Mike Davis', email: 'mike@email.com', phone: '(512) 555-0003', city: 'Austin' },
-  { id: '4', name: 'Robert Wilson', email: 'robert@email.com', phone: '(512) 555-0004', city: 'Austin' },
+const recentQuotes = [
+  { id: '1', number: 'Q-001', customer: 'Emily Brown', service: 'Large Oak Removal', status: 'pending', amount: '$3,200' },
+  { id: '2', number: 'Q-002', customer: 'Robert Wilson', service: 'Full Yard Cleanup', status: 'sent', amount: '$1,800' },
 ]
 
-const getStatusColor = (status: string) => {
-  switch (status) {
-    case 'completed':
-    case 'approved':
-      return 'bg-emerald-100 text-emerald-800'
-    case 'in_progress':
-      return 'bg-blue-100 text-blue-800'
-    case 'scheduled':
-    case 'sent':
-      return 'bg-amber-100 text-amber-800'
-    case 'pending':
-      return 'bg-slate-100 text-slate-800'
-    default:
-      return 'bg-slate-100 text-slate-800'
-  }
-}
-
-const getStatusIcon = (status: string) => {
-  switch (status) {
-    case 'completed':
-    case 'approved':
-      return <CheckCircle className="w-4 h-4" />
-    case 'in_progress':
-      return <Clock className="w-4 h-4" />
-    case 'pending':
-      return <AlertCircle className="w-4 h-4" />
-    default:
-      return <TrendingUp className="w-4 h-4" />
-  }
+const statusColors: Record<string, string> = {
+  in_progress: 'bg-primary/20 text-primary border-primary/30',
+  scheduled: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+  completed: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
+  pending: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
+  sent: 'bg-sky-500/20 text-sky-400 border-sky-500/30',
 }
 
 export default function Dashboard() {
-  const [activeTab, setActiveTab] = useState('ai-quote')
-  const [selectedJob, setSelectedJob] = useState<typeof demoJobs[0] | null>(null)
-  const [selectedQuote, setSelectedQuote] = useState<typeof demoQuotes[0] | null>(null)
-
-  const activeJobsCount = demoJobs.filter(j => j.status === 'in_progress').length
-  const completedJobsCount = demoJobs.filter(j => j.status === 'completed').length
-  const pendingQuotesCount = demoQuotes.filter(q => q.status === 'pending').length
-  const totalRevenue = demoJobs.filter(j => j.status === 'completed').reduce((sum, j) => sum + j.amount, 0)
+  const [activeTab, setActiveTab] = useState('ai-assistant')
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-900">
-      <div className="p-8">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h1 className="text-4xl font-bold text-white mb-2">Bear Hub Pro</h1>
-              <p className="text-slate-400">Tree Care Management System</p>
+    <div className="min-h-screen bg-background dark">
+      {/* Header */}
+      <header className="border-b border-border/50 bg-card/50 backdrop-blur-sm sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="size-10 rounded-xl bg-primary/20 flex items-center justify-center">
+                <TreeDeciduous className="size-5 text-primary" />
+              </div>
+              <div>
+                <h1 className="text-xl font-bold text-foreground tracking-tight">Bear Hub Pro</h1>
+                <p className="text-xs text-muted-foreground">AI-Powered Tree Care Management</p>
+              </div>
             </div>
-            <div className="flex gap-3">
-              <Button className="bg-emerald-600 hover:bg-emerald-700">
-                <Plus className="w-4 h-4 mr-2" />
-                New Job
-              </Button>
-              <Button className="bg-emerald-600 hover:bg-emerald-700">
-                <Plus className="w-4 h-4 mr-2" />
-                New Quote
-              </Button>
+            <div className="flex items-center gap-3">
+              <Badge variant="outline" className="border-primary/30 text-primary bg-primary/10">
+                <Sparkles className="size-3 mr-1" />
+                AI Enabled
+              </Badge>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <main className="max-w-7xl mx-auto px-6 py-8">
+        {/* Hero Section */}
+        <div className="mb-10">
+          <div className="flex items-start justify-between">
+            <div>
+              <h2 className="text-3xl font-bold text-foreground tracking-tight mb-2">
+                Welcome back
+              </h2>
+              <p className="text-muted-foreground text-lg">
+                Manage your tree care business with AI-powered tools
+              </p>
             </div>
           </div>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-4 gap-4 mb-8">
-          <Card className="bg-slate-800 border-slate-700">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-slate-400">Active Jobs</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-white">{activeJobsCount}</div>
-              <p className="text-sm text-emerald-400 mt-1">In progress</p>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-slate-800 border-slate-700">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-slate-400">Customers</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-white">{demoCustomers.length}</div>
-              <p className="text-sm text-emerald-400 mt-1">Total clients</p>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-slate-800 border-slate-700">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-slate-400">Pending Quotes</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-white">{pendingQuotesCount}</div>
-              <p className="text-sm text-amber-400 mt-1">Awaiting response</p>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-slate-800 border-slate-700">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-slate-400">Completed Jobs</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-white">{completedJobsCount}</div>
-              <p className="text-sm text-emerald-400 mt-1">${totalRevenue.toLocaleString()}</p>
-            </CardContent>
-          </Card>
+        {/* Stats Grid */}
+        <div className="grid grid-cols-4 gap-4 mb-10">
+          {stats.map((stat) => (
+            <Card key={stat.label} className="bg-card border-border/50 hover:border-primary/30 transition-colors">
+              <CardContent className="pt-6">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-1">{stat.label}</p>
+                    <p className="text-2xl font-bold text-foreground">{stat.value}</p>
+                    <p className="text-xs text-muted-foreground mt-1">{stat.change}</p>
+                  </div>
+                  <div className="size-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                    <stat.icon className="size-5 text-primary" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
         </div>
 
-        {/* Tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="bg-slate-800 border-slate-700 mb-6">
-            <TabsTrigger value="ai-quote" className="text-slate-300 data-[state=active]:text-emerald-400 flex items-center gap-1">
-              <Bot className="w-4 h-4" />
-              <Calculator className="w-4 h-4" />
-              AI Quote
-            </TabsTrigger>
-            <TabsTrigger value="ai-assistant" className="text-slate-300 data-[state=active]:text-emerald-400 flex items-center gap-1">
-              <Bot className="w-4 h-4" />
-              <Wrench className="w-4 h-4" />
+        {/* Main Tabs */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <TabsList className="bg-card border border-border/50 p-1 h-auto">
+            <TabsTrigger 
+              value="ai-assistant" 
+              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground px-4 py-2.5 gap-2"
+            >
+              <Bot className="size-4" />
               AI Assistant
             </TabsTrigger>
-            <TabsTrigger value="ai-photo" className="text-slate-300 data-[state=active]:text-emerald-400 flex items-center gap-1">
-              <Bot className="w-4 h-4" />
-              <Camera className="w-4 h-4" />
-              AI Photo
+            <TabsTrigger 
+              value="ai-quote" 
+              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground px-4 py-2.5 gap-2"
+            >
+              <Calculator className="size-4" />
+              AI Quote Generator
             </TabsTrigger>
-            <div className="mx-2 h-6 w-px bg-slate-700"></div>
-            <TabsTrigger value="overview" className="text-slate-300 data-[state=active]:text-emerald-400">
-              <Briefcase className="w-4 h-4 mr-2" />
+            <TabsTrigger 
+              value="ai-photo" 
+              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground px-4 py-2.5 gap-2"
+            >
+              <Camera className="size-4" />
+              Photo Analysis
+            </TabsTrigger>
+            <div className="w-px h-6 bg-border mx-2" />
+            <TabsTrigger 
+              value="overview" 
+              className="data-[state=active]:bg-secondary px-4 py-2.5 gap-2"
+            >
+              <Briefcase className="size-4" />
               Overview
             </TabsTrigger>
-            <TabsTrigger value="jobs" className="text-slate-300 data-[state=active]:text-emerald-400">
-              <Briefcase className="w-4 h-4 mr-2" />
+            <TabsTrigger 
+              value="jobs" 
+              className="data-[state=active]:bg-secondary px-4 py-2.5 gap-2"
+            >
+              <Wrench className="size-4" />
               Jobs
             </TabsTrigger>
-            <TabsTrigger value="quotes" className="text-slate-300 data-[state=active]:text-emerald-400">
-              <FileText className="w-4 h-4 mr-2" />
+            <TabsTrigger 
+              value="quotes" 
+              className="data-[state=active]:bg-secondary px-4 py-2.5 gap-2"
+            >
+              <FileText className="size-4" />
               Quotes
-            </TabsTrigger>
-            <TabsTrigger value="customers" className="text-slate-300 data-[state=active]:text-emerald-400">
-              <Users className="w-4 h-4 mr-2" />
-              Customers
             </TabsTrigger>
           </TabsList>
 
+          {/* AI Assistant Tab */}
+          <TabsContent value="ai-assistant" className="space-y-6">
+            <div className="grid grid-cols-3 gap-6">
+              <div className="col-span-2">
+                <Card className="bg-card border-border/50 h-full">
+                  <CardHeader className="border-b border-border/50">
+                    <div className="flex items-center gap-3">
+                      <div className="size-10 rounded-lg bg-primary/20 flex items-center justify-center">
+                        <Bot className="size-5 text-primary" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-lg">AI Job Assistant</CardTitle>
+                        <CardDescription>Expert advice on planning, equipment, and best practices</CardDescription>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="p-0">
+                    <SimpleAIChat 
+                      endpoint="/api/ai/assistant"
+                      title="Job Assistant"
+                      placeholder="Ask about equipment needs, crew sizing, tree species, safety tips..."
+                    />
+                  </CardContent>
+                </Card>
+              </div>
+              <div className="space-y-4">
+                <Card className="bg-card border-border/50">
+                  <CardHeader>
+                    <CardTitle className="text-sm">Quick Topics</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    {['Equipment needs', 'Crew sizing', 'Time estimates', 'Tree species', 'Safety protocols', 'Permit requirements'].map((topic) => (
+                      <button 
+                        key={topic}
+                        className="w-full text-left px-3 py-2 rounded-lg bg-secondary/50 hover:bg-secondary text-sm text-foreground transition-colors flex items-center justify-between group"
+                      >
+                        {topic}
+                        <ArrowRight className="size-3 text-muted-foreground group-hover:text-primary transition-colors" />
+                      </button>
+                    ))}
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          </TabsContent>
+
+          {/* AI Quote Generator Tab */}
+          <TabsContent value="ai-quote" className="space-y-6">
+            <div className="grid grid-cols-3 gap-6">
+              <div className="col-span-2">
+                <Card className="bg-card border-border/50 h-full">
+                  <CardHeader className="border-b border-border/50">
+                    <div className="flex items-center gap-3">
+                      <div className="size-10 rounded-lg bg-primary/20 flex items-center justify-center">
+                        <Calculator className="size-5 text-primary" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-lg">AI Quote Generator</CardTitle>
+                        <CardDescription>Describe the job and get professional pricing suggestions</CardDescription>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="p-0">
+                    <SimpleAIChat 
+                      endpoint="/api/ai/quote"
+                      title="Quote Generator"
+                      placeholder="Describe the tree job... e.g., '50ft oak removal near house'"
+                    />
+                  </CardContent>
+                </Card>
+              </div>
+              <div className="space-y-4">
+                <Card className="bg-card border-border/50">
+                  <CardHeader>
+                    <CardTitle className="text-sm">Include These Details</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3 text-sm text-muted-foreground">
+                    <p>For accurate quotes, mention:</p>
+                    <ul className="space-y-2">
+                      <li className="flex items-start gap-2">
+                        <div className="size-1.5 rounded-full bg-primary mt-1.5" />
+                        Tree type and size
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <div className="size-1.5 rounded-full bg-primary mt-1.5" />
+                        Location and access
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <div className="size-1.5 rounded-full bg-primary mt-1.5" />
+                        Nearby structures
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <div className="size-1.5 rounded-full bg-primary mt-1.5" />
+                        Specific work needed
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <div className="size-1.5 rounded-full bg-primary mt-1.5" />
+                        Urgency level
+                      </li>
+                    </ul>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          </TabsContent>
+
+          {/* AI Photo Analysis Tab */}
+          <TabsContent value="ai-photo" className="space-y-6">
+            <div className="grid grid-cols-3 gap-6">
+              <div className="col-span-2">
+                <Card className="bg-card border-border/50 h-full">
+                  <CardHeader className="border-b border-border/50">
+                    <div className="flex items-center gap-3">
+                      <div className="size-10 rounded-lg bg-primary/20 flex items-center justify-center">
+                        <Camera className="size-5 text-primary" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-lg">AI Photo Analysis</CardTitle>
+                        <CardDescription>Upload tree photos for health assessment and recommendations</CardDescription>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="p-0">
+                    <SimpleAIChat 
+                      endpoint="/api/ai/analyze"
+                      title="Photo Analyzer"
+                      placeholder="Describe what you see or upload a photo for analysis..."
+                    />
+                  </CardContent>
+                </Card>
+              </div>
+              <div className="space-y-4">
+                <Card className="bg-card border-border/50">
+                  <CardHeader>
+                    <CardTitle className="text-sm">Best Photo Tips</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3 text-sm text-muted-foreground">
+                    <p>For best analysis, capture:</p>
+                    <ul className="space-y-2">
+                      <li className="flex items-start gap-2">
+                        <div className="size-1.5 rounded-full bg-primary mt-1.5" />
+                        Full tree view
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <div className="size-1.5 rounded-full bg-primary mt-1.5" />
+                        Trunk close-up
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <div className="size-1.5 rounded-full bg-primary mt-1.5" />
+                        Damaged areas
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <div className="size-1.5 rounded-full bg-primary mt-1.5" />
+                        Surrounding area
+                      </li>
+                    </ul>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          </TabsContent>
+
           {/* Overview Tab */}
           <TabsContent value="overview" className="space-y-6">
-            <Card className="bg-slate-800 border-slate-700">
-              <CardHeader>
-                <CardTitle className="text-white">Recent Jobs</CardTitle>
-                <CardDescription className="text-slate-400">Your most recent tree care jobs</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {demoJobs.slice(0, 3).map(job => (
-                    <div key={job.id} className="flex items-center justify-between p-3 bg-slate-700 rounded-lg hover:bg-slate-600 transition">
-                      <div className="flex-1">
-                        <p className="font-semibold text-white">{job.job_number}</p>
-                        <p className="text-sm text-slate-400">{job.description}</p>
-                        <p className="text-xs text-slate-500 mt-1">{job.address}</p>
+            <div className="grid grid-cols-2 gap-6">
+              <Card className="bg-card border-border/50">
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-lg">Recent Jobs</CardTitle>
+                    <Button variant="ghost" size="sm" className="text-primary">View all</Button>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {recentJobs.map((job) => (
+                      <div key={job.id} className="flex items-center justify-between p-3 rounded-lg bg-secondary/30 hover:bg-secondary/50 transition-colors">
+                        <div className="flex items-center gap-3">
+                          <div className="size-8 rounded bg-primary/10 flex items-center justify-center text-xs font-mono text-primary">
+                            {job.number}
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-foreground">{job.customer}</p>
+                            <p className="text-xs text-muted-foreground">{job.service}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <Badge variant="outline" className={statusColors[job.status]}>
+                            {job.status.replace('_', ' ')}
+                          </Badge>
+                          <span className="text-sm font-medium text-foreground">{job.amount}</span>
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <Badge className={getStatusColor(job.status)}>
-                          {getStatusIcon(job.status)}
-                          <span className="ml-1">{job.status.replace('_', ' ')}</span>
-                        </Badge>
-                        <p className="text-lg font-bold text-emerald-400 mt-2">${job.amount}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
 
-            <Card className="bg-slate-800 border-slate-700">
-              <CardHeader>
-                <CardTitle className="text-white">Pending Quotes</CardTitle>
-                <CardDescription className="text-slate-400">Quotes waiting for customer approval</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {demoQuotes.filter(q => q.status === 'pending').map(quote => (
-                    <div key={quote.id} className="flex items-center justify-between p-3 bg-slate-700 rounded-lg hover:bg-slate-600 transition">
-                      <div className="flex-1">
-                        <p className="font-semibold text-white">{quote.quote_number}</p>
-                        <p className="text-sm text-slate-400">{quote.customer}</p>
-                        <p className="text-xs text-slate-500 mt-1">{quote.description}</p>
+              <Card className="bg-card border-border/50">
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-lg">Pending Quotes</CardTitle>
+                    <Button variant="ghost" size="sm" className="text-primary">View all</Button>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {recentQuotes.map((quote) => (
+                      <div key={quote.id} className="flex items-center justify-between p-3 rounded-lg bg-secondary/30 hover:bg-secondary/50 transition-colors">
+                        <div className="flex items-center gap-3">
+                          <div className="size-8 rounded bg-primary/10 flex items-center justify-center text-xs font-mono text-primary">
+                            {quote.number}
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-foreground">{quote.customer}</p>
+                            <p className="text-xs text-muted-foreground">{quote.service}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <Badge variant="outline" className={statusColors[quote.status]}>
+                            {quote.status}
+                          </Badge>
+                          <span className="text-sm font-medium text-foreground">{quote.amount}</span>
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <Badge className="bg-amber-100 text-amber-800">Pending</Badge>
-                        <p className="text-lg font-bold text-emerald-400 mt-2">${quote.amount.toLocaleString()}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
 
           {/* Jobs Tab */}
-          <TabsContent value="jobs">
-            <Card className="bg-slate-800 border-slate-700">
+          <TabsContent value="jobs" className="space-y-6">
+            <Card className="bg-card border-border/50">
               <CardHeader>
-                <CardTitle className="text-white">All Jobs</CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-lg">All Jobs</CardTitle>
+                  <Button className="bg-primary text-primary-foreground hover:bg-primary/90">
+                    Add Job
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent>
-                <div className="space-y-2">
-                  {demoJobs.map(job => (
-                    <Dialog key={job.id}>
-                      <DialogTrigger>
-                        <div className="p-4 bg-slate-700 rounded-lg hover:bg-slate-600 cursor-pointer transition">
-                          <div className="flex justify-between items-start">
-                            <div>
-                              <p className="font-semibold text-white">{job.job_number} - {job.description}</p>
-                              <p className="text-sm text-slate-400">{job.customer}</p>
-                            </div>
-                            <Badge className={getStatusColor(job.status)}>
-                              {job.status.replace('_', ' ')}
-                            </Badge>
-                          </div>
+                <div className="space-y-3">
+                  {recentJobs.map((job) => (
+                    <div key={job.id} className="flex items-center justify-between p-4 rounded-lg bg-secondary/30 hover:bg-secondary/50 transition-colors">
+                      <div className="flex items-center gap-4">
+                        <div className="size-10 rounded-lg bg-primary/10 flex items-center justify-center text-sm font-mono text-primary">
+                          {job.number}
                         </div>
-                      </DialogTrigger>
-                      <DialogContent className="bg-slate-800 border-slate-700 text-white">
-                        <DialogHeader>
-                          <DialogTitle>{job.job_number}</DialogTitle>
-                        </DialogHeader>
-                        <div className="space-y-4">
-                          <div>
-                            <p className="text-sm text-slate-400">Description</p>
-                            <p className="font-semibold">{job.description}</p>
-                          </div>
-                          <div className="grid grid-cols-2 gap-4">
-                            <div>
-                              <p className="text-sm text-slate-400">Service Type</p>
-                              <p className="font-semibold">{job.service_type}</p>
-                            </div>
-                            <div>
-                              <p className="text-sm text-slate-400">Amount</p>
-                              <p className="font-semibold text-emerald-400">${job.amount}</p>
-                            </div>
-                          </div>
-                          <div>
-                            <p className="text-sm text-slate-400">Address</p>
-                            <p className="font-semibold">{job.address}</p>
-                          </div>
-                          <div>
-                            <p className="text-sm text-slate-400">Customer</p>
-                            <p className="font-semibold">{job.customer}</p>
-                          </div>
+                        <div>
+                          <p className="font-medium text-foreground">{job.customer}</p>
+                          <p className="text-sm text-muted-foreground">{job.service}</p>
                         </div>
-                      </DialogContent>
-                    </Dialog>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <Badge variant="outline" className={statusColors[job.status]}>
+                          {job.status.replace('_', ' ')}
+                        </Badge>
+                        <span className="text-lg font-semibold text-foreground">{job.amount}</span>
+                        <Button variant="ghost" size="sm">View</Button>
+                      </div>
+                    </div>
                   ))}
                 </div>
               </CardContent>
@@ -341,79 +416,35 @@ export default function Dashboard() {
           </TabsContent>
 
           {/* Quotes Tab */}
-          <TabsContent value="quotes">
-            <Card className="bg-slate-800 border-slate-700">
+          <TabsContent value="quotes" className="space-y-6">
+            <Card className="bg-card border-border/50">
               <CardHeader>
-                <CardTitle className="text-white">All Quotes</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  {demoQuotes.map(quote => (
-                    <Dialog key={quote.id}>
-                      <DialogTrigger>
-                        <div className="p-4 bg-slate-700 rounded-lg hover:bg-slate-600 cursor-pointer transition">
-                          <div className="flex justify-between items-start">
-                            <div>
-                              <p className="font-semibold text-white">{quote.quote_number}</p>
-                              <p className="text-sm text-slate-400">{quote.customer}</p>
-                            </div>
-                            <Badge className={getStatusColor(quote.status)}>
-                              {quote.status}
-                            </Badge>
-                          </div>
-                        </div>
-                      </DialogTrigger>
-                      <DialogContent className="bg-slate-800 border-slate-700 text-white">
-                        <DialogHeader>
-                          <DialogTitle>{quote.quote_number}</DialogTitle>
-                        </DialogHeader>
-                        <div className="space-y-4">
-                          <div>
-                            <p className="text-sm text-slate-400">Customer</p>
-                            <p className="font-semibold">{quote.customer}</p>
-                          </div>
-                          <div>
-                            <p className="text-sm text-slate-400">Description</p>
-                            <p className="font-semibold">{quote.description}</p>
-                          </div>
-                          <div className="grid grid-cols-2 gap-4">
-                            <div>
-                              <p className="text-sm text-slate-400">Amount</p>
-                              <p className="font-semibold text-emerald-400">${quote.amount.toLocaleString()}</p>
-                            </div>
-                            <div>
-                              <p className="text-sm text-slate-400">Status</p>
-                              <Badge className={getStatusColor(quote.status)}>
-                                {quote.status}
-                              </Badge>
-                            </div>
-                          </div>
-                        </div>
-                      </DialogContent>
-                    </Dialog>
-                  ))}
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-lg">All Quotes</CardTitle>
+                  <Button className="bg-primary text-primary-foreground hover:bg-primary/90">
+                    Create Quote
+                  </Button>
                 </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Customers Tab */}
-          <TabsContent value="customers">
-            <Card className="bg-slate-800 border-slate-700">
-              <CardHeader>
-                <CardTitle className="text-white">All Customers</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-2">
-                  {demoCustomers.map(customer => (
-                    <div key={customer.id} className="p-4 bg-slate-700 rounded-lg hover:bg-slate-600 transition">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <p className="font-semibold text-white">{customer.name}</p>
-                          <p className="text-sm text-slate-400">{customer.email}</p>
-                          <p className="text-sm text-slate-500">{customer.phone}</p>
+                <div className="space-y-3">
+                  {recentQuotes.map((quote) => (
+                    <div key={quote.id} className="flex items-center justify-between p-4 rounded-lg bg-secondary/30 hover:bg-secondary/50 transition-colors">
+                      <div className="flex items-center gap-4">
+                        <div className="size-10 rounded-lg bg-primary/10 flex items-center justify-center text-sm font-mono text-primary">
+                          {quote.number}
                         </div>
-                        <Badge className="bg-emerald-100 text-emerald-800">{customer.city}</Badge>
+                        <div>
+                          <p className="font-medium text-foreground">{quote.customer}</p>
+                          <p className="text-sm text-muted-foreground">{quote.service}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <Badge variant="outline" className={statusColors[quote.status]}>
+                          {quote.status}
+                        </Badge>
+                        <span className="text-lg font-semibold text-foreground">{quote.amount}</span>
+                        <Button variant="ghost" size="sm">View</Button>
                       </div>
                     </div>
                   ))}
@@ -421,35 +452,8 @@ export default function Dashboard() {
               </CardContent>
             </Card>
           </TabsContent>
-
-          {/* AI Quote Generator Tab */}
-          <TabsContent value="ai-quote">
-            <SimpleAIChat 
-              endpoint="/api/ai/quote"
-              title="AI Quote Generator"
-              placeholder="Describe the tree job... e.g., '50ft oak tree removal near house'"
-            />
-          </TabsContent>
-
-          {/* AI Job Assistant Tab */}
-          <TabsContent value="ai-assistant">
-            <SimpleAIChat 
-              endpoint="/api/ai/assistant"
-              title="AI Job Assistant"
-              placeholder="Ask about equipment, timing, crew size, tree species, safety tips..."
-            />
-          </TabsContent>
-
-          {/* AI Photo Analysis Tab */}
-          <TabsContent value="ai-photo">
-            <SimpleAIChat 
-              endpoint="/api/ai/analyze"
-              title="AI Photo Analysis"
-              placeholder="Upload a tree photo and ask for analysis of health, damage, and recommended services..."
-            />
-          </TabsContent>
         </Tabs>
-      </div>
+      </main>
     </div>
   )
 }

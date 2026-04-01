@@ -3,8 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { SendIcon, Loader } from 'lucide-react'
+import { Send, Loader2, Bot, User } from 'lucide-react'
 
 interface Message {
   role: 'user' | 'assistant'
@@ -64,74 +63,94 @@ export function SimpleAIChat({
   }
 
   return (
-    <Card className="bg-slate-800 border-slate-700 h-full flex flex-col">
-      <CardHeader className="border-b border-slate-700">
-        <CardTitle className="text-white">{title}</CardTitle>
-      </CardHeader>
-      
-      <CardContent className="flex-1 flex flex-col p-0">
-        {/* Messages */}
-        <div 
-          ref={scrollRef}
-          className="flex-1 overflow-y-auto p-4 space-y-4"
-        >
-          {messages.length === 0 && (
-            <div className="flex items-center justify-center h-full text-slate-400 text-center">
-              <p>{placeholder}</p>
+    <div className="flex flex-col h-[500px]">
+      {/* Messages */}
+      <div 
+        ref={scrollRef}
+        className="flex-1 overflow-y-auto p-4 space-y-4"
+      >
+        {messages.length === 0 && (
+          <div className="flex flex-col items-center justify-center h-full text-muted-foreground text-center gap-3">
+            <div className="size-12 rounded-full bg-primary/10 flex items-center justify-center">
+              <Bot className="size-6 text-primary" />
             </div>
-          )}
-          
-          {messages.map((msg, idx) => (
+            <div>
+              <p className="font-medium text-foreground mb-1">{title}</p>
+              <p className="text-sm">{placeholder}</p>
+            </div>
+          </div>
+        )}
+        
+        {messages.map((msg, idx) => (
+          <div
+            key={idx}
+            className={`flex gap-3 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}
+          >
+            <div className={`size-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+              msg.role === 'user' 
+                ? 'bg-primary text-primary-foreground' 
+                : 'bg-secondary text-muted-foreground'
+            }`}>
+              {msg.role === 'user' ? <User className="size-4" /> : <Bot className="size-4" />}
+            </div>
             <div
-              key={idx}
-              className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+              className={`max-w-[80%] px-4 py-3 rounded-2xl ${
+                msg.role === 'user'
+                  ? 'bg-primary text-primary-foreground rounded-tr-sm'
+                  : 'bg-secondary text-foreground rounded-tl-sm'
+              }`}
             >
-              <div
-                className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
-                  msg.role === 'user'
-                    ? 'bg-emerald-600 text-white'
-                    : 'bg-slate-700 text-slate-100'
-                }`}
-              >
-                <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
-              </div>
+              <p className="text-sm whitespace-pre-wrap leading-relaxed">{msg.content}</p>
             </div>
-          ))}
-          
-          {loading && (
-            <div className="flex justify-start">
-              <div className="bg-slate-700 text-slate-100 px-4 py-2 rounded-lg flex items-center gap-2">
-                <Loader className="w-4 h-4 animate-spin" />
-                <span className="text-sm">Processing...</span>
-              </div>
+          </div>
+        ))}
+        
+        {loading && (
+          <div className="flex gap-3">
+            <div className="size-8 rounded-full bg-secondary flex items-center justify-center flex-shrink-0">
+              <Bot className="size-4 text-muted-foreground" />
             </div>
-          )}
-        </div>
+            <div className="bg-secondary text-foreground px-4 py-3 rounded-2xl rounded-tl-sm flex items-center gap-2">
+              <Loader2 className="size-4 animate-spin text-primary" />
+              <span className="text-sm">Thinking...</span>
+            </div>
+          </div>
+        )}
+      </div>
 
-        {/* Input */}
-        <div className="border-t border-slate-700 p-4 space-y-2">
+      {/* Input */}
+      <div className="border-t border-border p-4">
+        <div className="flex gap-3">
           <Textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder={placeholder}
             onKeyDown={(e) => {
-              if (e.key === 'Enter' && e.ctrlKey) {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault()
                 handleSend()
               }
             }}
-            className="bg-slate-700 border-slate-600 text-white placeholder-slate-500"
-            rows={3}
+            className="bg-secondary border-border text-foreground placeholder:text-muted-foreground resize-none min-h-[44px] max-h-[120px]"
+            rows={1}
           />
           <Button
             onClick={handleSend}
             disabled={loading || !input.trim()}
-            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
+            size="icon"
+            className="bg-primary hover:bg-primary/90 text-primary-foreground h-11 w-11 flex-shrink-0"
           >
-            <SendIcon className="w-4 h-4 mr-2" />
-            Send
+            {loading ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <Send className="size-4" />
+            )}
           </Button>
         </div>
-      </CardContent>
-    </Card>
+        <p className="text-xs text-muted-foreground mt-2 text-center">
+          Press Enter to send, Shift+Enter for new line
+        </p>
+      </div>
+    </div>
   )
 }
