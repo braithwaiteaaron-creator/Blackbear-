@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Upload, X, Image as ImageIcon, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
@@ -21,6 +21,11 @@ interface UploadedPhoto {
 export function JobPhotoUpload({ jobId, onPhotosChange }: JobPhotoUploadProps) {
   const [photos, setPhotos] = useState<UploadedPhoto[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Call parent callback whenever photos change
+  useEffect(() => {
+    onPhotosChange?.(photos.map((p) => p.file))
+  }, [photos, onPhotosChange])
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || [])
@@ -49,7 +54,6 @@ export function JobPhotoUpload({ jobId, onPhotosChange }: JobPhotoUploadProps) {
 
         setPhotos((prev) => {
           const updated = [...prev, newPhoto]
-          onPhotosChange?.(updated.map((p) => p.file))
           return updated
         })
 
@@ -66,9 +70,7 @@ export function JobPhotoUpload({ jobId, onPhotosChange }: JobPhotoUploadProps) {
 
   const removePhoto = (id: string) => {
     setPhotos((prev) => {
-      const updated = prev.filter((p) => p.id !== id)
-      onPhotosChange?.(updated.map((p) => p.file))
-      return updated
+      return prev.filter((p) => p.id !== id)
     })
   }
 
