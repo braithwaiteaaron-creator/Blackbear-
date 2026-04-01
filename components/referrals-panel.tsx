@@ -39,6 +39,8 @@ export function ReferralsPanel() {
     name: "",
     phone: "",
     code: "",
+    type: "new", // "new" = new customers, "loyal" = repeat customers, "referrer" = person promoting
+    discount: 10,
   })
 
   // Count jobs per referrer (jobs with referral info in notes)
@@ -54,8 +56,14 @@ export function ReferralsPanel() {
   }
 
   const handleSubmit = async () => {
-    if (!formData.name || !formData.code) {
-      toast.error("Please enter name and code")
+    if (!formData.code) {
+      toast.error("Please enter a code")
+      return
+    }
+
+    // For new/loyal types, just need the code. For referrer, need name too
+    if (formData.type === "referrer" && !formData.name) {
+      toast.error("Please enter the person's name")
       return
     }
 
@@ -67,24 +75,25 @@ export function ReferralsPanel() {
 
     setIsSubmitting(true)
     const { data, error } = await createReferrer({
-      name: formData.name,
+      name: formData.type === "new" ? "New Customer" : formData.type === "loyal" ? "Repeat Customer" : formData.name,
       phone: formData.phone,
       referral_code: formData.code.toUpperCase(),
       total_referrals: 0,
       converted_referrals: 0,
       total_value: 0,
-      commission_rate: 0.10,
+      commission_rate: formData.discount / 100,
       commission_earned: 0,
       status: "active",
     })
     setIsSubmitting(false)
 
     if (error) {
-      toast.error("Failed to create referral code")
+      toast.error("Failed to create code")
     } else {
-      toast.success(`Code ${formData.code.toUpperCase()} created for ${formData.name}!`)
+      const typeLabel = formData.type === "new" ? "New Customer" : formData.type === "loyal" ? "Repeat Customer" : formData.name
+      toast.success(`${formData.discount}% off code created: ${formData.code.toUpperCase()}`)
       setIsNewOpen(false)
-      setFormData({ name: "", phone: "", code: "" })
+      setFormData({ name: "", phone: "", code: "", type: "new", discount: 10 })
     }
   }
 
@@ -119,47 +128,76 @@ export function ReferralsPanel() {
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Create Referral Code</DialogTitle>
+              <DialogTitle>Create Discount Code</DialogTitle>
               <DialogDescription>
-                Give this code to someone who refers customers to you.
+                Set up codes for different customer types
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
-                <Label htmlFor="name">Referrer Name *</Label>
-                <Input 
-                  id="name" 
-                  placeholder="John Smith"
-                  value={formData.name}
+                <Label htmlFor="type">Code Type</Label>
+                <select
+                  id="type"
+                  className="flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                  value={formData.type}
                   onChange={(e) => {
-                    setFormData({ ...formData, name: e.target.value })
-                    if (!formData.code && e.target.value.length > 2) {
-                      setFormData(prev => ({ ...prev, code: generateCode(e.target.value) }))
-                    }
+                    const newType = e.target.value
+                    let newDiscount = 10
+                    if (newType === "loyal") newDiscount = 15
+                    setFormData({ ...formData, type: newType, discount: newDiscount })
                   }}
-                />
+                >
+                  <option value="new">New Customer (One-time)</option>
+                  <option value="loyal">Repeat Customer (Loyalty)</option>
+                  <option value="referrer">Person Promoting (Referrer)</option>
+                </select>
               </div>
+
+              {formData.type === "referrer" && (
+                <div className="grid gap-2">
+                  <Label htmlFor="name">Person's Name</Label>
+                  <Input 
+                    id="name" 
+                    placeholder="John Smith"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  />
+                </div>
+              )}
+
+              {formData.type === "referrer" && (
+                <div className="grid gap-2">
+                  <Label htmlFor="phone">Phone (optional)</Label>
+                  <Input 
+                    id="phone" 
+                    placeholder="(555) 123-4567"
+                    value={formData.phone}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  />
+                </div>
+              )}
+
               <div className="grid gap-2">
-                <Label htmlFor="phone">Phone (optional)</Label>
-                <Input 
-                  id="phone" 
-                  placeholder="(555) 123-4567"
-                  value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="code">Referral Code *</Label>
+                <Label htmlFor="code">Code</Label>
                 <Input 
                   id="code" 
-                  placeholder="JOHN10"
+                  placeholder={formData.type === "new" ? "BLACKBEAR10" : formData.type === "loyal" ? "LOYAL15" : "JOHN10"}
                   value={formData.code}
                   onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
                   className="font-mono text-lg"
                 />
-                <p className="text-xs text-muted-foreground">
-                  This is what customers will tell you when they book
-                </p>
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="discount">Discount %</Label>
+                <Input 
+                  id="discount" 
+                  type="number"
+                  min="1"
+                  max="50"
+                  value={formData.discount}
+                  onChange={(e) => setFormData({ ...formData, discount: parseInt(e.target.value) })}
+                />
               </div>
             </div>
             <div className="flex justify-end gap-2">
@@ -247,19 +285,30 @@ export function ReferralsPanel() {
           )}
           {referrers.map((referrer) => {
             const stats = getReferralStats(referrer.name, referrer.referral_code)
+            const discountPercent = Math.round(referrer.commission_rate * 100)
+            const isNewCustomer = referrer.name === "New Customer"
+            const isRepeatCustomer = referrer.name === "Repeat Customer"
+            
             return (
               <Card key={referrer.id}>
                 <CardContent className="p-4">
                   <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex items-center gap-4">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
-                        <span className="text-lg font-bold text-primary">
-                          {referrer.name.split(" ").map(n => n[0]).join("").toUpperCase()}
-                        </span>
+                      <div className={`flex h-12 w-12 items-center justify-center rounded-lg font-bold text-white ${
+                        isNewCustomer ? "bg-blue-500" : isRepeatCustomer ? "bg-purple-500" : "bg-primary"
+                      }`}>
+                        {isNewCustomer ? "🆕" : isRepeatCustomer ? "⭐" : referrer.name.split(" ").map(n => n[0]).join("").toUpperCase()}
                       </div>
                       <div>
-                        <h3 className="font-semibold">{referrer.name}</h3>
-                        {referrer.phone && (
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-semibold">{referrer.name}</h3>
+                          <Badge variant="outline" className={`text-xs ${
+                            isNewCustomer ? "bg-blue-500/20 text-blue-600" : isRepeatCustomer ? "bg-purple-500/20 text-purple-600" : ""
+                          }`}>
+                            {isNewCustomer ? "New Customers" : isRepeatCustomer ? "Loyalty" : "Referrer"}
+                          </Badge>
+                        </div>
+                        {referrer.phone && !isNewCustomer && !isRepeatCustomer && (
                           <a 
                             href={`tel:${referrer.phone}`}
                             className="flex items-center gap-1 text-sm text-muted-foreground hover:text-primary"
@@ -272,13 +321,21 @@ export function ReferralsPanel() {
                     </div>
                     <div className="flex items-center gap-4">
                       <div className="text-center">
-                        <p className="text-lg font-bold">{stats.count}</p>
-                        <p className="text-xs text-muted-foreground">Jobs</p>
+                        <p className="text-lg font-bold">{discountPercent}%</p>
+                        <p className="text-xs text-muted-foreground">Discount</p>
                       </div>
-                      <div className="text-center">
-                        <p className="text-lg font-bold text-accent">${stats.value.toLocaleString()}</p>
-                        <p className="text-xs text-muted-foreground">Value</p>
-                      </div>
+                      {!isNewCustomer && !isRepeatCustomer && (
+                        <>
+                          <div className="text-center">
+                            <p className="text-lg font-bold">{stats.count}</p>
+                            <p className="text-xs text-muted-foreground">Jobs</p>
+                          </div>
+                          <div className="text-center">
+                            <p className="text-lg font-bold text-accent">${stats.value.toLocaleString()}</p>
+                            <p className="text-xs text-muted-foreground">Value</p>
+                          </div>
+                        </>
+                      )}
                       <Button 
                         variant="outline" 
                         size="sm"

@@ -24,6 +24,7 @@ export function JobPhotoUpload({ jobId, onPhotosChange }: JobPhotoUploadProps) {
   const isFirstRender = useRef(true)
 
   // Call parent callback whenever photos change (skip first render to avoid setState during render)
+  // Only trigger callback after initial mount to prevent parent updates during render
   useEffect(() => {
     if (isFirstRender.current) {
       isFirstRender.current = false
