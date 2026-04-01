@@ -5,11 +5,26 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Progress } from "@/components/ui/progress"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import {
   UserCircle,
-  TrendingUp,
   DollarSign,
   TreeDeciduous,
   Plus,
@@ -17,35 +32,63 @@ import {
   Award,
   Wallet,
   ArrowUpRight,
+  Loader2,
 } from "lucide-react"
-
-interface Agent {
-  id: number
-  name: string
-  role: "sales" | "climber" | "manager"
-  avatar: string
-  avatarImage?: string
-  jobsCompleted: number
-  monthlyRevenue: number
-  commission: number
-  rating: number
-  status: "active" | "on-job" | "off-duty"
-  investmentBalance?: number
-  treesThisMonth: number
-}
-
-const investmentStats = {
-  totalPool: 0,
-  litecoinPrice: 0,
-  monthlyDistribution: 0,
-  participants: 0,
-}
+import { useAgents } from "@/lib/supabase/hooks"
+import { toast } from "sonner"
 
 export function AgentsPanel() {
-  const [agents, setAgents] = useState<Agent[]>([])
-  // TODO: Replace with useAgents hook from @/lib/supabase/hooks
+  const { agents, loading, createAgent } = useAgents()
+  const [isNewAgentOpen, setIsNewAgentOpen] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  
+  const [formData, setFormData] = useState({
+    name: "",
+    role: "sales",
+    phone: "",
+    email: "",
+  })
 
-  const getRoleBadge = (role: Agent["role"]) => {
+  const investmentStats = {
+    totalPool: agents.reduce((sum, a) => sum + Number(a.investment_balance || 0), 0),
+    litecoinPrice: 85,
+    monthlyDistribution: agents.reduce((sum, a) => sum + Number(a.commission || 0), 0),
+    participants: agents.filter(a => Number(a.investment_balance || 0) > 0).length,
+  }
+
+  const handleSubmit = async () => {
+    if (!formData.name) {
+      toast.error("Please enter agent name")
+      return
+    }
+
+    setIsSubmitting(true)
+    const { data, error } = await createAgent({
+      name: formData.name,
+      role: formData.role,
+      phone: formData.phone,
+      email: formData.email,
+      avatar: formData.name.split(" ").map(n => n[0]).join("").toUpperCase(),
+      jobs_completed: 0,
+      monthly_revenue: 0,
+      commission: 0,
+      rating: 5.0,
+      status: "active",
+      investment_balance: 0,
+      trees_this_month: 0,
+    })
+    setIsSubmitting(false)
+
+    if (error) {
+      toast.error("Failed to add agent")
+    } else {
+      toast.success("Agent added successfully!")
+      setIsNewAgentOpen(false)
+      setFormData({ name: "", role: "sales", phone: "", email: "" })
+    }
+  }
+
+  const getRoleBadge = (role: string) => {
     switch (role) {
       case "manager":
         return <Badge className="bg-primary">Manager</Badge>
@@ -58,7 +101,7 @@ export function AgentsPanel() {
     }
   }
 
-  const getStatusColor = (status: Agent["status"]) => {
+  const getStatusColor = (status: string) => {
     switch (status) {
       case "on-job":
         return "bg-primary"
@@ -79,10 +122,77 @@ export function AgentsPanel() {
           <h1 className="text-2xl font-bold">Agent Management</h1>
           <p className="text-muted-foreground">Track team performance and investment opportunities</p>
         </div>
-        <Button>
-          <Plus className="mr-2 h-4 w-4" />
-          Add Agent
-        </Button>
+        <Dialog open={isNewAgentOpen} onOpenChange={setIsNewAgentOpen}>
+          <DialogTrigger asChild>
+            <Button>
+              <Plus className="mr-2 h-4 w-4" />
+              Add Agent
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Add New Agent</DialogTitle>
+              <DialogDescription>Add a team member to track their performance.</DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="name">Name *</Label>
+                <Input 
+                  id="name" 
+                  placeholder="Agent name..."
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label>Role</Label>
+                <Select 
+                  value={formData.role}
+                  onValueChange={(value) => setFormData({ ...formData, role: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="sales">Sales</SelectItem>
+                    <SelectItem value="climber">Climber</SelectItem>
+                    <SelectItem value="manager">Manager</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="phone">Phone</Label>
+                  <Input 
+                    id="phone" 
+                    placeholder="(555) 123-4567"
+                    value={formData.phone}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input 
+                    id="email" 
+                    type="email"
+                    placeholder="email@example.com"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setIsNewAgentOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleSubmit} disabled={isSubmitting}>
+                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Add Agent
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
 
       {/* Stats */}
@@ -109,7 +219,7 @@ export function AgentsPanel() {
               <div>
                 <p className="text-sm text-muted-foreground">Total Commissions</p>
                 <p className="text-xl font-bold">
-                  ${agents.reduce((sum, a) => sum + a.commission, 0).toLocaleString()}
+                  ${agents.reduce((sum, a) => sum + Number(a.commission || 0), 0).toLocaleString()}
                 </p>
               </div>
             </div>
@@ -124,7 +234,7 @@ export function AgentsPanel() {
               <div>
                 <p className="text-sm text-muted-foreground">Trees This Month</p>
                 <p className="text-xl font-bold">
-                  {agents.reduce((sum, a) => sum + a.treesThisMonth, 0)}
+                  {agents.reduce((sum, a) => sum + Number(a.trees_this_month || 0), 0)}
                 </p>
               </div>
             </div>
@@ -168,8 +278,8 @@ export function AgentsPanel() {
                   <div className="flex items-start gap-4">
                     <div className="relative">
                       <Avatar className="h-14 w-14">
-                        {agent.avatarImage && (
-                          <AvatarImage src={agent.avatarImage} alt={agent.name} className="object-cover" />
+                        {agent.avatar_image && (
+                          <AvatarImage src={agent.avatar_image} alt={agent.name} className="object-cover" />
                         )}
                         <AvatarFallback className="bg-secondary text-lg">
                           {agent.avatar}
@@ -200,25 +310,25 @@ export function AgentsPanel() {
                       </div>
                       <div className="mt-4 grid grid-cols-3 gap-4 text-center">
                         <div>
-                          <p className="text-lg font-bold">{agent.jobsCompleted}</p>
+                          <p className="text-lg font-bold">{agent.jobs_completed}</p>
                           <p className="text-xs text-muted-foreground">Jobs</p>
                         </div>
                         <div>
                           <p className="text-lg font-bold text-accent">
-                            ${agent.commission.toLocaleString()}
+                            ${Number(agent.commission || 0).toLocaleString()}
                           </p>
                           <p className="text-xs text-muted-foreground">Commission</p>
                         </div>
                         <div>
-                          <p className="text-lg font-bold">{agent.treesThisMonth}</p>
+                          <p className="text-lg font-bold">{agent.trees_this_month}</p>
                           <p className="text-xs text-muted-foreground">Trees</p>
                         </div>
                       </div>
-                      {agent.investmentBalance && (
+                      {Number(agent.investment_balance || 0) > 0 && (
                         <div className="mt-3 flex items-center justify-between rounded-lg bg-secondary/50 p-2 text-sm">
                           <span className="text-muted-foreground">Investment Balance</span>
                           <span className="font-semibold text-primary">
-                            ${agent.investmentBalance.toLocaleString()}
+                            ${Number(agent.investment_balance).toLocaleString()}
                           </span>
                         </div>
                       )}
@@ -299,7 +409,7 @@ export function AgentsPanel() {
               <CardContent>
                 <div className="space-y-3">
                   {agents
-                    .filter((a) => a.investmentBalance)
+                    .filter((a) => Number(a.investment_balance || 0) > 0)
                     .map((agent) => (
                       <div
                         key={agent.id}
@@ -314,13 +424,13 @@ export function AgentsPanel() {
                           <div>
                             <p className="font-medium">{agent.name}</p>
                             <p className="text-xs text-muted-foreground">
-                              {agent.treesThisMonth} trees this month
+                              {agent.trees_this_month} trees this month
                             </p>
                           </div>
                         </div>
                         <div className="text-right">
                           <p className="font-bold text-primary">
-                            ${agent.investmentBalance?.toLocaleString()}
+                            ${Number(agent.investment_balance || 0).toLocaleString()}
                           </p>
                           <p className="text-xs text-muted-foreground flex items-center gap-0.5">
                             <ArrowUpRight className="h-3 w-3 text-primary" />
@@ -346,8 +456,11 @@ export function AgentsPanel() {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
+                {agents.length === 0 && (
+                  <p className="text-center text-muted-foreground py-8">No agents yet</p>
+                )}
                 {[...agents]
-                  .sort((a, b) => b.monthlyRevenue - a.monthlyRevenue)
+                  .sort((a, b) => Number(b.monthly_revenue || 0) - Number(a.monthly_revenue || 0))
                   .map((agent, index) => (
                     <div
                       key={agent.id}
@@ -375,13 +488,13 @@ export function AgentsPanel() {
                         <div>
                           <p className="font-medium">{agent.name}</p>
                           <p className="text-xs text-muted-foreground">
-                            {agent.jobsCompleted} jobs completed
+                            {agent.jobs_completed} jobs completed
                           </p>
                         </div>
                       </div>
                       <div className="text-right">
                         <p className="font-bold text-accent">
-                          ${agent.monthlyRevenue.toLocaleString()}
+                          ${Number(agent.monthly_revenue || 0).toLocaleString()}
                         </p>
                         <p className="text-xs text-muted-foreground">revenue</p>
                       </div>

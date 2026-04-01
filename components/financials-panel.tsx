@@ -5,6 +5,23 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import {
   DollarSign,
   TrendingUp,
@@ -17,32 +34,68 @@ import {
   CheckCircle,
   Clock,
   AlertCircle,
+  Plus,
+  Loader2,
 } from "lucide-react"
-
-interface Transaction {
-  id: number
-  customer: string
-  address: string
-  amount: number
-  type: "e-transfer" | "qr-payment" | "cash" | "invoice"
-  status: "completed" | "pending" | "overdue"
-  date: string
-  jobType: string
-}
-
-const financialStats = {
-  mtdRevenue: 0,
-  mtdExpenses: 0,
-  pendingPayments: 0,
-  overduePayments: 0,
-  monthlyGrowth: 0,
-}
+import { useTransactions } from "@/lib/supabase/hooks"
+import { toast } from "sonner"
 
 export function FinancialsPanel() {
-  const [transactions, setTransactions] = useState<Transaction[]>([])
-  // TODO: Replace with useTransactions hook from @/lib/supabase/hooks
+  const { transactions, loading, createTransaction } = useTransactions()
+  const [isNewTxOpen, setIsNewTxOpen] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  
+  const [formData, setFormData] = useState({
+    customer_name: "",
+    address: "",
+    amount: "",
+    payment_type: "e-transfer",
+    job_type: "",
+    status: "pending",
+  })
 
-  const getStatusIcon = (status: Transaction["status"]) => {
+  const financialStats = {
+    mtdRevenue: transactions.filter(t => t.status === "completed").reduce((sum, t) => sum + Number(t.amount || 0), 0),
+    mtdExpenses: 0,
+    pendingPayments: transactions.filter(t => t.status === "pending").reduce((sum, t) => sum + Number(t.amount || 0), 0),
+    overduePayments: transactions.filter(t => t.status === "overdue").reduce((sum, t) => sum + Number(t.amount || 0), 0),
+    monthlyGrowth: 0,
+  }
+
+  const handleSubmit = async () => {
+    if (!formData.customer_name || !formData.amount) {
+      toast.error("Please enter customer name and amount")
+      return
+    }
+
+    setIsSubmitting(true)
+    const { data, error } = await createTransaction({
+      customer_name: formData.customer_name,
+      address: formData.address,
+      amount: parseFloat(formData.amount) || 0,
+      payment_type: formData.payment_type,
+      job_type: formData.job_type,
+      status: formData.status,
+    })
+    setIsSubmitting(false)
+
+    if (error) {
+      toast.error("Failed to add transaction")
+    } else {
+      toast.success("Transaction added!")
+      setIsNewTxOpen(false)
+      setFormData({
+        customer_name: "",
+        address: "",
+        amount: "",
+        payment_type: "e-transfer",
+        job_type: "",
+        status: "pending",
+      })
+    }
+  }
+
+  const getStatusIcon = (status: string) => {
     switch (status) {
       case "completed":
         return <CheckCircle className="h-4 w-4 text-primary" />
@@ -55,7 +108,7 @@ export function FinancialsPanel() {
     }
   }
 
-  const getTypeIcon = (type: Transaction["type"]) => {
+  const getTypeIcon = (type: string) => {
     switch (type) {
       case "e-transfer":
         return <Send className="h-4 w-4" />
@@ -81,10 +134,109 @@ export function FinancialsPanel() {
             <Download className="mr-2 h-4 w-4" />
             Export
           </Button>
-          <Button>
-            <QrCode className="mr-2 h-4 w-4" />
-            Generate QR
-          </Button>
+          <Dialog open={isNewTxOpen} onOpenChange={setIsNewTxOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="mr-2 h-4 w-4" />
+                Add Transaction
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Add Transaction</DialogTitle>
+                <DialogDescription>Log a payment or invoice.</DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="customer">Customer Name *</Label>
+                  <Input 
+                    id="customer" 
+                    placeholder="Customer name..."
+                    value={formData.customer_name}
+                    onChange={(e) => setFormData({ ...formData, customer_name: e.target.value })}
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="address">Address</Label>
+                  <Input 
+                    id="address" 
+                    placeholder="Job address..."
+                    value={formData.address}
+                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="amount">Amount *</Label>
+                    <div className="relative">
+                      <DollarSign className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                      <Input 
+                        id="amount" 
+                        type="number"
+                        placeholder="0.00"
+                        className="pl-9"
+                        value={formData.amount}
+                        onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                  <div className="grid gap-2">
+                    <Label>Payment Type</Label>
+                    <Select 
+                      value={formData.payment_type}
+                      onValueChange={(value) => setFormData({ ...formData, payment_type: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="e-transfer">E-Transfer</SelectItem>
+                        <SelectItem value="cash">Cash</SelectItem>
+                        <SelectItem value="invoice">Invoice</SelectItem>
+                        <SelectItem value="qr-payment">QR Payment</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="job_type">Job Type</Label>
+                    <Input 
+                      id="job_type" 
+                      placeholder="Tree Removal, etc."
+                      value={formData.job_type}
+                      onChange={(e) => setFormData({ ...formData, job_type: e.target.value })}
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label>Status</Label>
+                    <Select 
+                      value={formData.status}
+                      onValueChange={(value) => setFormData({ ...formData, status: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="completed">Completed</SelectItem>
+                        <SelectItem value="pending">Pending</SelectItem>
+                        <SelectItem value="overdue">Overdue</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setIsNewTxOpen(false)}>
+                  Cancel
+                </Button>
+                <Button onClick={handleSubmit} disabled={isSubmitting}>
+                  {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Add Transaction
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
 
@@ -227,15 +379,15 @@ export function FinancialsPanel() {
                   >
                     <div className="flex items-center gap-3">
                       <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-secondary">
-                        {getTypeIcon(tx.type)}
+                        {getTypeIcon(tx.payment_type)}
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
-                          <p className="font-medium">{tx.customer}</p>
+                          <p className="font-medium">{tx.customer_name}</p>
                           {getStatusIcon(tx.status)}
                         </div>
-                        <p className="text-sm text-muted-foreground">{tx.jobType}</p>
-                        <p className="text-xs text-muted-foreground">{tx.date}</p>
+                        <p className="text-sm text-muted-foreground">{tx.job_type}</p>
+                        <p className="text-xs text-muted-foreground">{new Date(tx.created_at).toLocaleDateString()}</p>
                       </div>
                     </div>
                     <div className="text-right">
@@ -248,7 +400,7 @@ export function FinancialsPanel() {
                             : "text-accent"
                         }`}
                       >
-                        ${tx.amount.toLocaleString()}
+                        ${Number(tx.amount).toLocaleString()}
                       </p>
                       <Badge
                         variant={
@@ -273,6 +425,9 @@ export function FinancialsPanel() {
         <TabsContent value="pending" className="mt-4">
           <Card className="bg-card border-border">
             <CardContent className="p-4">
+              {transactions.filter((t) => t.status === "pending").length === 0 && (
+                <p className="text-center text-muted-foreground py-8">No pending transactions</p>
+              )}
               {transactions
                 .filter((t) => t.status === "pending")
                 .map((tx) => (
@@ -281,12 +436,12 @@ export function FinancialsPanel() {
                     className="flex items-center justify-between rounded-lg bg-secondary/50 p-3 mb-2"
                   >
                     <div>
-                      <p className="font-medium">{tx.customer}</p>
+                      <p className="font-medium">{tx.customer_name}</p>
                       <p className="text-sm text-muted-foreground">{tx.address}</p>
                     </div>
                     <div className="flex items-center gap-3">
                       <span className="text-lg font-bold text-accent">
-                        ${tx.amount.toLocaleString()}
+                        ${Number(tx.amount).toLocaleString()}
                       </span>
                       <Button size="sm">Send Reminder</Button>
                     </div>
@@ -299,6 +454,9 @@ export function FinancialsPanel() {
         <TabsContent value="overdue" className="mt-4">
           <Card className="bg-card border-destructive">
             <CardContent className="p-4">
+              {transactions.filter((t) => t.status === "overdue").length === 0 && (
+                <p className="text-center text-muted-foreground py-8">No overdue transactions</p>
+              )}
               {transactions
                 .filter((t) => t.status === "overdue")
                 .map((tx) => (
@@ -309,15 +467,15 @@ export function FinancialsPanel() {
                     <div className="flex items-center gap-3">
                       <AlertCircle className="h-5 w-5 text-destructive" />
                       <div>
-                        <p className="font-medium">{tx.customer}</p>
+                        <p className="font-medium">{tx.customer_name}</p>
                         <p className="text-sm text-muted-foreground">
-                          Due: {tx.date} - {Math.floor((Date.now() - new Date(tx.date).getTime()) / (1000 * 60 * 60 * 24))} days overdue
+                          Due: {new Date(tx.created_at).toLocaleDateString()} - {Math.floor((Date.now() - new Date(tx.created_at).getTime()) / (1000 * 60 * 60 * 24))} days overdue
                         </p>
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
                       <span className="text-lg font-bold text-destructive">
-                        ${tx.amount.toLocaleString()}
+                        ${Number(tx.amount).toLocaleString()}
                       </span>
                       <Button size="sm" variant="destructive">
                         Urgent Follow-up

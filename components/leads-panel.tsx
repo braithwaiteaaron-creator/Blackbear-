@@ -1,19 +1,35 @@
 "use client"
 
 import { useState } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Progress } from "@/components/ui/progress"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import {
   Users,
   Instagram,
   Linkedin,
   MapPin,
   Phone,
-  Mail,
   Plus,
   Search,
   TreeDeciduous,
@@ -21,44 +37,88 @@ import {
   Eye,
   MessageSquare,
   Calendar,
+  Loader2,
+  DollarSign,
 } from "lucide-react"
-
-interface Lead {
-  id: number
-  name: string
-  address: string
-  phone: string
-  email: string
-  source: "instagram" | "linkedin" | "referral" | "spotted" | "website"
-  status: "new" | "contacted" | "quoted" | "follow-up" | "converted" | "lost"
-  value: number
-  trees: number
-  properties: number
-  notes: string
-  lastContact: string
-  priority: "hot" | "warm" | "cold"
-}
-
-const marketingStats = {
-  instagram: { posts: 0, reach: 0, leads: 0 },
-  linkedin: { posts: 0, reach: 0, leads: 0 },
-  totalLeads: 0,
-  hotLeads: 0,
-  conversionRate: 0,
-}
+import { useLeads } from "@/lib/supabase/hooks"
+import { toast } from "sonner"
 
 export function LeadsPanel() {
-  const [leads, setLeads] = useState<Lead[]>([])
-  // TODO: Replace with useLeads hook from @/lib/supabase/hooks
+  const { leads, loading, createLead } = useLeads()
   const [searchQuery, setSearchQuery] = useState("")
+  const [isNewLeadOpen, setIsNewLeadOpen] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  
+  const [formData, setFormData] = useState({
+    name: "",
+    address: "",
+    phone: "",
+    email: "",
+    source: "direct",
+    priority: "warm",
+    estimated_value: "",
+    trees: "",
+    properties: "1",
+    notes: "",
+  })
+
+  const marketingStats = {
+    instagram: { posts: 0, reach: 0, leads: leads.filter(l => l.source === "instagram").length },
+    linkedin: { posts: 0, reach: 0, leads: leads.filter(l => l.source === "linkedin").length },
+    totalLeads: leads.length,
+    hotLeads: leads.filter(l => l.priority === "hot").length,
+    conversionRate: leads.length > 0 ? Math.round((leads.filter(l => l.status === "converted").length / leads.length) * 100) : 0,
+  }
 
   const filteredLeads = leads.filter(
     (lead) =>
       lead.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      lead.address.toLowerCase().includes(searchQuery.toLowerCase())
+      (lead.address?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false)
   )
 
-  const getSourceIcon = (source: Lead["source"]) => {
+  const handleSubmit = async () => {
+    if (!formData.name) {
+      toast.error("Please enter a name")
+      return
+    }
+
+    setIsSubmitting(true)
+    const { data, error } = await createLead({
+      name: formData.name,
+      address: formData.address,
+      phone: formData.phone,
+      email: formData.email,
+      source: formData.source,
+      priority: formData.priority,
+      estimated_value: parseFloat(formData.estimated_value) || 0,
+      trees: parseInt(formData.trees) || 0,
+      properties: parseInt(formData.properties) || 1,
+      notes: formData.notes,
+      status: "new",
+    })
+    setIsSubmitting(false)
+
+    if (error) {
+      toast.error("Failed to create lead")
+    } else {
+      toast.success("Lead added successfully!")
+      setIsNewLeadOpen(false)
+      setFormData({
+        name: "",
+        address: "",
+        phone: "",
+        email: "",
+        source: "direct",
+        priority: "warm",
+        estimated_value: "",
+        trees: "",
+        properties: "1",
+        notes: "",
+      })
+    }
+  }
+
+  const getSourceIcon = (source: string) => {
     switch (source) {
       case "instagram":
         return <Instagram className="h-4 w-4" />
@@ -71,7 +131,7 @@ export function LeadsPanel() {
     }
   }
 
-  const getPriorityColor = (priority: Lead["priority"]) => {
+  const getPriorityColor = (priority: string) => {
     switch (priority) {
       case "hot":
         return "destructive"
@@ -92,10 +152,158 @@ export function LeadsPanel() {
           <h1 className="text-2xl font-bold">Lead Generator</h1>
           <p className="text-muted-foreground">Track and manage potential customers</p>
         </div>
-        <Button>
-          <Plus className="mr-2 h-4 w-4" />
-          Add Lead
-        </Button>
+        <Dialog open={isNewLeadOpen} onOpenChange={setIsNewLeadOpen}>
+          <DialogTrigger asChild>
+            <Button>
+              <Plus className="mr-2 h-4 w-4" />
+              Add Lead
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Add New Lead</DialogTitle>
+              <DialogDescription>
+                Enter details for a potential customer.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="name">Name *</Label>
+                <Input 
+                  id="name" 
+                  placeholder="Customer name..."
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="address">Address</Label>
+                <div className="relative">
+                  <MapPin className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input 
+                    id="address" 
+                    placeholder="Property address..." 
+                    className="pl-9"
+                    value={formData.address}
+                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="phone">Phone</Label>
+                  <Input 
+                    id="phone" 
+                    placeholder="(555) 123-4567"
+                    value={formData.phone}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input 
+                    id="email" 
+                    type="email"
+                    placeholder="email@example.com"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label>Source</Label>
+                  <Select 
+                    value={formData.source}
+                    onValueChange={(value) => setFormData({ ...formData, source: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="direct">Direct</SelectItem>
+                      <SelectItem value="instagram">Instagram</SelectItem>
+                      <SelectItem value="linkedin">LinkedIn</SelectItem>
+                      <SelectItem value="referral">Referral</SelectItem>
+                      <SelectItem value="spotted">Spotted</SelectItem>
+                      <SelectItem value="website">Website</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid gap-2">
+                  <Label>Priority</Label>
+                  <Select 
+                    value={formData.priority}
+                    onValueChange={(value) => setFormData({ ...formData, priority: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="hot">Hot</SelectItem>
+                      <SelectItem value="warm">Warm</SelectItem>
+                      <SelectItem value="cold">Cold</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="value">Est. Value</Label>
+                  <div className="relative">
+                    <DollarSign className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input 
+                      id="value" 
+                      type="number"
+                      placeholder="0"
+                      className="pl-9"
+                      value={formData.estimated_value}
+                      onChange={(e) => setFormData({ ...formData, estimated_value: e.target.value })}
+                    />
+                  </div>
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="trees">Trees</Label>
+                  <Input 
+                    id="trees" 
+                    type="number"
+                    placeholder="0"
+                    value={formData.trees}
+                    onChange={(e) => setFormData({ ...formData, trees: e.target.value })}
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="properties">Properties</Label>
+                  <Input 
+                    id="properties" 
+                    type="number"
+                    placeholder="1"
+                    value={formData.properties}
+                    onChange={(e) => setFormData({ ...formData, properties: e.target.value })}
+                  />
+                </div>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="notes">Notes</Label>
+                <Textarea 
+                  id="notes" 
+                  placeholder="How did you find this lead? Any details..."
+                  value={formData.notes}
+                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                />
+              </div>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setIsNewLeadOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleSubmit} disabled={isSubmitting}>
+                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Add Lead
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
 
       {/* Marketing Stats */}
@@ -173,7 +381,15 @@ export function LeadsPanel() {
         />
       </div>
 
+      {/* Loading State */}
+      {loading && (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      )}
+
       {/* Tabs */}
+      {!loading && (
       <Tabs defaultValue="all">
         <TabsList>
           <TabsTrigger value="all">All Leads</TabsTrigger>
@@ -224,14 +440,14 @@ export function LeadsPanel() {
                         <div className="mt-2 flex items-center gap-4 text-xs text-muted-foreground">
                           <span className="flex items-center gap-1">
                             <Calendar className="h-3 w-3" />
-                            Last contact: {lead.lastContact}
+                            Last contact: {lead.last_contact ? new Date(lead.last_contact).toLocaleDateString() : "N/A"}
                           </span>
                         </div>
                       </div>
                     </div>
                     <div className="flex flex-col items-end gap-2">
                       <span className="text-xl font-bold text-accent">
-                        ${lead.value.toLocaleString()}
+                        ${Number(lead.estimated_value || 0).toLocaleString()}
                       </span>
                       <div className="flex gap-2">
                         <Button variant="outline" size="sm">
@@ -264,7 +480,7 @@ export function LeadsPanel() {
                         <p className="text-sm text-muted-foreground">{lead.notes}</p>
                       </div>
                       <span className="text-xl font-bold text-accent">
-                        ${lead.value.toLocaleString()}
+                        ${Number(lead.estimated_value || 0).toLocaleString()}
                       </span>
                     </div>
                   </CardContent>

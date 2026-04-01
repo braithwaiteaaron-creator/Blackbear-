@@ -1,56 +1,101 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import type { 
-  Job, 
-  Lead, 
-  Customer, 
-  Agent, 
-  Transaction, 
-  Referrer, 
-  MerchItem,
-  RouteStop,
-  SpottedDamage 
-} from "@/lib/types/database"
-
-// TODO: Connect to Supabase - Replace mock data with real database calls
+import { useState, useEffect, useCallback } from "react"
+import { createClient } from "./client"
 
 // ============================================
 // JOBS
 // ============================================
+
+export interface Job {
+  id: string
+  customer_id?: string
+  address: string
+  customer_name: string
+  job_type: string
+  status: string
+  value: number
+  permit_required: boolean
+  clearance_required: boolean
+  climbing_required: boolean
+  trees: string[]
+  notes?: string
+  photos: string[]
+  created_at: string
+  updated_at: string
+}
 
 export function useJobs() {
   const [jobs, setJobs] = useState<Job[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    fetchJobs()
+  const fetchJobs = useCallback(async () => {
+    setLoading(true)
+    const supabase = createClient()
+    const { data, error } = await supabase
+      .from("jobs")
+      .select("*")
+      .order("created_at", { ascending: false })
+    
+    if (error) {
+      console.error("Error fetching jobs:", error)
+      setError(error.message)
+    } else {
+      setJobs(data || [])
+    }
+    setLoading(false)
   }, [])
 
-  async function fetchJobs() {
-    setLoading(true)
-    // TODO: Connect to Supabase
-    // const { data, error } = await supabase.from('jobs').select('*').order('created_at', { ascending: false })
-    setJobs([]) // Replace with real data
-    setLoading(false)
-  }
+  useEffect(() => {
+    fetchJobs()
+  }, [fetchJobs])
 
-  async function createJob(job: Omit<Job, 'id' | 'created_at' | 'updated_at'>) {
-    // TODO: Connect to Supabase
-    // const { data, error } = await supabase.from('jobs').insert(job).select().single()
-    return { data: null, error: null }
+  async function createJob(job: Omit<Job, "id" | "created_at" | "updated_at">) {
+    const supabase = createClient()
+    const { data, error } = await supabase
+      .from("jobs")
+      .insert([job])
+      .select()
+      .single()
+    
+    if (error) {
+      console.error("Error creating job:", error)
+      return { data: null, error }
+    }
+    
+    setJobs((prev) => [data, ...prev])
+    return { data, error: null }
   }
 
   async function updateJob(id: string, updates: Partial<Job>) {
-    // TODO: Connect to Supabase
-    // const { data, error } = await supabase.from('jobs').update(updates).eq('id', id).select().single()
-    return { data: null, error: null }
+    const supabase = createClient()
+    const { data, error } = await supabase
+      .from("jobs")
+      .update(updates)
+      .eq("id", id)
+      .select()
+      .single()
+    
+    if (error) {
+      console.error("Error updating job:", error)
+      return { data: null, error }
+    }
+    
+    setJobs((prev) => prev.map((j) => (j.id === id ? data : j)))
+    return { data, error: null }
   }
 
   async function deleteJob(id: string) {
-    // TODO: Connect to Supabase
-    // const { error } = await supabase.from('jobs').delete().eq('id', id)
+    const supabase = createClient()
+    const { error } = await supabase.from("jobs").delete().eq("id", id)
+    
+    if (error) {
+      console.error("Error deleting job:", error)
+      return { error }
+    }
+    
+    setJobs((prev) => prev.filter((j) => j.id !== id))
     return { error: null }
   }
 
@@ -61,268 +106,348 @@ export function useJobs() {
 // LEADS
 // ============================================
 
+export interface Lead {
+  id: string
+  name: string
+  address?: string
+  phone?: string
+  email?: string
+  source: string
+  status: string
+  priority: string
+  estimated_value: number
+  trees: number
+  properties: number
+  notes?: string
+  last_contact?: string
+  referrer_id?: string
+  created_at: string
+}
+
 export function useLeads() {
   const [leads, setLeads] = useState<Lead[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    fetchLeads()
+  const fetchLeads = useCallback(async () => {
+    setLoading(true)
+    const supabase = createClient()
+    const { data, error } = await supabase
+      .from("leads")
+      .select("*")
+      .order("created_at", { ascending: false })
+    
+    if (error) {
+      console.error("Error fetching leads:", error)
+      setError(error.message)
+    } else {
+      setLeads(data || [])
+    }
+    setLoading(false)
   }, [])
 
-  async function fetchLeads() {
-    setLoading(true)
-    // TODO: Connect to Supabase
-    // const { data, error } = await supabase.from('leads').select('*').order('created_at', { ascending: false })
-    setLeads([])
-    setLoading(false)
-  }
+  useEffect(() => {
+    fetchLeads()
+  }, [fetchLeads])
 
-  async function createLead(lead: Omit<Lead, 'id' | 'created_at' | 'updated_at'>) {
-    // TODO: Connect to Supabase
-    // const { data, error } = await supabase.from('leads').insert(lead).select().single()
-    return { data: null, error: null }
+  async function createLead(lead: Omit<Lead, "id" | "created_at">) {
+    const supabase = createClient()
+    const { data, error } = await supabase
+      .from("leads")
+      .insert([lead])
+      .select()
+      .single()
+    
+    if (error) {
+      console.error("Error creating lead:", error)
+      return { data: null, error }
+    }
+    
+    setLeads((prev) => [data, ...prev])
+    return { data, error: null }
   }
 
   async function updateLead(id: string, updates: Partial<Lead>) {
-    // TODO: Connect to Supabase
-    // const { data, error } = await supabase.from('leads').update(updates).eq('id', id).select().single()
-    return { data: null, error: null }
+    const supabase = createClient()
+    const { data, error } = await supabase
+      .from("leads")
+      .update(updates)
+      .eq("id", id)
+      .select()
+      .single()
+    
+    if (error) {
+      console.error("Error updating lead:", error)
+      return { data: null, error }
+    }
+    
+    setLeads((prev) => prev.map((l) => (l.id === id ? data : l)))
+    return { data, error: null }
   }
 
-  async function convertLeadToJob(leadId: string) {
-    // TODO: Connect to Supabase - Convert lead to job and update status
-    return { data: null, error: null }
+  async function deleteLead(id: string) {
+    const supabase = createClient()
+    const { error } = await supabase.from("leads").delete().eq("id", id)
+    
+    if (error) {
+      console.error("Error deleting lead:", error)
+      return { error }
+    }
+    
+    setLeads((prev) => prev.filter((l) => l.id !== id))
+    return { error: null }
   }
 
-  return { leads, loading, error, fetchLeads, createLead, updateLead, convertLeadToJob }
-}
-
-// ============================================
-// CUSTOMERS
-// ============================================
-
-export function useCustomers() {
-  const [customers, setCustomers] = useState<Customer[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    fetchCustomers()
-  }, [])
-
-  async function fetchCustomers() {
-    setLoading(true)
-    // TODO: Connect to Supabase
-    // const { data, error } = await supabase.from('customers').select('*').order('name')
-    setCustomers([])
-    setLoading(false)
-  }
-
-  async function createCustomer(customer: Omit<Customer, 'id' | 'created_at' | 'updated_at'>) {
-    // TODO: Connect to Supabase
-    // const { data, error } = await supabase.from('customers').insert(customer).select().single()
-    return { data: null, error: null }
-  }
-
-  async function updateCustomer(id: string, updates: Partial<Customer>) {
-    // TODO: Connect to Supabase
-    // const { data, error } = await supabase.from('customers').update(updates).eq('id', id).select().single()
-    return { data: null, error: null }
-  }
-
-  return { customers, loading, error, fetchCustomers, createCustomer, updateCustomer }
+  return { leads, loading, error, fetchLeads, createLead, updateLead, deleteLead }
 }
 
 // ============================================
 // AGENTS
 // ============================================
 
+export interface Agent {
+  id: string
+  name: string
+  role: string
+  avatar?: string
+  avatar_image?: string
+  phone?: string
+  email?: string
+  jobs_completed: number
+  monthly_revenue: number
+  commission: number
+  rating: number
+  status: string
+  investment_balance: number
+  trees_this_month: number
+  created_at: string
+}
+
 export function useAgents() {
   const [agents, setAgents] = useState<Agent[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    fetchAgents()
+  const fetchAgents = useCallback(async () => {
+    setLoading(true)
+    const supabase = createClient()
+    const { data, error } = await supabase
+      .from("agents")
+      .select("*")
+      .order("created_at", { ascending: false })
+    
+    if (error) {
+      console.error("Error fetching agents:", error)
+      setError(error.message)
+    } else {
+      setAgents(data || [])
+    }
+    setLoading(false)
   }, [])
 
-  async function fetchAgents() {
-    setLoading(true)
-    // TODO: Connect to Supabase
-    // const { data, error } = await supabase.from('agents').select('*').order('name')
-    setAgents([])
-    setLoading(false)
+  useEffect(() => {
+    fetchAgents()
+  }, [fetchAgents])
+
+  async function createAgent(agent: Omit<Agent, "id" | "created_at">) {
+    const supabase = createClient()
+    const { data, error } = await supabase
+      .from("agents")
+      .insert([agent])
+      .select()
+      .single()
+    
+    if (error) {
+      console.error("Error creating agent:", error)
+      return { data: null, error }
+    }
+    
+    setAgents((prev) => [data, ...prev])
+    return { data, error: null }
   }
 
-  async function updateAgentStats(id: string, updates: Partial<Agent>) {
-    // TODO: Connect to Supabase
-    // const { data, error } = await supabase.from('agents').update(updates).eq('id', id).select().single()
-    return { data: null, error: null }
+  async function updateAgent(id: string, updates: Partial<Agent>) {
+    const supabase = createClient()
+    const { data, error } = await supabase
+      .from("agents")
+      .update(updates)
+      .eq("id", id)
+      .select()
+      .single()
+    
+    if (error) {
+      console.error("Error updating agent:", error)
+      return { data: null, error }
+    }
+    
+    setAgents((prev) => prev.map((a) => (a.id === id ? data : a)))
+    return { data, error: null }
   }
 
-  return { agents, loading, error, fetchAgents, updateAgentStats }
+  return { agents, loading, error, fetchAgents, createAgent, updateAgent }
 }
 
 // ============================================
 // TRANSACTIONS (Financials)
 // ============================================
 
+export interface Transaction {
+  id: string
+  job_id?: string
+  customer_id?: string
+  customer_name: string
+  address?: string
+  amount: number
+  payment_type: string
+  status: string
+  job_type?: string
+  notes?: string
+  created_at: string
+}
+
 export function useTransactions() {
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    fetchTransactions()
+  const fetchTransactions = useCallback(async () => {
+    setLoading(true)
+    const supabase = createClient()
+    const { data, error } = await supabase
+      .from("transactions")
+      .select("*")
+      .order("created_at", { ascending: false })
+    
+    if (error) {
+      console.error("Error fetching transactions:", error)
+      setError(error.message)
+    } else {
+      setTransactions(data || [])
+    }
+    setLoading(false)
   }, [])
 
-  async function fetchTransactions() {
-    setLoading(true)
-    // TODO: Connect to Supabase
-    // const { data, error } = await supabase.from('transactions').select('*').order('created_at', { ascending: false })
-    setTransactions([])
-    setLoading(false)
+  useEffect(() => {
+    fetchTransactions()
+  }, [fetchTransactions])
+
+  async function createTransaction(tx: Omit<Transaction, "id" | "created_at">) {
+    const supabase = createClient()
+    const { data, error } = await supabase
+      .from("transactions")
+      .insert([tx])
+      .select()
+      .single()
+    
+    if (error) {
+      console.error("Error creating transaction:", error)
+      return { data: null, error }
+    }
+    
+    setTransactions((prev) => [data, ...prev])
+    return { data, error: null }
   }
 
-  async function createTransaction(transaction: Omit<Transaction, 'id' | 'created_at'>) {
-    // TODO: Connect to Supabase
-    // const { data, error } = await supabase.from('transactions').insert(transaction).select().single()
-    return { data: null, error: null }
+  async function updateTransaction(id: string, updates: Partial<Transaction>) {
+    const supabase = createClient()
+    const { data, error } = await supabase
+      .from("transactions")
+      .update(updates)
+      .eq("id", id)
+      .select()
+      .single()
+    
+    if (error) {
+      console.error("Error updating transaction:", error)
+      return { data: null, error }
+    }
+    
+    setTransactions((prev) => prev.map((t) => (t.id === id ? data : t)))
+    return { data, error: null }
   }
 
-  async function updateTransactionStatus(id: string, status: Transaction['status']) {
-    // TODO: Connect to Supabase
-    // const { data, error } = await supabase.from('transactions').update({ status }).eq('id', id).select().single()
-    return { data: null, error: null }
-  }
-
-  return { transactions, loading, error, fetchTransactions, createTransaction, updateTransactionStatus }
+  return { transactions, loading, error, fetchTransactions, createTransaction, updateTransaction }
 }
 
 // ============================================
 // REFERRERS (Winners Circle)
 // ============================================
 
+export interface Referrer {
+  id: string
+  name: string
+  phone?: string
+  email?: string
+  referral_code: string
+  total_referrals: number
+  converted_referrals: number
+  total_value: number
+  commission_rate: number
+  commission_earned: number
+  status: string
+  created_at: string
+}
+
 export function useReferrers() {
   const [referrers, setReferrers] = useState<Referrer[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  const fetchReferrers = useCallback(async () => {
+    setLoading(true)
+    const supabase = createClient()
+    const { data, error } = await supabase
+      .from("referrers")
+      .select("*")
+      .order("total_value", { ascending: false })
+    
+    if (error) {
+      console.error("Error fetching referrers:", error)
+      setError(error.message)
+    } else {
+      setReferrers(data || [])
+    }
+    setLoading(false)
+  }, [])
+
   useEffect(() => {
     fetchReferrers()
-  }, [])
+  }, [fetchReferrers])
 
-  async function fetchReferrers() {
-    setLoading(true)
-    // TODO: Connect to Supabase
-    // const { data, error } = await supabase.from('referrers').select('*').order('total_value', { ascending: false })
-    setReferrers([])
-    setLoading(false)
+  async function createReferrer(referrer: Omit<Referrer, "id" | "created_at">) {
+    const supabase = createClient()
+    const { data, error } = await supabase
+      .from("referrers")
+      .insert([referrer])
+      .select()
+      .single()
+    
+    if (error) {
+      console.error("Error creating referrer:", error)
+      return { data: null, error }
+    }
+    
+    setReferrers((prev) => [data, ...prev])
+    return { data, error: null }
   }
 
-  async function createReferrer(referrer: Omit<Referrer, 'id' | 'created_at' | 'referral_code'>) {
-    // TODO: Connect to Supabase - Generate unique referral_code
-    // const { data, error } = await supabase.from('referrers').insert({ ...referrer, referral_code: generateCode() }).select().single()
-    return { data: null, error: null }
+  async function updateReferrer(id: string, updates: Partial<Referrer>) {
+    const supabase = createClient()
+    const { data, error } = await supabase
+      .from("referrers")
+      .update(updates)
+      .eq("id", id)
+      .select()
+      .single()
+    
+    if (error) {
+      console.error("Error updating referrer:", error)
+      return { data: null, error }
+    }
+    
+    setReferrers((prev) => prev.map((r) => (r.id === id ? data : r)))
+    return { data, error: null }
   }
 
-  async function trackReferral(referralCode: string) {
-    // TODO: Connect to Supabase - Increment referral count
-    return { data: null, error: null }
-  }
-
-  return { referrers, loading, error, fetchReferrers, createReferrer, trackReferral }
-}
-
-// ============================================
-// MERCHANDISE
-// ============================================
-
-export function useMerch() {
-  const [items, setItems] = useState<MerchItem[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    fetchItems()
-  }, [])
-
-  async function fetchItems() {
-    setLoading(true)
-    // TODO: Connect to Supabase
-    // const { data, error } = await supabase.from('merch_items').select('*').order('name')
-    setItems([])
-    setLoading(false)
-  }
-
-  async function updateStock(id: string, quantity: number) {
-    // TODO: Connect to Supabase
-    // const { data, error } = await supabase.from('merch_items').update({ stock: quantity }).eq('id', id).select().single()
-    return { data: null, error: null }
-  }
-
-  return { items, loading, error, fetchItems, updateStock }
-}
-
-// ============================================
-// ROUTES & SPOTTED DAMAGE
-// ============================================
-
-export function useRoutes(date?: string) {
-  const [stops, setStops] = useState<RouteStop[]>([])
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    fetchRoute()
-  }, [date])
-
-  async function fetchRoute() {
-    setLoading(true)
-    // TODO: Connect to Supabase
-    // const { data, error } = await supabase.from('route_stops').select('*').eq('scheduled_date', date).order('order_index')
-    setStops([])
-    setLoading(false)
-  }
-
-  async function addStop(stop: Omit<RouteStop, 'id'>) {
-    // TODO: Connect to Supabase
-    return { data: null, error: null }
-  }
-
-  async function reorderStops(stopIds: string[]) {
-    // TODO: Connect to Supabase - Batch update order_index
-    return { error: null }
-  }
-
-  return { stops, loading, fetchRoute, addStop, reorderStops }
-}
-
-export function useSpottedDamage() {
-  const [damages, setDamages] = useState<SpottedDamage[]>([])
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    fetchDamages()
-  }, [])
-
-  async function fetchDamages() {
-    setLoading(true)
-    // TODO: Connect to Supabase
-    // const { data, error } = await supabase.from('spotted_damage').select('*').eq('converted_to_lead', false).order('spotted_at', { ascending: false })
-    setDamages([])
-    setLoading(false)
-  }
-
-  async function logDamage(damage: Omit<SpottedDamage, 'id' | 'created_at' | 'converted_to_lead' | 'lead_id'>) {
-    // TODO: Connect to Supabase
-    return { data: null, error: null }
-  }
-
-  async function convertToLead(damageId: string) {
-    // TODO: Connect to Supabase - Create lead from damage, update damage record
-    return { data: null, error: null }
-  }
-
-  return { damages, loading, fetchDamages, logDamage, convertToLead }
+  return { referrers, loading, error, fetchReferrers, createReferrer, updateReferrer }
 }

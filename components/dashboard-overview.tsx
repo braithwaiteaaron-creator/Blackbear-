@@ -11,33 +11,41 @@ import {
   MapPin,
   TrendingUp,
   Clock,
-  AlertTriangle,
   ArrowRight,
   Camera,
   Zap,
   Mountain,
   Shield,
   QrCode,
+  Loader2,
 } from "lucide-react"
 import Image from "next/image"
 import { QRCodeCard } from "./qr-code-card"
+import { useJobs, useLeads, useTransactions } from "@/lib/supabase/hooks"
 
 interface DashboardOverviewProps {
   onNavigate: (view: ActiveView) => void
 }
 
-const stats = [
-  { label: "Active Jobs", value: "0", change: "Add your first job", icon: TreeDeciduous, color: "text-primary" },
-  { label: "Revenue MTD", value: "$0", change: "No revenue yet", icon: DollarSign, color: "text-accent" },
-  { label: "Active Leads", value: "0", change: "No leads yet", icon: Users, color: "text-chart-2" },
-  { label: "Routes Today", value: "0", change: "No routes planned", icon: MapPin, color: "text-chart-5" },
-]
-
-const recentJobs: { id: number; address: string; type: string; status: string; value: string; permit: boolean; featured?: boolean }[] = []
-
-const upcomingTasks: { time: string; task: string; type: string }[] = []
-
 export function DashboardOverview({ onNavigate }: DashboardOverviewProps) {
+  const { jobs, loading: jobsLoading } = useJobs()
+  const { leads, loading: leadsLoading } = useLeads()
+  const { transactions, loading: transactionsLoading } = useTransactions()
+
+  const activeJobs = jobs.filter(j => j.status !== "completed")
+  const revenueMTD = transactions.filter(t => t.status === "completed").reduce((sum, t) => sum + Number(t.amount || 0), 0)
+  const activeLeads = leads.filter(l => l.status !== "converted" && l.status !== "lost")
+  const recentJobs = jobs.slice(0, 5)
+
+  const stats = [
+    { label: "Active Jobs", value: activeJobs.length.toString(), change: activeJobs.length > 0 ? `${jobs.filter(j => j.status === "quote").length} quotes pending` : "Add your first job", icon: TreeDeciduous, color: "text-primary" },
+    { label: "Revenue MTD", value: `$${revenueMTD.toLocaleString()}`, change: revenueMTD > 0 ? "From completed jobs" : "No revenue yet", icon: DollarSign, color: "text-accent" },
+    { label: "Active Leads", value: activeLeads.length.toString(), change: activeLeads.length > 0 ? `${leads.filter(l => l.priority === "hot").length} hot leads` : "No leads yet", icon: Users, color: "text-chart-2" },
+    { label: "Total Jobs", value: jobs.length.toString(), change: jobs.length > 0 ? "All time" : "No jobs yet", icon: MapPin, color: "text-chart-5" },
+  ]
+
+  const isLoading = jobsLoading || leadsLoading || transactionsLoading
+
   return (
     <div className="space-y-6">
       {/* USP Banner - We Climb Where Others Can't */}
@@ -129,7 +137,11 @@ export function DashboardOverview({ onNavigate }: DashboardOverviewProps) {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {recentJobs.length === 0 ? (
+              {isLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                </div>
+              ) : recentJobs.length === 0 ? (
                 <div className="flex flex-col items-center justify-center rounded-lg bg-secondary/30 p-8 text-center">
                   <TreeDeciduous className="h-10 w-10 text-muted-foreground mb-3" />
                   <p className="font-medium text-muted-foreground">No jobs yet</p>
@@ -141,8 +153,8 @@ export function DashboardOverview({ onNavigate }: DashboardOverviewProps) {
                   <div
                     key={job.id}
                     className={`flex items-center justify-between rounded-lg p-3 ${
-                      job.status === "Featured"
-                        ? "bg-gradient-to-r from-yellow-500/20 to-amber-500/10 border border-yellow-500/30"
+                      job.status === "urgent"
+                        ? "bg-gradient-to-r from-destructive/20 to-destructive/10 border border-destructive/30"
                         : "bg-secondary/50"
                     }`}
                   >
@@ -153,8 +165,8 @@ export function DashboardOverview({ onNavigate }: DashboardOverviewProps) {
                       <div>
                         <p className="font-medium">{job.address}</p>
                         <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                          <span>{job.type}</span>
-                          {job.permit && (
+                          <span>{job.job_type}</span>
+                          {job.permit_required && (
                             <Badge variant="outline" className="text-[10px] px-1.5 py-0">
                               Permit Needed
                             </Badge>
@@ -163,8 +175,8 @@ export function DashboardOverview({ onNavigate }: DashboardOverviewProps) {
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
-                      <span className="font-semibold text-accent">{job.value}</span>
-                      <Badge variant={job.status === "Urgent" ? "destructive" : job.status === "In Progress" ? "default" : "secondary"}>
+                      <span className="font-semibold text-accent">${Number(job.value).toLocaleString()}</span>
+                      <Badge variant={job.status === "urgent" ? "destructive" : job.status === "in-progress" ? "default" : "secondary"}>
                         {job.status}
                       </Badge>
                     </div>
@@ -185,17 +197,18 @@ export function DashboardOverview({ onNavigate }: DashboardOverviewProps) {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {upcomingTasks.length === 0 ? (
+              {jobs.filter(j => j.status === "scheduled").length === 0 ? (
                 <div className="flex flex-col items-center justify-center rounded-lg bg-secondary/30 p-6 text-center">
                   <Clock className="h-8 w-8 text-muted-foreground mb-2" />
-                  <p className="text-sm text-muted-foreground">No tasks scheduled today</p>
+                  <p className="text-sm text-muted-foreground">No jobs scheduled</p>
+                  <p className="text-xs text-muted-foreground mt-1">Schedule a job to see it here</p>
                 </div>
               ) : (
-                upcomingTasks.map((item, index) => (
-                  <div key={index} className="flex gap-3 rounded-lg bg-secondary/50 p-3">
-                    <span className="text-xs text-muted-foreground whitespace-nowrap">{item.time}</span>
+                jobs.filter(j => j.status === "scheduled").slice(0, 4).map((job) => (
+                  <div key={job.id} className="flex gap-3 rounded-lg bg-secondary/50 p-3">
                     <div className="flex-1">
-                      <p className="text-sm">{item.task}</p>
+                      <p className="text-sm font-medium">{job.address}</p>
+                      <p className="text-xs text-muted-foreground">{job.job_type} - {job.customer_name}</p>
                     </div>
                   </div>
                 ))
