@@ -34,6 +34,8 @@ import {
   DollarSign,
   QrCode,
   Loader2,
+  AlertTriangle,
+  Mountain,
 } from "lucide-react"
 import { JobPhotoUpload } from "./job-photo-upload"
 import { useJobs, useReferrers } from "@/lib/supabase/hooks"

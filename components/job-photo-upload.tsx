@@ -21,16 +21,16 @@ interface UploadedPhoto {
 export function JobPhotoUpload({ jobId, onPhotosChange }: JobPhotoUploadProps) {
   const [photos, setPhotos] = useState<UploadedPhoto[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const isFirstRender = useRef(true)
 
-  // Memoize the callback so it doesn't change on every render
-  const handlePhotosChange = useCallback(() => {
+  // Call parent callback whenever photos change (skip first render to avoid setState during render)
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false
+      return
+    }
     onPhotosChange?.(photos.map((p) => p.file))
   }, [photos, onPhotosChange])
-
-  // Call parent callback whenever photos change via useEffect (not during render)
-  useEffect(() => {
-    handlePhotosChange()
-  }, [handlePhotosChange])
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || [])
