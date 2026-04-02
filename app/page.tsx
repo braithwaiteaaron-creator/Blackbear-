@@ -5,7 +5,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
-import { Briefcase, FileText, Users, TrendingUp, Bot, Calculator, Wrench, Camera, TreeDeciduous, ArrowRight, Sparkles } from 'lucide-react'
+import { Briefcase, FileText, Users, TrendingUp, Bot, Calculator, Wrench, Camera, TreeDeciduous, ArrowRight, Sparkles, QrCode } from 'lucide-react'
+import Link from 'next/link'
 import { SimpleAIChat } from '@/components/simple-ai-chat'
 
 // Demo data
@@ -54,6 +55,12 @@ export default function Dashboard() {
               </div>
             </div>
             <div className="flex items-center gap-3">
+              <Link href="/referrals">
+                <Button variant="outline" className="border-border text-foreground hover:bg-accent/20">
+                  <QrCode className="size-4 mr-2" />
+                  Referral QR
+                </Button>
+              </Link>
               <Badge variant="outline" className="border-primary/30 text-primary bg-primary/10">
                 <Sparkles className="size-3 mr-1" />
                 AI Enabled
