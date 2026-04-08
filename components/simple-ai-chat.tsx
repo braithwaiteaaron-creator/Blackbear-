@@ -63,20 +63,20 @@ export function SimpleAIChat({
   }
 
   return (
-    <div className="flex flex-col h-[500px]">
+    <div className="flex flex-col h-[400px] sm:h-[500px]">
       {/* Messages */}
       <div 
         ref={scrollRef}
-        className="flex-1 overflow-y-auto p-4 space-y-4"
+        className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3 sm:space-y-4"
       >
         {messages.length === 0 && (
-          <div className="flex flex-col items-center justify-center h-full text-muted-foreground text-center gap-3">
-            <div className="size-12 rounded-full bg-primary/10 flex items-center justify-center">
-              <Bot className="size-6 text-primary" />
+          <div className="flex flex-col items-center justify-center h-full text-muted-foreground text-center gap-2 sm:gap-3 px-4">
+            <div className="size-10 sm:size-12 rounded-full bg-primary/10 flex items-center justify-center">
+              <Bot className="size-5 sm:size-6 text-primary" />
             </div>
             <div>
-              <p className="font-medium text-foreground mb-1">{title}</p>
-              <p className="text-sm">{placeholder}</p>
+              <p className="font-medium text-foreground mb-1 text-sm sm:text-base">{title}</p>
+              <p className="text-xs sm:text-sm">{placeholder}</p>
             </div>
           </div>
         )}
@@ -84,23 +84,23 @@ export function SimpleAIChat({
         {messages.map((msg, idx) => (
           <div
             key={idx}
-            className={`flex gap-3 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}
+            className={`flex gap-2 sm:gap-3 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}
           >
-            <div className={`size-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+            <div className={`size-7 sm:size-8 rounded-full flex items-center justify-center flex-shrink-0 ${
               msg.role === 'user' 
                 ? 'bg-primary text-primary-foreground' 
                 : 'bg-secondary text-muted-foreground'
             }`}>
-              {msg.role === 'user' ? <User className="size-4" /> : <Bot className="size-4" />}
+              {msg.role === 'user' ? <User className="size-3 sm:size-4" /> : <Bot className="size-3 sm:size-4" />}
             </div>
             <div
-              className={`max-w-[80%] px-4 py-3 rounded-2xl ${
+              className={`max-w-[85%] sm:max-w-[80%] px-3 sm:px-4 py-2 sm:py-3 rounded-2xl ${
                 msg.role === 'user'
                   ? 'bg-primary text-primary-foreground rounded-tr-sm'
                   : 'bg-secondary text-foreground rounded-tl-sm'
               }`}
             >
-              <p className="text-sm whitespace-pre-wrap leading-relaxed">{msg.content}</p>
+              <p className="text-xs sm:text-sm whitespace-pre-wrap leading-relaxed">{msg.content}</p>
             </div>
           </div>
         ))}
@@ -119,8 +119,8 @@ export function SimpleAIChat({
       </div>
 
       {/* Input */}
-      <div className="border-t border-border p-4">
-        <div className="flex gap-3">
+      <div className="border-t border-border p-3 sm:p-4">
+        <div className="flex gap-2 sm:gap-3">
           <Textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
@@ -131,14 +131,14 @@ export function SimpleAIChat({
                 handleSend()
               }
             }}
-            className="bg-secondary border-border text-foreground placeholder:text-muted-foreground resize-none min-h-[44px] max-h-[120px]"
+            className="bg-secondary border-border text-foreground placeholder:text-muted-foreground resize-none min-h-[40px] sm:min-h-[44px] max-h-[100px] sm:max-h-[120px] text-sm"
             rows={1}
           />
           <Button
             onClick={handleSend}
             disabled={loading || !input.trim()}
             size="icon"
-            className="bg-primary hover:bg-primary/90 text-primary-foreground h-11 w-11 flex-shrink-0"
+            className="bg-primary hover:bg-primary/90 text-primary-foreground h-10 w-10 sm:h-11 sm:w-11 flex-shrink-0"
           >
             {loading ? (
               <Loader2 className="size-4 animate-spin" />
@@ -147,7 +147,7 @@ export function SimpleAIChat({
             )}
           </Button>
         </div>
-        <p className="text-xs text-muted-foreground mt-2 text-center">
+        <p className="text-xs text-muted-foreground mt-2 text-center hidden sm:block">
           Press Enter to send, Shift+Enter for new line
         </p>
       </div>

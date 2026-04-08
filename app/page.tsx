@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
-import { Briefcase, FileText, Users, TrendingUp, Bot, Calculator, Wrench, Camera, TreeDeciduous, ArrowRight, Sparkles, QrCode, BarChart3, Calendar, CreditCard } from 'lucide-react'
+import { Briefcase, FileText, Users, TrendingUp, Bot, Calculator, Wrench, Camera, TreeDeciduous, ArrowRight, Sparkles, QrCode, BarChart3, Calendar, CreditCard, Menu, X } from 'lucide-react'
 import Link from 'next/link'
 import { SimpleAIChat } from '@/components/simple-ai-chat'
 
@@ -38,23 +38,26 @@ const statusColors: Record<string, string> = {
 
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState('ai-assistant')
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   return (
     <div className="min-h-screen bg-background dark">
       {/* Header */}
       <header className="border-b border-border/50 bg-card/50 backdrop-blur-sm sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-6 py-4">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="size-10 rounded-xl bg-primary/20 flex items-center justify-center">
-                <TreeDeciduous className="size-5 text-primary" />
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="size-9 sm:size-10 rounded-xl bg-primary/20 flex items-center justify-center">
+                <TreeDeciduous className="size-4 sm:size-5 text-primary" />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-foreground tracking-tight">Bear Hub Pro</h1>
-                <p className="text-xs text-muted-foreground">AI-Powered Tree Care Management</p>
+                <h1 className="text-lg sm:text-xl font-bold text-foreground tracking-tight">Bear Hub Pro</h1>
+                <p className="text-xs text-muted-foreground hidden sm:block">AI-Powered Tree Care Management</p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            
+            {/* Desktop Navigation */}
+            <div className="hidden md:flex items-center gap-2">
               <Link href="/analytics">
                 <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
                   <BarChart3 className="size-4 mr-1" />
@@ -90,19 +93,67 @@ export default function Dashboard() {
                 AI Enabled
               </Badge>
             </div>
+
+            {/* Mobile Menu Button */}
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="md:hidden"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            >
+              {mobileMenuOpen ? <X className="size-5" /> : <Menu className="size-5" />}
+            </Button>
           </div>
+
+          {/* Mobile Navigation */}
+          {mobileMenuOpen && (
+            <div className="md:hidden mt-4 pb-2 border-t border-border/50 pt-4">
+              <div className="grid grid-cols-3 gap-2">
+                <Link href="/analytics" onClick={() => setMobileMenuOpen(false)}>
+                  <Button variant="outline" size="sm" className="w-full flex-col h-auto py-3 gap-1">
+                    <BarChart3 className="size-5" />
+                    <span className="text-xs">Analytics</span>
+                  </Button>
+                </Link>
+                <Link href="/calendar" onClick={() => setMobileMenuOpen(false)}>
+                  <Button variant="outline" size="sm" className="w-full flex-col h-auto py-3 gap-1">
+                    <Calendar className="size-5" />
+                    <span className="text-xs">Calendar</span>
+                  </Button>
+                </Link>
+                <Link href="/invoices" onClick={() => setMobileMenuOpen(false)}>
+                  <Button variant="outline" size="sm" className="w-full flex-col h-auto py-3 gap-1">
+                    <CreditCard className="size-5" />
+                    <span className="text-xs">Invoices</span>
+                  </Button>
+                </Link>
+                <Link href="/team" onClick={() => setMobileMenuOpen(false)}>
+                  <Button variant="outline" size="sm" className="w-full flex-col h-auto py-3 gap-1">
+                    <Users className="size-5" />
+                    <span className="text-xs">Team</span>
+                  </Button>
+                </Link>
+                <Link href="/referrals" onClick={() => setMobileMenuOpen(false)}>
+                  <Button variant="outline" size="sm" className="w-full flex-col h-auto py-3 gap-1">
+                    <QrCode className="size-5" />
+                    <span className="text-xs">Referrals</span>
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          )}
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-6 py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
         {/* Hero Section */}
-        <div className="mb-10">
+        <div className="mb-6 sm:mb-10">
           <div className="flex items-start justify-between">
             <div>
-              <h2 className="text-3xl font-bold text-foreground tracking-tight mb-2">
+              <h2 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight mb-1 sm:mb-2">
                 Welcome back
               </h2>
-              <p className="text-muted-foreground text-lg">
+              <p className="text-muted-foreground text-sm sm:text-lg">
                 Manage your tree care business with AI-powered tools
               </p>
             </div>
@@ -110,18 +161,18 @@ export default function Dashboard() {
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-4 gap-4 mb-10">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-10">
           {stats.map((stat) => (
             <Card key={stat.label} className="bg-card border-border/50 hover:border-primary/30 transition-colors">
-              <CardContent className="pt-6">
+              <CardContent className="pt-4 sm:pt-6 px-3 sm:px-6">
                 <div className="flex items-start justify-between">
                   <div>
-                    <p className="text-sm text-muted-foreground mb-1">{stat.label}</p>
-                    <p className="text-2xl font-bold text-foreground">{stat.value}</p>
-                    <p className="text-xs text-muted-foreground mt-1">{stat.change}</p>
+                    <p className="text-xs sm:text-sm text-muted-foreground mb-1">{stat.label}</p>
+                    <p className="text-lg sm:text-2xl font-bold text-foreground">{stat.value}</p>
+                    <p className="text-xs text-muted-foreground mt-1 hidden sm:block">{stat.change}</p>
                   </div>
-                  <div className="size-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                    <stat.icon className="size-5 text-primary" />
+                  <div className="size-8 sm:size-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                    <stat.icon className="size-4 sm:size-5 text-primary" />
                   </div>
                 </div>
               </CardContent>
@@ -130,57 +181,57 @@ export default function Dashboard() {
         </div>
 
         {/* Main Tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="bg-card border border-border/50 p-1 h-auto">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4 sm:space-y-6">
+          <TabsList className="bg-card border border-border/50 p-1 h-auto flex-wrap gap-1">
             <TabsTrigger 
               value="ai-assistant" 
-              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground px-4 py-2.5 gap-2"
+              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground px-2 sm:px-4 py-2 sm:py-2.5 gap-1 sm:gap-2 text-xs sm:text-sm"
             >
-              <Bot className="size-4" />
-              AI Assistant
+              <Bot className="size-3 sm:size-4" />
+              <span className="hidden sm:inline">AI</span> Assistant
             </TabsTrigger>
             <TabsTrigger 
               value="ai-quote" 
-              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground px-4 py-2.5 gap-2"
+              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground px-2 sm:px-4 py-2 sm:py-2.5 gap-1 sm:gap-2 text-xs sm:text-sm"
             >
-              <Calculator className="size-4" />
-              AI Quote Generator
+              <Calculator className="size-3 sm:size-4" />
+              <span className="hidden sm:inline">AI</span> Quote
             </TabsTrigger>
             <TabsTrigger 
               value="ai-photo" 
-              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground px-4 py-2.5 gap-2"
+              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground px-2 sm:px-4 py-2 sm:py-2.5 gap-1 sm:gap-2 text-xs sm:text-sm"
             >
-              <Camera className="size-4" />
-              Photo Analysis
+              <Camera className="size-3 sm:size-4" />
+              Photo
             </TabsTrigger>
-            <div className="w-px h-6 bg-border mx-2" />
+            <div className="w-px h-6 bg-border mx-1 sm:mx-2 hidden sm:block" />
             <TabsTrigger 
               value="overview" 
-              className="data-[state=active]:bg-secondary px-4 py-2.5 gap-2"
+              className="data-[state=active]:bg-secondary px-2 sm:px-4 py-2 sm:py-2.5 gap-1 sm:gap-2 text-xs sm:text-sm"
             >
-              <Briefcase className="size-4" />
+              <Briefcase className="size-3 sm:size-4" />
               Overview
             </TabsTrigger>
             <TabsTrigger 
               value="jobs" 
-              className="data-[state=active]:bg-secondary px-4 py-2.5 gap-2"
+              className="data-[state=active]:bg-secondary px-2 sm:px-4 py-2 sm:py-2.5 gap-1 sm:gap-2 text-xs sm:text-sm"
             >
-              <Wrench className="size-4" />
+              <Wrench className="size-3 sm:size-4" />
               Jobs
             </TabsTrigger>
             <TabsTrigger 
               value="quotes" 
-              className="data-[state=active]:bg-secondary px-4 py-2.5 gap-2"
+              className="data-[state=active]:bg-secondary px-2 sm:px-4 py-2 sm:py-2.5 gap-1 sm:gap-2 text-xs sm:text-sm"
             >
-              <FileText className="size-4" />
+              <FileText className="size-3 sm:size-4" />
               Quotes
             </TabsTrigger>
           </TabsList>
 
           {/* AI Assistant Tab */}
-          <TabsContent value="ai-assistant" className="space-y-6">
-            <div className="grid grid-cols-3 gap-6">
-              <div className="col-span-2">
+          <TabsContent value="ai-assistant" className="space-y-4 sm:space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+              <div className="lg:col-span-2">
                 <Card className="bg-card border-border/50 h-full">
                   <CardHeader className="border-b border-border/50">
                     <div className="flex items-center gap-3">
@@ -224,9 +275,9 @@ export default function Dashboard() {
           </TabsContent>
 
           {/* AI Quote Generator Tab */}
-          <TabsContent value="ai-quote" className="space-y-6">
-            <div className="grid grid-cols-3 gap-6">
-              <div className="col-span-2">
+          <TabsContent value="ai-quote" className="space-y-4 sm:space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+              <div className="lg:col-span-2">
                 <Card className="bg-card border-border/50 h-full">
                   <CardHeader className="border-b border-border/50">
                     <div className="flex items-center gap-3">
@@ -284,9 +335,9 @@ export default function Dashboard() {
           </TabsContent>
 
           {/* AI Photo Analysis Tab */}
-          <TabsContent value="ai-photo" className="space-y-6">
-            <div className="grid grid-cols-3 gap-6">
-              <div className="col-span-2">
+          <TabsContent value="ai-photo" className="space-y-4 sm:space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+              <div className="lg:col-span-2">
                 <Card className="bg-card border-border/50 h-full">
                   <CardHeader className="border-b border-border/50">
                     <div className="flex items-center gap-3">
@@ -340,8 +391,8 @@ export default function Dashboard() {
           </TabsContent>
 
           {/* Overview Tab */}
-          <TabsContent value="overview" className="space-y-6">
-            <div className="grid grid-cols-2 gap-6">
+          <TabsContent value="overview" className="space-y-4 sm:space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
               <Card className="bg-card border-border/50">
                 <CardHeader>
                   <div className="flex items-center justify-between">
