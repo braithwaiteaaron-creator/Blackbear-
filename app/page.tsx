@@ -5,28 +5,27 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
-import { Briefcase, FileText, Users, TrendingUp, Bot, Calculator, Wrench, Camera, TreeDeciduous, ArrowRight, Sparkles, QrCode, BarChart3, Calendar, CreditCard, Menu, X } from 'lucide-react'
+import { Briefcase, FileText, Users, TrendingUp, Bot, Calculator, Wrench, Camera, TreeDeciduous, ArrowRight, Sparkles, QrCode, BarChart3, Calendar, CreditCard, Menu, X, Plus, Loader2 } from 'lucide-react'
 import Link from 'next/link'
 import { SimpleAIChat } from '@/components/simple-ai-chat'
+import { useDashboardData } from '@/hooks/use-dashboard-data'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { createCustomer, createJob, createQuote } from './actions'
 
-// Demo data
-const stats = [
-  { label: 'Active Jobs', value: '12', change: '+3 this week', icon: Briefcase },
-  { label: 'Pending Quotes', value: '8', change: '4 awaiting response', icon: FileText },
-  { label: 'Total Customers', value: '47', change: '+5 this month', icon: Users },
-  { label: 'Revenue MTD', value: '$24,350', change: '+18% vs last month', icon: TrendingUp },
-]
-
-const recentJobs = [
-  { id: '1', number: 'J-001', customer: 'John Smith', service: 'Tree Removal', status: 'in_progress', amount: '$2,400' },
-  { id: '2', number: 'J-002', customer: 'Sarah Johnson', service: 'Trimming', status: 'scheduled', amount: '$850' },
-  { id: '3', number: 'J-003', customer: 'Mike Davis', service: 'Stump Grinding', status: 'completed', amount: '$450' },
-]
-
-const recentQuotes = [
-  { id: '1', number: 'Q-001', customer: 'Emily Brown', service: 'Large Oak Removal', status: 'pending', amount: '$3,200' },
-  { id: '2', number: 'Q-002', customer: 'Robert Wilson', service: 'Full Yard Cleanup', status: 'sent', amount: '$1,800' },
-]
+const statusColors: Record<string, string> = {
+  in_progress: 'bg-primary/20 text-primary border-primary/30',
+  scheduled: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+  completed: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
+  cancelled: 'bg-red-500/20 text-red-400 border-red-500/30',
+  draft: 'bg-slate-500/20 text-slate-400 border-slate-500/30',
+  pending: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
+  sent: 'bg-sky-500/20 text-sky-400 border-sky-500/30',
+  accepted: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
+  rejected: 'bg-red-500/20 text-red-400 border-red-500/30',
+}
 
 const statusColors: Record<string, string> = {
   in_progress: 'bg-primary/20 text-primary border-primary/30',
@@ -39,6 +38,76 @@ const statusColors: Record<string, string> = {
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState('ai-assistant')
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [showAddCustomer, setShowAddCustomer] = useState(false)
+  const [showAddJob, setShowAddJob] = useState(false)
+  const [showAddQuote, setShowAddQuote] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  
+  const { data, isLoading, mutate } = useDashboardData()
+  
+  // Calculate stats from live data
+  const stats = [
+    { 
+      label: 'Active Jobs', 
+      value: data?.stats.activeJobs.toString() || '0', 
+      change: 'Live from database', 
+      icon: Briefcase 
+    },
+    { 
+      label: 'Pending Quotes', 
+      value: data?.stats.pendingQuotes.toString() || '0', 
+      change: 'Awaiting response', 
+      icon: FileText 
+    },
+    { 
+      label: 'Total Customers', 
+      value: data?.stats.totalCustomers.toString() || '0', 
+      change: 'In database', 
+      icon: Users 
+    },
+    { 
+      label: 'Revenue MTD', 
+      value: `$${(data?.stats.revenueMTD || 0).toLocaleString()}`, 
+      change: 'This month', 
+      icon: TrendingUp 
+    },
+  ]
+
+  async function handleAddCustomer(formData: FormData) {
+    setIsSubmitting(true)
+    try {
+      await createCustomer(formData)
+      setShowAddCustomer(false)
+      mutate() // Refresh data
+    } catch (error) {
+      console.error('Failed to add customer:', error)
+    }
+    setIsSubmitting(false)
+  }
+
+  async function handleAddJob(formData: FormData) {
+    setIsSubmitting(true)
+    try {
+      await createJob(formData)
+      setShowAddJob(false)
+      mutate()
+    } catch (error) {
+      console.error('Failed to add job:', error)
+    }
+    setIsSubmitting(false)
+  }
+
+  async function handleAddQuote(formData: FormData) {
+    setIsSubmitting(true)
+    try {
+      await createQuote(formData)
+      setShowAddQuote(false)
+      mutate()
+    } catch (error) {
+      console.error('Failed to add quote:', error)
+    }
+    setIsSubmitting(false)
+  }
 
   return (
     <div className="min-h-screen bg-background dark">
@@ -168,7 +237,11 @@ export default function Dashboard() {
                 <div className="flex items-start justify-between">
                   <div>
                     <p className="text-xs sm:text-sm text-muted-foreground mb-1">{stat.label}</p>
-                    <p className="text-lg sm:text-2xl font-bold text-foreground">{stat.value}</p>
+                    {isLoading ? (
+                      <div className="h-7 w-16 bg-muted animate-pulse rounded" />
+                    ) : (
+                      <p className="text-lg sm:text-2xl font-bold text-foreground">{stat.value}</p>
+                    )}
                     <p className="text-xs text-muted-foreground mt-1 hidden sm:block">{stat.change}</p>
                   </div>
                   <div className="size-8 sm:size-10 rounded-lg bg-primary/10 flex items-center justify-center">
@@ -392,35 +465,100 @@ export default function Dashboard() {
 
           {/* Overview Tab */}
           <TabsContent value="overview" className="space-y-4 sm:space-y-6">
+            {/* Add Customer Form */}
+            {showAddCustomer && (
+              <Card className="bg-card border-primary/50">
+                <CardHeader>
+                  <CardTitle>Add New Customer</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <form action={handleAddCustomer} className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label>Name</Label>
+                        <Input name="name" placeholder="Customer name" className="bg-secondary border-border" required />
+                      </div>
+                      <div>
+                        <Label>Phone</Label>
+                        <Input name="phone" placeholder="(555) 123-4567" className="bg-secondary border-border" required />
+                      </div>
+                    </div>
+                    <div>
+                      <Label>Email</Label>
+                      <Input name="email" type="email" placeholder="customer@email.com" className="bg-secondary border-border" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label>Address</Label>
+                        <Input name="address" placeholder="123 Main St" className="bg-secondary border-border" />
+                      </div>
+                      <div>
+                        <Label>City</Label>
+                        <Input name="city" placeholder="City" className="bg-secondary border-border" />
+                      </div>
+                    </div>
+                    <div className="flex gap-2 justify-end">
+                      <Button type="button" variant="outline" onClick={() => setShowAddCustomer(false)}>Cancel</Button>
+                      <Button type="submit" disabled={isSubmitting}>
+                        {isSubmitting ? <Loader2 className="size-4 animate-spin mr-2" /> : <Plus className="size-4 mr-2" />}
+                        Add Customer
+                      </Button>
+                    </div>
+                  </form>
+                </CardContent>
+              </Card>
+            )}
+            
+            {/* Quick Actions */}
+            <div className="flex gap-2 flex-wrap">
+              <Button onClick={() => setShowAddCustomer(true)} variant="outline" className="gap-2">
+                <Plus className="size-4" /> Add Customer
+              </Button>
+              <Button onClick={() => { setActiveTab('jobs'); setShowAddJob(true); }} variant="outline" className="gap-2">
+                <Plus className="size-4" /> New Job
+              </Button>
+              <Button onClick={() => { setActiveTab('quotes'); setShowAddQuote(true); }} variant="outline" className="gap-2">
+                <Plus className="size-4" /> New Quote
+              </Button>
+            </div>
+            
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
               <Card className="bg-card border-border/50">
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-lg">Recent Jobs</CardTitle>
-                    <Button variant="ghost" size="sm" className="text-primary">View all</Button>
+                    <Button variant="ghost" size="sm" className="text-primary" onClick={() => setActiveTab('jobs')}>View all</Button>
                   </div>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    {recentJobs.map((job) => (
-                      <div key={job.id} className="flex items-center justify-between p-3 rounded-lg bg-secondary/30 hover:bg-secondary/50 transition-colors">
-                        <div className="flex items-center gap-3">
-                          <div className="size-8 rounded bg-primary/10 flex items-center justify-center text-xs font-mono text-primary">
-                            {job.number}
-                          </div>
-                          <div>
-                            <p className="text-sm font-medium text-foreground">{job.customer}</p>
-                            <p className="text-xs text-muted-foreground">{job.service}</p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <Badge variant="outline" className={statusColors[job.status]}>
-                            {job.status.replace('_', ' ')}
-                          </Badge>
-                          <span className="text-sm font-medium text-foreground">{job.amount}</span>
-                        </div>
+                    {isLoading ? (
+                      <div className="space-y-3">
+                        {[1,2,3].map(i => <div key={i} className="h-16 bg-muted animate-pulse rounded-lg" />)}
                       </div>
-                    ))}
+                    ) : data?.jobs.length === 0 ? (
+                      <p className="text-sm text-muted-foreground text-center py-4">No jobs yet. Create your first job!</p>
+                    ) : (
+                      data?.jobs.slice(0, 3).map((job) => (
+                        <div key={job.id} className="flex items-center justify-between p-3 rounded-lg bg-secondary/30 hover:bg-secondary/50 transition-colors">
+                          <div className="flex items-center gap-3">
+                            <div className="size-8 rounded bg-primary/10 flex items-center justify-center text-xs font-mono text-primary">
+                              {job.job_number}
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-foreground">{job.customer?.name || 'Unknown'}</p>
+                              <p className="text-xs text-muted-foreground">{job.service_type}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <Badge variant="outline" className={statusColors[job.status] || 'bg-muted'}>
+                              {job.status.replace('_', ' ')}
+                            </Badge>
+                            <span className="text-sm font-medium text-foreground">${job.estimated_amount}</span>
+                          </div>
+                        </div>
+                      ))
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -429,30 +567,38 @@ export default function Dashboard() {
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-lg">Pending Quotes</CardTitle>
-                    <Button variant="ghost" size="sm" className="text-primary">View all</Button>
+                    <Button variant="ghost" size="sm" className="text-primary" onClick={() => setActiveTab('quotes')}>View all</Button>
                   </div>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    {recentQuotes.map((quote) => (
-                      <div key={quote.id} className="flex items-center justify-between p-3 rounded-lg bg-secondary/30 hover:bg-secondary/50 transition-colors">
-                        <div className="flex items-center gap-3">
-                          <div className="size-8 rounded bg-primary/10 flex items-center justify-center text-xs font-mono text-primary">
-                            {quote.number}
-                          </div>
-                          <div>
-                            <p className="text-sm font-medium text-foreground">{quote.customer}</p>
-                            <p className="text-xs text-muted-foreground">{quote.service}</p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <Badge variant="outline" className={statusColors[quote.status]}>
-                            {quote.status}
-                          </Badge>
-                          <span className="text-sm font-medium text-foreground">{quote.amount}</span>
-                        </div>
+                    {isLoading ? (
+                      <div className="space-y-3">
+                        {[1,2].map(i => <div key={i} className="h-16 bg-muted animate-pulse rounded-lg" />)}
                       </div>
-                    ))}
+                    ) : data?.quotes.length === 0 ? (
+                      <p className="text-sm text-muted-foreground text-center py-4">No quotes yet. Create your first quote!</p>
+                    ) : (
+                      data?.quotes.slice(0, 3).map((quote) => (
+                        <div key={quote.id} className="flex items-center justify-between p-3 rounded-lg bg-secondary/30 hover:bg-secondary/50 transition-colors">
+                          <div className="flex items-center gap-3">
+                            <div className="size-8 rounded bg-primary/10 flex items-center justify-center text-xs font-mono text-primary">
+                              {quote.quote_number}
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-foreground">{quote.customer?.name || 'Unknown'}</p>
+                              <p className="text-xs text-muted-foreground">{quote.service_type}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <Badge variant="outline" className={statusColors[quote.status] || 'bg-muted'}>
+                              {quote.status}
+                            </Badge>
+                            <span className="text-sm font-medium text-foreground">${quote.amount}</span>
+                          </div>
+                        </div>
+                      ))
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -461,37 +607,107 @@ export default function Dashboard() {
 
           {/* Jobs Tab */}
           <TabsContent value="jobs" className="space-y-6">
+            {showAddJob && (
+              <Card className="bg-card border-primary/50">
+                <CardHeader>
+                  <CardTitle>Add New Job</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <form action={handleAddJob} className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="job-customer">Customer</Label>
+                        <Select name="customer_id" required>
+                          <SelectTrigger className="bg-secondary border-border">
+                            <SelectValue placeholder="Select customer" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {data?.customers.map(c => (
+                              <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label htmlFor="job-service">Service Type</Label>
+                        <Select name="service_type" required>
+                          <SelectTrigger className="bg-secondary border-border">
+                            <SelectValue placeholder="Select service" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Tree Removal">Tree Removal</SelectItem>
+                            <SelectItem value="Tree Trimming">Tree Trimming</SelectItem>
+                            <SelectItem value="Stump Grinding">Stump Grinding</SelectItem>
+                            <SelectItem value="Emergency Service">Emergency Service</SelectItem>
+                            <SelectItem value="Consultation">Consultation</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    <div>
+                      <Label htmlFor="job-description">Description</Label>
+                      <Textarea name="description" placeholder="Job details..." className="bg-secondary border-border" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="job-date">Scheduled Date</Label>
+                        <Input type="date" name="scheduled_date" className="bg-secondary border-border" required />
+                      </div>
+                      <div>
+                        <Label htmlFor="job-amount">Estimated Amount ($)</Label>
+                        <Input type="number" name="estimated_amount" placeholder="0.00" className="bg-secondary border-border" required />
+                      </div>
+                    </div>
+                    <div className="flex gap-2 justify-end">
+                      <Button type="button" variant="outline" onClick={() => setShowAddJob(false)}>Cancel</Button>
+                      <Button type="submit" disabled={isSubmitting}>
+                        {isSubmitting ? <Loader2 className="size-4 animate-spin mr-2" /> : <Plus className="size-4 mr-2" />}
+                        Create Job
+                      </Button>
+                    </div>
+                  </form>
+                </CardContent>
+              </Card>
+            )}
             <Card className="bg-card border-border/50">
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-lg">All Jobs</CardTitle>
-                  <Button className="bg-primary text-primary-foreground hover:bg-primary/90">
+                  <Button className="bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => setShowAddJob(true)}>
+                    <Plus className="size-4 mr-2" />
                     Add Job
                   </Button>
                 </div>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {recentJobs.map((job) => (
-                    <div key={job.id} className="flex items-center justify-between p-4 rounded-lg bg-secondary/30 hover:bg-secondary/50 transition-colors">
-                      <div className="flex items-center gap-4">
-                        <div className="size-10 rounded-lg bg-primary/10 flex items-center justify-center text-sm font-mono text-primary">
-                          {job.number}
-                        </div>
-                        <div>
-                          <p className="font-medium text-foreground">{job.customer}</p>
-                          <p className="text-sm text-muted-foreground">{job.service}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-4">
-                        <Badge variant="outline" className={statusColors[job.status]}>
-                          {job.status.replace('_', ' ')}
-                        </Badge>
-                        <span className="text-lg font-semibold text-foreground">{job.amount}</span>
-                        <Button variant="ghost" size="sm">View</Button>
-                      </div>
+                  {isLoading ? (
+                    <div className="space-y-3">
+                      {[1,2,3].map(i => <div key={i} className="h-20 bg-muted animate-pulse rounded-lg" />)}
                     </div>
-                  ))}
+                  ) : data?.jobs.length === 0 ? (
+                    <p className="text-muted-foreground text-center py-8">No jobs yet. Click &quot;Add Job&quot; to create your first one!</p>
+                  ) : (
+                    data?.jobs.map((job) => (
+                      <div key={job.id} className="flex items-center justify-between p-4 rounded-lg bg-secondary/30 hover:bg-secondary/50 transition-colors">
+                        <div className="flex items-center gap-4">
+                          <div className="size-10 rounded-lg bg-primary/10 flex items-center justify-center text-sm font-mono text-primary">
+                            {job.job_number}
+                          </div>
+                          <div>
+                            <p className="font-medium text-foreground">{job.customer?.name || 'Unknown'}</p>
+                            <p className="text-sm text-muted-foreground">{job.service_type}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-4">
+                          <Badge variant="outline" className={statusColors[job.status] || 'bg-muted'}>
+                            {job.status.replace('_', ' ')}
+                          </Badge>
+                          <span className="text-lg font-semibold text-foreground">${job.estimated_amount}</span>
+                        </div>
+                      </div>
+                    ))
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -499,37 +715,107 @@ export default function Dashboard() {
 
           {/* Quotes Tab */}
           <TabsContent value="quotes" className="space-y-6">
+            {showAddQuote && (
+              <Card className="bg-card border-primary/50">
+                <CardHeader>
+                  <CardTitle>Create New Quote</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <form action={handleAddQuote} className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label>Customer</Label>
+                        <Select name="customer_id" required>
+                          <SelectTrigger className="bg-secondary border-border">
+                            <SelectValue placeholder="Select customer" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {data?.customers.map(c => (
+                              <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label>Service Type</Label>
+                        <Select name="service_type" required>
+                          <SelectTrigger className="bg-secondary border-border">
+                            <SelectValue placeholder="Select service" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Tree Removal">Tree Removal</SelectItem>
+                            <SelectItem value="Tree Trimming">Tree Trimming</SelectItem>
+                            <SelectItem value="Stump Grinding">Stump Grinding</SelectItem>
+                            <SelectItem value="Emergency Service">Emergency Service</SelectItem>
+                            <SelectItem value="Consultation">Consultation</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    <div>
+                      <Label>Description</Label>
+                      <Textarea name="description" placeholder="Quote details..." className="bg-secondary border-border" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label>Amount ($)</Label>
+                        <Input type="number" name="amount" placeholder="0.00" className="bg-secondary border-border" required />
+                      </div>
+                      <div>
+                        <Label>Valid Until</Label>
+                        <Input type="date" name="valid_until" className="bg-secondary border-border" required />
+                      </div>
+                    </div>
+                    <div className="flex gap-2 justify-end">
+                      <Button type="button" variant="outline" onClick={() => setShowAddQuote(false)}>Cancel</Button>
+                      <Button type="submit" disabled={isSubmitting}>
+                        {isSubmitting ? <Loader2 className="size-4 animate-spin mr-2" /> : <Plus className="size-4 mr-2" />}
+                        Create Quote
+                      </Button>
+                    </div>
+                  </form>
+                </CardContent>
+              </Card>
+            )}
             <Card className="bg-card border-border/50">
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-lg">All Quotes</CardTitle>
-                  <Button className="bg-primary text-primary-foreground hover:bg-primary/90">
+                  <Button className="bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => setShowAddQuote(true)}>
+                    <Plus className="size-4 mr-2" />
                     Create Quote
                   </Button>
                 </div>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {recentQuotes.map((quote) => (
-                    <div key={quote.id} className="flex items-center justify-between p-4 rounded-lg bg-secondary/30 hover:bg-secondary/50 transition-colors">
-                      <div className="flex items-center gap-4">
-                        <div className="size-10 rounded-lg bg-primary/10 flex items-center justify-center text-sm font-mono text-primary">
-                          {quote.number}
-                        </div>
-                        <div>
-                          <p className="font-medium text-foreground">{quote.customer}</p>
-                          <p className="text-sm text-muted-foreground">{quote.service}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-4">
-                        <Badge variant="outline" className={statusColors[quote.status]}>
-                          {quote.status}
-                        </Badge>
-                        <span className="text-lg font-semibold text-foreground">{quote.amount}</span>
-                        <Button variant="ghost" size="sm">View</Button>
-                      </div>
+                  {isLoading ? (
+                    <div className="space-y-3">
+                      {[1,2,3].map(i => <div key={i} className="h-20 bg-muted animate-pulse rounded-lg" />)}
                     </div>
-                  ))}
+                  ) : data?.quotes.length === 0 ? (
+                    <p className="text-muted-foreground text-center py-8">No quotes yet. Click &quot;Create Quote&quot; to create your first one!</p>
+                  ) : (
+                    data?.quotes.map((quote) => (
+                      <div key={quote.id} className="flex items-center justify-between p-4 rounded-lg bg-secondary/30 hover:bg-secondary/50 transition-colors">
+                        <div className="flex items-center gap-4">
+                          <div className="size-10 rounded-lg bg-primary/10 flex items-center justify-center text-sm font-mono text-primary">
+                            {quote.quote_number}
+                          </div>
+                          <div>
+                            <p className="font-medium text-foreground">{quote.customer?.name || 'Unknown'}</p>
+                            <p className="text-sm text-muted-foreground">{quote.service_type}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-4">
+                          <Badge variant="outline" className={statusColors[quote.status] || 'bg-muted'}>
+                            {quote.status}
+                          </Badge>
+                          <span className="text-lg font-semibold text-foreground">${quote.amount}</span>
+                        </div>
+                      </div>
+                    ))
+                  )}
                 </div>
               </CardContent>
             </Card>
