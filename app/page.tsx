@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
-import { Briefcase, FileText, Users, TrendingUp, Bot, Calculator, Wrench, Camera, TreeDeciduous, ArrowRight, Sparkles, QrCode } from 'lucide-react'
+import { Briefcase, FileText, Users, TrendingUp, Bot, Calculator, Wrench, Camera, TreeDeciduous, ArrowRight, Sparkles, QrCode, BarChart3, Calendar, CreditCard } from 'lucide-react'
 import Link from 'next/link'
 import { SimpleAIChat } from '@/components/simple-ai-chat'
 
@@ -54,14 +54,38 @@ export default function Dashboard() {
                 <p className="text-xs text-muted-foreground">AI-Powered Tree Care Management</p>
               </div>
             </div>
-            <div className="flex items-center gap-3">
-              <Link href="/referrals">
-                <Button variant="outline" className="border-border text-foreground hover:bg-accent/20">
-                  <QrCode className="size-4 mr-2" />
-                  Referral QR
+            <div className="flex items-center gap-2">
+              <Link href="/analytics">
+                <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
+                  <BarChart3 className="size-4 mr-1" />
+                  Analytics
                 </Button>
               </Link>
-              <Badge variant="outline" className="border-primary/30 text-primary bg-primary/10">
+              <Link href="/calendar">
+                <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
+                  <Calendar className="size-4 mr-1" />
+                  Calendar
+                </Button>
+              </Link>
+              <Link href="/invoices">
+                <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
+                  <CreditCard className="size-4 mr-1" />
+                  Invoices
+                </Button>
+              </Link>
+              <Link href="/team">
+                <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
+                  <Users className="size-4 mr-1" />
+                  Team
+                </Button>
+              </Link>
+              <Link href="/referrals">
+                <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
+                  <QrCode className="size-4 mr-1" />
+                  Referrals
+                </Button>
+              </Link>
+              <Badge variant="outline" className="border-primary/30 text-primary bg-primary/10 ml-2">
                 <Sparkles className="size-3 mr-1" />
                 AI Enabled
               </Badge>
