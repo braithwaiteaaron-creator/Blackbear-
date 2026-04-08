@@ -13,7 +13,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { createCustomer, createJob, createQuote } from './actions'
+import { createCustomerAction, createJobAction, createQuoteAction } from './actions'
 
 const statusColors: Record<string, string> = {
   in_progress: 'bg-primary/20 text-primary border-primary/30',
@@ -68,7 +68,7 @@ export default function Dashboard() {
   async function handleAddCustomer(formData: FormData) {
     setIsSubmitting(true)
     try {
-      await createCustomer(formData)
+      await createCustomerAction(formData)
       setShowAddCustomer(false)
       mutate() // Refresh data
     } catch (error) {
@@ -80,7 +80,7 @@ export default function Dashboard() {
   async function handleAddJob(formData: FormData) {
     setIsSubmitting(true)
     try {
-      await createJob(formData)
+      await createJobAction(formData)
       setShowAddJob(false)
       mutate()
     } catch (error) {
@@ -92,7 +92,7 @@ export default function Dashboard() {
   async function handleAddQuote(formData: FormData) {
     setIsSubmitting(true)
     try {
-      await createQuote(formData)
+      await createQuoteAction(formData)
       setShowAddQuote(false)
       mutate()
     } catch (error) {
