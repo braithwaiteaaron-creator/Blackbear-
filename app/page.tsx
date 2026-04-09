@@ -35,6 +35,12 @@ export default function Dashboard() {
   const [showAddQuote, setShowAddQuote] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   
+  // Controlled select values for forms
+  const [jobCustomerId, setJobCustomerId] = useState('')
+  const [jobServiceType, setJobServiceType] = useState('')
+  const [quoteCustomerId, setQuoteCustomerId] = useState('')
+  const [quoteServiceType, setQuoteServiceType] = useState('')
+  
   const { data, isLoading, mutate } = useDashboardData()
   
   // Calculate stats from live data
@@ -82,6 +88,8 @@ export default function Dashboard() {
     try {
       await createJobAction(formData)
       setShowAddJob(false)
+      setJobCustomerId('')
+      setJobServiceType('')
       mutate()
     } catch (error) {
       console.error('Failed to add job:', error)
@@ -94,6 +102,8 @@ export default function Dashboard() {
     try {
       await createQuoteAction(formData)
       setShowAddQuote(false)
+      setQuoteCustomerId('')
+      setQuoteServiceType('')
       mutate()
     } catch (error) {
       console.error('Failed to add quote:', error)
@@ -606,10 +616,12 @@ export default function Dashboard() {
                 </CardHeader>
                 <CardContent>
                   <form action={handleAddJob} className="space-y-4">
+                    <input type="hidden" name="customer_id" value={jobCustomerId} />
+                    <input type="hidden" name="service_type" value={jobServiceType} />
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <Label htmlFor="job-customer">Customer</Label>
-                        <Select name="customer_id" required>
+                        <Select value={jobCustomerId} onValueChange={setJobCustomerId}>
                           <SelectTrigger className="bg-secondary border-border">
                             <SelectValue placeholder="Select customer" />
                           </SelectTrigger>
@@ -622,7 +634,7 @@ export default function Dashboard() {
                       </div>
                       <div>
                         <Label htmlFor="job-service">Service Type</Label>
-                        <Select name="service_type" required>
+                        <Select value={jobServiceType} onValueChange={setJobServiceType}>
                           <SelectTrigger className="bg-secondary border-border">
                             <SelectValue placeholder="Select service" />
                           </SelectTrigger>
@@ -714,10 +726,12 @@ export default function Dashboard() {
                 </CardHeader>
                 <CardContent>
                   <form action={handleAddQuote} className="space-y-4">
+                    <input type="hidden" name="customer_id" value={quoteCustomerId} />
+                    <input type="hidden" name="service_type" value={quoteServiceType} />
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <Label>Customer</Label>
-                        <Select name="customer_id" required>
+                        <Select value={quoteCustomerId} onValueChange={setQuoteCustomerId}>
                           <SelectTrigger className="bg-secondary border-border">
                             <SelectValue placeholder="Select customer" />
                           </SelectTrigger>
@@ -730,7 +744,7 @@ export default function Dashboard() {
                       </div>
                       <div>
                         <Label>Service Type</Label>
-                        <Select name="service_type" required>
+                        <Select value={quoteServiceType} onValueChange={setQuoteServiceType}>
                           <SelectTrigger className="bg-secondary border-border">
                             <SelectValue placeholder="Select service" />
                           </SelectTrigger>

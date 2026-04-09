@@ -1,9 +1,9 @@
-import { convertToModelMessages, streamText, UIMessage } from 'ai'
+import { streamText } from 'ai'
 
 export const maxDuration = 30
 
 export async function POST(req: Request) {
-  const { messages }: { messages: UIMessage[] } = await req.json()
+  const { prompt } = await req.json()
 
   const result = streamText({
     model: 'anthropic/claude-sonnet-4',
@@ -33,9 +33,9 @@ Use industry-standard pricing:
 - Difficult access: +25% surcharge
 
 Be professional, thorough, and helpful. Format quotes clearly with headers and bullet points.`,
-    messages: await convertToModelMessages(messages),
+    prompt: prompt,
     abortSignal: req.signal,
   })
 
-  return result.toUIMessageStreamResponse()
+  return result.toTextStreamResponse()
 }

@@ -16,23 +16,34 @@ export async function GET() {
     const customers = customersRes.data || []
 
     // Calculate stats
-    const activeJobs = jobs.filter(j => j.status === 'in_progress').length
-    const pendingQuotes = quotes.filter(q => q.status === 'pending').length
+    const activeJobs = jobs.filter(j => j.status === 'in_progress' || j.status === 'scheduled').length
+    const pendingQuotes = quotes.filter(q => q.status === 'pending' || q.status === 'sent').length
     const completedJobs = jobs.filter(j => j.status === 'completed').length
-    const totalRevenue = jobs
-      .filter(j => j.status === 'completed')
-      .reduce((sum, j) => sum + (Number(j.amount) || 0), 0)
+    const revenueMTD = jobs
+      .filter(j => j.status === 'completed' && j.paid === true)
+      .reduce((sum, j) => sum + (Number(j.actual_amount) || Number(j.estimated_amount) || 0), 0)
+
+    // Attach customer info to jobs and quotes
+    const jobsWithCustomer = jobs.map(job => ({
+      ...job,
+      customer: customers.find(c => c.id === job.customer_id) || null
+    }))
+    
+    const quotesWithCustomer = quotes.map(quote => ({
+      ...quote,
+      customer: customers.find(c => c.id === quote.customer_id) || null
+    }))
 
     return NextResponse.json({
-      jobs,
-      quotes,
+      jobs: jobsWithCustomer,
+      quotes: quotesWithCustomer,
       customers,
       stats: {
         activeJobs,
         pendingQuotes,
         completedJobs,
         totalCustomers: customers.length,
-        totalRevenue,
+        revenueMTD,
       },
     })
   } catch (error) {

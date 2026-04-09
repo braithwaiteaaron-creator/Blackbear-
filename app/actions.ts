@@ -2,18 +2,20 @@
 
 import { createClient } from '@/lib/supabase/server'
 
-export async function createJobAction(jobData: {
-  customer_id: string
-  description: string
-  service_type: string
-  status: string
-  scheduled_date?: string
-  amount: number
-  address?: string
-  notes?: string
-}) {
+export async function createJobAction(formData: FormData) {
   try {
     const supabase = await createClient()
+    
+    const jobData = {
+      customer_id: formData.get('customer_id') as string,
+      description: formData.get('description') as string || 'Tree service',
+      service_type: formData.get('service_type') as string,
+      status: 'scheduled',
+      scheduled_date: formData.get('scheduled_date') as string || null,
+      estimated_amount: parseFloat(formData.get('estimated_amount') as string) || 0,
+      notes: formData.get('notes') as string || null,
+    }
+    
     const { data, error } = await supabase
       .from('jobs')
       .insert([jobData])
@@ -47,17 +49,20 @@ export async function updateJobAction(
   }
 }
 
-export async function createQuoteAction(quoteData: {
-  customer_id?: string
-  description: string
-  service_type: string
-  amount: number
-  status?: string
-  valid_until?: string
-  notes?: string
-}) {
+export async function createQuoteAction(formData: FormData) {
   try {
     const supabase = await createClient()
+    
+    const quoteData = {
+      customer_id: formData.get('customer_id') as string || null,
+      description: formData.get('description') as string || 'Quote for tree services',
+      service_type: formData.get('service_type') as string,
+      amount: parseFloat(formData.get('amount') as string) || 0,
+      status: 'pending',
+      valid_until: formData.get('valid_until') as string || null,
+      notes: formData.get('notes') as string || null,
+    }
+    
     const { data, error } = await supabase
       .from('quotes')
       .insert([quoteData])
@@ -91,18 +96,20 @@ export async function updateQuoteAction(
   }
 }
 
-export async function createCustomerAction(customerData: {
-  name: string
-  email?: string
-  phone?: string
-  address?: string
-  city?: string
-  state?: string
-  zip?: string
-  notes?: string
-}) {
+export async function createCustomerAction(formData: FormData) {
   try {
     const supabase = await createClient()
+    
+    const customerData = {
+      name: formData.get('name') as string,
+      email: formData.get('email') as string || null,
+      phone: formData.get('phone') as string || null,
+      address: formData.get('address') as string || null,
+      city: formData.get('city') as string || null,
+      state: 'TX',
+      notes: formData.get('notes') as string || null,
+    }
+    
     const { data, error } = await supabase
       .from('customers')
       .insert([customerData])
