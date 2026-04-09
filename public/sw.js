@@ -1,4 +1,5 @@
-const CACHE_NAME = 'bearhub-v1';
+const CACHE_NAME = 'bearhub-v2';
+const API_CACHE_NAME = 'bearhub-api-v1';
 const urlsToCache = [
   '/',
   '/manifest.json',
@@ -22,7 +23,7 @@ self.addEventListener('activate', (event) => {
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames.map((cacheName) => {
-          if (cacheName !== CACHE_NAME) {
+          if (cacheName !== CACHE_NAME && cacheName !== API_CACHE_NAME) {
             return caches.delete(cacheName);
           }
         })
@@ -32,26 +33,55 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Fetch event - Network first, falling back to cache
+// Fetch event - Network first for API, cache first for assets
 self.addEventListener('fetch', (event) => {
-  event.respondWith(
-    fetch(event.request)
-      .then((response) => {
-        // Clone the response
-        const responseClone = response.clone();
-        
-        // Cache successful GET requests
-        if (event.request.method === 'GET') {
-          caches.open(CACHE_NAME).then((cache) => {
+  const url = new URL(event.request.url);
+  const isAPI = url.pathname.startsWith('/api/');
+  
+  if (isAPI) {
+    // API calls: network first, fallback to cache
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          const responseClone = response.clone();
+          caches.open(API_CACHE_NAME).then((cache) => {
             cache.put(event.request, responseClone);
           });
-        }
-        
-        return response;
-      })
-      .catch(() => {
-        // Try to get from cache if network fails
-        return caches.match(event.request);
-      })
-  );
+          return response;
+        })
+        .catch(() => {
+          return caches.match(event.request).then(cachedResponse => {
+            return cachedResponse || new Response(
+              JSON.stringify({ offline: true, message: 'Offline - cached response' }),
+              { headers: { 'Content-Type': 'application/json' } }
+            );
+          });
+        })
+    );
+  } else {
+    // Assets: cache first, fallback to network
+    event.respondWith(
+      caches.match(event.request)
+        .then((cachedResponse) => {
+          if (cachedResponse) {
+            return cachedResponse;
+          }
+          return fetch(event.request).then((response) => {
+            const responseClone = response.clone();
+            if (event.request.method === 'GET') {
+              caches.open(CACHE_NAME).then((cache) => {
+                cache.put(event.request, responseClone);
+              });
+            }
+            return response;
+          });
+        })
+        .catch(() => {
+          return new Response('Offline - page not available', {
+            status: 503,
+            statusText: 'Service Unavailable',
+          });
+        })
+    );
+  }
 });

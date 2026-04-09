@@ -198,3 +198,129 @@ export async function getPaymentBucketTotalsAction() {
     return { success: false, error: String(error) }
   }
 }
+
+// Field feature actions
+
+// Add material to job
+export async function addJobMaterialAction(
+  jobId: string,
+  description: string,
+  quantity: number,
+  unit: string,
+  cost: number
+) {
+  try {
+    const supabase = await createClient()
+    const { data, error } = await supabase
+      .from('job_materials')
+      .insert([{ job_id: jobId, description, quantity, unit, cost }])
+      .select()
+    
+    if (error) throw error
+    return { success: true, data: data?.[0] }
+  } catch (error) {
+    console.error('[action] Add material error:', error)
+    return { success: false, error: String(error) }
+  }
+}
+
+// Remove material from job
+export async function removeJobMaterialAction(materialId: string) {
+  try {
+    const supabase = await createClient()
+    const { error } = await supabase
+      .from('job_materials')
+      .delete()
+      .eq('id', materialId)
+    
+    if (error) throw error
+    return { success: true }
+  } catch (error) {
+    console.error('[action] Remove material error:', error)
+    return { success: false, error: String(error) }
+  }
+}
+
+// Add photo to job
+export async function addJobPhotoAction(
+  jobId: string,
+  photoUrl: string,
+  photoType: 'before' | 'after' | 'general',
+  description?: string
+) {
+  try {
+    const supabase = await createClient()
+    const { data, error } = await supabase
+      .from('job_photos')
+      .insert([{ job_id: jobId, photo_url: photoUrl, photo_type: photoType, description }])
+      .select()
+    
+    if (error) throw error
+    return { success: true, data: data?.[0] }
+  } catch (error) {
+    console.error('[action] Add photo error:', error)
+    return { success: false, error: String(error) }
+  }
+}
+
+// Remove photo from job
+export async function removeJobPhotoAction(photoId: string) {
+  try {
+    const supabase = await createClient()
+    const { error } = await supabase
+      .from('job_photos')
+      .delete()
+      .eq('id', photoId)
+    
+    if (error) throw error
+    return { success: true }
+  } catch (error) {
+    console.error('[action] Remove photo error:', error)
+    return { success: false, error: String(error) }
+  }
+}
+
+// Update job notes
+export async function updateJobNotesAction(jobId: string, jobNotes: string) {
+  try {
+    const supabase = await createClient()
+    const { data, error } = await supabase
+      .from('jobs')
+      .update({ job_notes: jobNotes })
+      .eq('id', jobId)
+      .select()
+    
+    if (error) throw error
+    return { success: true, data: data?.[0] }
+  } catch (error) {
+    console.error('[action] Update notes error:', error)
+    return { success: false, error: String(error) }
+  }
+}
+
+// Update job time tracking
+export async function updateJobTimeAction(
+  jobId: string,
+  startTime: string | null,
+  endTime: string | null
+) {
+  try {
+    const supabase = await createClient()
+    const updates: Record<string, any> = {
+      time_started_at: startTime,
+      time_ended_at: endTime,
+    }
+    
+    const { data, error } = await supabase
+      .from('jobs')
+      .update(updates)
+      .eq('id', jobId)
+      .select()
+    
+    if (error) throw error
+    return { success: true, data: data?.[0] }
+  } catch (error) {
+    console.error('[action] Update time error:', error)
+    return { success: false, error: String(error) }
+  }
+}
