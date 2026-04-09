@@ -35,6 +35,7 @@ export function SimpleAIChat({
 
     const userMessage: Message = { role: 'user', content: input }
     setMessages(prev => [...prev, userMessage])
+    const currentInput = input
     setInput('')
     setLoading(true)
 
@@ -42,15 +43,44 @@ export function SimpleAIChat({
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: input }),
+        body: JSON.stringify({ prompt: currentInput }),
       })
 
-      const data = await response.json()
-      const assistantMessage: Message = { 
-        role: 'assistant', 
-        content: data.message || data.text || 'Unable to process request' 
+      // Check if streaming response
+      const contentType = response.headers.get('content-type')
+      
+      if (contentType?.includes('text/plain') && response.body) {
+        // Handle streaming response
+        const reader = response.body.getReader()
+        const decoder = new TextDecoder()
+        let fullContent = ''
+        
+        // Add empty assistant message that we'll update
+        setMessages(prev => [...prev, { role: 'assistant', content: '' }])
+        
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
+          
+          const chunk = decoder.decode(value, { stream: true })
+          fullContent += chunk
+          
+          // Update the last message with accumulated content
+          setMessages(prev => {
+            const newMessages = [...prev]
+            newMessages[newMessages.length - 1] = { role: 'assistant', content: fullContent }
+            return newMessages
+          })
+        }
+      } else {
+        // Handle JSON response
+        const data = await response.json()
+        const assistantMessage: Message = { 
+          role: 'assistant', 
+          content: data.message || data.text || 'Unable to process request' 
+        }
+        setMessages(prev => [...prev, assistantMessage])
       }
-      setMessages(prev => [...prev, assistantMessage])
     } catch (error) {
       console.error('Error:', error)
       setMessages(prev => [...prev, { 

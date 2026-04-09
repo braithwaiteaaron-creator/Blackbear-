@@ -6,7 +6,7 @@ export async function POST(req: Request) {
   const { messages }: { messages: UIMessage[] } = await req.json()
 
   const result = streamText({
-    model: 'openai/gpt-4o-mini',
+    model: 'anthropic/claude-sonnet-4',
     system: `You are an expert tree care quote generator for Blackbear Tree Care. 
     
 Your job is to help create professional quotes for tree services. When the user describes a job, you should:
