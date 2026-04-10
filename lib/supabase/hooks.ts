@@ -15,10 +15,17 @@ export interface Job {
   description: string
   service_type: string
   status: string
-  location?: string
+  address?: string
+  estimated_amount?: number
+  actual_amount?: number
+  paid?: boolean
+  notes?: string
+  job_notes?: string
   scheduled_date?: string
   completed_date?: string
-  notes?: string
+  time_started_at?: string
+  time_ended_at?: string
+  duration_minutes?: number
   created_at?: string
   updated_at?: string
 }

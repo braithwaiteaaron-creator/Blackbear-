@@ -84,14 +84,15 @@ export function JobsPanel() {
   const [editFormData, setEditFormData] = useState({
     description: "",
     service_type: "",
-    location: "",
+    address: "",
+    estimated_amount: "",
     status: "",
     notes: "",
   })
 
   const filteredJobs = jobs.filter(
     (job) =>
-      (job.location || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (job.address || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
       (job.description || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
       (job.service_type || "").toLowerCase().includes(searchQuery.toLowerCase())
   )
@@ -122,7 +123,8 @@ export function JobsPanel() {
       description: `${formData.job_type} at ${formData.address}`,
       service_type: formData.job_type,
       status: "quote",
-      location: formData.address,
+      address: formData.address,
+      estimated_amount: parseFloat(formData.value) || 0,
       notes: notesContent,
     })
     setIsSubmitting(false)
@@ -171,7 +173,8 @@ export function JobsPanel() {
     setEditFormData({
       description: job.description,
       service_type: job.service_type,
-      location: job.location || "",
+      address: job.address || "",
+      estimated_amount: (job.estimated_amount || 0).toString(),
       status: job.status,
       notes: job.notes || "",
     })
@@ -184,7 +187,8 @@ export function JobsPanel() {
     const { error } = await updateJob(selectedJob.id, {
       description: editFormData.description,
       service_type: editFormData.service_type,
-      location: editFormData.location,
+      address: editFormData.address,
+      estimated_amount: parseFloat(editFormData.estimated_amount) || 0,
       status: editFormData.status,
       notes: editFormData.notes,
     })
@@ -229,11 +233,11 @@ export function JobsPanel() {
   }
 
   const handleDirections = (job: Job) => {
-    if (!job.location) {
+    if (!job.address) {
       toast.info("No address available for this job")
       return
     }
-    const encodedAddress = encodeURIComponent(job.location)
+    const encodedAddress = encodeURIComponent(job.address)
     window.open(`https://www.google.com/maps/dir/?api=1&destination=${encodedAddress}`, "_blank")
   }
 
@@ -438,7 +442,7 @@ export function JobsPanel() {
                         </div>
                         <div>
                           <div className="flex items-center gap-2">
-                            <h3 className="font-semibold">{job.location}</h3>
+                            <h3 className="font-semibold">{job.address}</h3>
                             <Badge variant={getStatusColor(job.status)}>{job.status}</Badge>
                           </div>
                           <p className="text-sm text-muted-foreground">{job.description}</p>
@@ -459,7 +463,7 @@ export function JobsPanel() {
                       </div>
                       <div className="flex items-center gap-3">
                         <span className="text-xl font-bold text-accent">
-                          ${Number(formData.value || 0).toLocaleString()}
+                          ${Number(job.estimated_amount || 0).toLocaleString()}
                         </span>
                         <div className="flex gap-2">
                           <Button variant="outline" size="sm" onClick={() => handleCall(job)}>
@@ -494,11 +498,11 @@ export function JobsPanel() {
                         <div className="flex items-center gap-3">
                           <AlertTriangle className="h-5 w-5 text-destructive" />
                           <div>
-                            <h3 className="font-semibold">{job.location}</h3>
+                            <h3 className="font-semibold">{job.address}</h3>
                             <p className="text-sm text-muted-foreground">{job.notes}</p>
                           </div>
                         </div>
-                        <span className="text-xl font-bold text-accent">${Number(formData.value || 0).toLocaleString()}</span>
+                        <span className="text-xl font-bold text-accent">${Number(job.estimated_amount || 0).toLocaleString()}</span>
                       </div>
                     </CardContent>
                   </Card>
@@ -516,10 +520,10 @@ export function JobsPanel() {
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between">
                       <div>
-                        <h3 className="font-semibold">{job.location}</h3>
+                        <h3 className="font-semibold">{job.address}</h3>
                         <p className="text-sm text-muted-foreground">{job.description} - {job.service_type}</p>
                       </div>
-                      <span className="text-xl font-bold text-accent">${Number(formData.value || 0).toLocaleString()}</span>
+                      <span className="text-xl font-bold text-accent">${Number(job.estimated_amount || 0).toLocaleString()}</span>
                     </div>
                   </CardContent>
                 </Card>
@@ -537,10 +541,10 @@ export function JobsPanel() {
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between">
                       <div>
-                        <h3 className="font-semibold">{job.location}</h3>
+                        <h3 className="font-semibold">{job.address}</h3>
                         <p className="text-sm text-muted-foreground">{job.description} - {job.service_type}</p>
                       </div>
-                      <span className="text-xl font-bold text-accent">${Number(formData.value || 0).toLocaleString()}</span>
+                      <span className="text-xl font-bold text-accent">${Number(job.estimated_amount || 0).toLocaleString()}</span>
                     </div>
                   </CardContent>
                 </Card>
@@ -558,10 +562,10 @@ export function JobsPanel() {
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between">
                       <div>
-                        <h3 className="font-semibold">{job.location}</h3>
+                        <h3 className="font-semibold">{job.address}</h3>
                         <p className="text-sm text-muted-foreground">{job.description} - {job.service_type}</p>
                       </div>
-                      <span className="text-xl font-bold text-accent">${Number(formData.value || 0).toLocaleString()}</span>
+                      <span className="text-xl font-bold text-accent">${Number(job.estimated_amount || 0).toLocaleString()}</span>
                     </div>
                   </CardContent>
                 </Card>
