@@ -38,7 +38,7 @@ export function DashboardOverview({ onNavigate }: DashboardOverviewProps) {
     const phoneMatch = job.notes?.match(/\d{3}[-.]?\d{3}[-.]?\d{4}/)
     if (phoneMatch) {
       window.location.href = `tel:${phoneMatch[0]}`
-      toast.info(`Calling ${job.customer_name}...`)
+      toast.info(`Calling customer...`)
     } else {
       toast.info("No phone found. Add phone to job notes.")
     }
@@ -50,7 +50,7 @@ export function DashboardOverview({ onNavigate }: DashboardOverviewProps) {
     if (error) {
       toast.error("Failed to update job")
     } else {
-      toast.success(`${job.customer_name} marked as followed up!`)
+      toast.success(`Marked as followed up!`)
     }
   }
 
@@ -194,12 +194,12 @@ export function DashboardOverview({ onNavigate }: DashboardOverviewProps) {
                       <span className="text-sm font-bold">{job.ageDays}d</span>
                     </div>
                     <div>
-                      <p className="font-medium">{job.customer_name || "Unknown"}</p>
+                      <p className="font-medium">{job.description?.split(' at ')[0] || "Unknown"}</p>
                       <p className="text-xs text-muted-foreground">{job.address}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="font-semibold text-accent">${Number(job.value).toLocaleString()}</span>
+                    <span className="font-semibold text-accent">${Number(job.estimated_amount || 0).toLocaleString()}</span>
                     <Button size="sm" variant="outline" className="h-8 gap-1" onClick={() => handleCallJob(job)}>
                       <Phone className="h-3 w-3" />
                       Call
@@ -264,18 +264,13 @@ export function DashboardOverview({ onNavigate }: DashboardOverviewProps) {
                       <div>
                         <p className="font-medium">{job.address}</p>
                         <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                          <span>{job.job_type}</span>
-                          {job.permit_required && (
-                            <Badge variant="outline" className="text-[10px] px-1.5 py-0">
-                              Permit Needed
-                            </Badge>
-                          )}
+                          <span>{job.service_type}</span>
                         </div>
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
-                      <span className="font-semibold text-accent">${Number(job.value).toLocaleString()}</span>
-                      <Badge variant={job.status === "urgent" ? "destructive" : job.status === "in-progress" ? "default" : "secondary"}>
+                      <span className="font-semibold text-accent">${Number(job.estimated_amount || 0).toLocaleString()}</span>
+                      <Badge variant={job.status === "urgent" ? "destructive" : job.status === "in_progress" ? "default" : "secondary"}>
                         {job.status}
                       </Badge>
                     </div>
@@ -307,7 +302,7 @@ export function DashboardOverview({ onNavigate }: DashboardOverviewProps) {
                   <div key={job.id} className="flex gap-3 rounded-lg bg-secondary/50 p-3">
                     <div className="flex-1">
                       <p className="text-sm font-medium">{job.address}</p>
-                      <p className="text-xs text-muted-foreground">{job.job_type} - {job.customer_name}</p>
+                      <p className="text-xs text-muted-foreground">{job.service_type}</p>
                     </div>
                   </div>
                 ))
