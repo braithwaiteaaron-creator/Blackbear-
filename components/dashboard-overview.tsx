@@ -22,16 +22,37 @@ import {
 } from "lucide-react"
 import Image from "next/image"
 import { QRCodeCard } from "./qr-code-card"
-import { useJobs, useLeads, useTransactions } from "@/lib/supabase/hooks"
+import { useJobs, useLeads, useTransactions, type Job } from "@/lib/supabase/hooks"
+import { toast } from "sonner"
 
 interface DashboardOverviewProps {
   onNavigate: (view: ActiveView) => void
 }
 
 export function DashboardOverview({ onNavigate }: DashboardOverviewProps) {
-  const { jobs, loading: jobsLoading } = useJobs()
+  const { jobs, loading: jobsLoading, updateJob } = useJobs()
   const { leads, loading: leadsLoading } = useLeads()
   const { transactions, loading: transactionsLoading } = useTransactions()
+
+  const handleCallJob = (job: Job) => {
+    const phoneMatch = job.notes?.match(/\d{3}[-.]?\d{3}[-.]?\d{4}/)
+    if (phoneMatch) {
+      window.location.href = `tel:${phoneMatch[0]}`
+      toast.info(`Calling ${job.customer_name}...`)
+    } else {
+      toast.info("No phone found. Add phone to job notes.")
+    }
+  }
+
+  const handleMarkFollowedUp = async (job: Job) => {
+    // Mark as scheduled to indicate follow-up done
+    const { error } = await updateJob(job.id, { status: "scheduled" })
+    if (error) {
+      toast.error("Failed to update job")
+    } else {
+      toast.success(`${job.customer_name} marked as followed up!`)
+    }
+  }
 
   const activeJobs = jobs.filter(j => j.status !== "completed")
   const revenueMTD = transactions.filter(t => t.status === "completed").reduce((sum, t) => sum + Number(t.amount || 0), 0)
@@ -179,11 +200,11 @@ export function DashboardOverview({ onNavigate }: DashboardOverviewProps) {
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="font-semibold text-accent">${Number(job.value).toLocaleString()}</span>
-                    <Button size="sm" variant="outline" className="h-8 gap-1">
+                    <Button size="sm" variant="outline" className="h-8 gap-1" onClick={() => handleCallJob(job)}>
                       <Phone className="h-3 w-3" />
                       Call
                     </Button>
-                    <Button size="sm" className="h-8 gap-1 bg-primary">
+                    <Button size="sm" className="h-8 gap-1 bg-primary" onClick={() => handleMarkFollowedUp(job)}>
                       <CheckCircle className="h-3 w-3" />
                       Done
                     </Button>

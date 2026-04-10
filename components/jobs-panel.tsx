@@ -14,6 +14,16 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import {
@@ -36,18 +46,28 @@ import {
   Loader2,
   AlertTriangle,
   Mountain,
+  Phone,
+  Navigation,
+  CheckCircle,
+  Trash2,
+  Edit,
+  Calendar,
 } from "lucide-react"
 import { JobPhotoUpload } from "./job-photo-upload"
-import { useJobs, useReferrers } from "@/lib/supabase/hooks"
+import { useJobs, useReferrers, type Job } from "@/lib/supabase/hooks"
 import { toast } from "sonner"
 
 export function JobsPanel() {
-  const { jobs, loading, createJob } = useJobs()
+  const { jobs, loading, createJob, updateJob, deleteJob } = useJobs()
   const { referrers } = useReferrers()
   const [searchQuery, setSearchQuery] = useState("")
   const [isNewJobOpen, setIsNewJobOpen] = useState(false)
   const [newJobPhotos, setNewJobPhotos] = useState<File[]>([])
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [selectedJob, setSelectedJob] = useState<Job | null>(null)
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false)
+  const [isEditOpen, setIsEditOpen] = useState(false)
+  const [deleteJobId, setDeleteJobId] = useState<string | null>(null)
   
   // Form state
   const [formData, setFormData] = useState({
@@ -58,6 +78,18 @@ export function JobsPanel() {
     value: "",
     referral_code: "",
     notes: "",
+  })
+
+  // Edit form state
+  const [editFormData, setEditFormData] = useState({
+    address: "",
+    customer_name: "",
+    job_type: "",
+    value: "",
+    status: "",
+    notes: "",
+    permit_required: false,
+    climbing_required: false,
   })
 
   const filteredJobs = jobs.filter(
@@ -80,13 +112,22 @@ export function JobsPanel() {
       ? referrers.find(r => r.referral_code.toLowerCase() === formData.referral_code.toLowerCase())
       : null
 
+    // Build notes with phone and referral info
+    let notesContent = formData.notes
+    if (formData.customer_phone) {
+      notesContent = `Phone: ${formData.customer_phone}. ${notesContent}`
+    }
+    if (matchedReferrer) {
+      notesContent += ` [Referral: ${matchedReferrer.name}]`
+    }
+
     const { data, error } = await createJob({
       address: formData.address,
       customer_name: formData.customer_name,
       job_type: formData.job_type,
       value: parseFloat(formData.value) || 0,
       trees: [],
-      notes: formData.notes + (matchedReferrer ? ` [Referral: ${matchedReferrer.name}]` : ""),
+      notes: notesContent,
       permit_required: false,
       clearance_required: false,
       climbing_required: false,
@@ -127,6 +168,84 @@ export function JobsPanel() {
       default:
         return "secondary"
     }
+  }
+
+  const handleViewDetails = (job: Job) => {
+    setSelectedJob(job)
+    setIsDetailsOpen(true)
+  }
+
+  const handleEditJob = (job: Job) => {
+    setSelectedJob(job)
+    setEditFormData({
+      address: job.address,
+      customer_name: job.customer_name,
+      job_type: job.job_type,
+      value: job.value.toString(),
+      status: job.status,
+      notes: job.notes || "",
+      permit_required: job.permit_required,
+      climbing_required: job.climbing_required,
+    })
+    setIsEditOpen(true)
+  }
+
+  const handleUpdateJob = async () => {
+    if (!selectedJob) return
+    setIsSubmitting(true)
+    const { error } = await updateJob(selectedJob.id, {
+      address: editFormData.address,
+      customer_name: editFormData.customer_name,
+      job_type: editFormData.job_type,
+      value: parseFloat(editFormData.value) || 0,
+      status: editFormData.status,
+      notes: editFormData.notes,
+      permit_required: editFormData.permit_required,
+      climbing_required: editFormData.climbing_required,
+    })
+    setIsSubmitting(false)
+    if (error) {
+      toast.error("Failed to update job")
+    } else {
+      toast.success("Job updated successfully")
+      setIsEditOpen(false)
+      setSelectedJob(null)
+    }
+  }
+
+  const handleDeleteJob = async () => {
+    if (!deleteJobId) return
+    const { error } = await deleteJob(deleteJobId)
+    if (error) {
+      toast.error("Failed to delete job")
+    } else {
+      toast.success("Job deleted")
+    }
+    setDeleteJobId(null)
+  }
+
+  const handleStatusChange = async (jobId: string, newStatus: string) => {
+    const { error } = await updateJob(jobId, { status: newStatus })
+    if (error) {
+      toast.error("Failed to update status")
+    } else {
+      toast.success(`Status updated to ${newStatus}`)
+    }
+  }
+
+  const handleCall = (job: Job) => {
+    // Try to find a phone number in notes or use a default
+    const phoneMatch = job.notes?.match(/\d{3}[-.]?\d{3}[-.]?\d{4}/)
+    if (phoneMatch) {
+      window.location.href = `tel:${phoneMatch[0]}`
+    } else {
+      toast.info("No phone number found for this customer")
+    }
+  }
+
+  const handleDirections = (job: Job) => {
+    const encodedAddress = encodeURIComponent(job.address)
+    window.open(`https://www.google.com/maps/dir/?api=1&destination=${encodedAddress}`, "_blank")
   }
 
   return (
@@ -369,9 +488,17 @@ export function JobsPanel() {
                         <span className="text-xl font-bold text-accent">
                           ${Number(job.value).toLocaleString()}
                         </span>
-                        <Button variant="outline" size="sm">
-                          View Details
-                        </Button>
+                        <div className="flex gap-2">
+                          <Button variant="outline" size="sm" onClick={() => handleCall(job)}>
+                            <Phone className="h-4 w-4" />
+                          </Button>
+                          <Button variant="outline" size="sm" onClick={() => handleDirections(job)}>
+                            <Navigation className="h-4 w-4" />
+                          </Button>
+                          <Button variant="outline" size="sm" onClick={() => handleViewDetails(job)}>
+                            View Details
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   </CardContent>
@@ -470,6 +597,254 @@ export function JobsPanel() {
           </TabsContent>
         </Tabs>
       )}
+
+      {/* Job Details Dialog */}
+      <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Job Details</DialogTitle>
+            <DialogDescription>
+              {selectedJob?.address}
+            </DialogDescription>
+          </DialogHeader>
+          {selectedJob && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-muted-foreground">Customer</p>
+                  <p className="font-medium">{selectedJob.customer_name}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Job Type</p>
+                  <p className="font-medium">{selectedJob.job_type}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Value</p>
+                  <p className="font-bold text-accent">${Number(selectedJob.value).toLocaleString()}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Status</p>
+                  <Badge variant={getStatusColor(selectedJob.status)}>{selectedJob.status}</Badge>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Created</p>
+                  <p className="font-medium">{new Date(selectedJob.created_at).toLocaleDateString()}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Photos</p>
+                  <p className="font-medium">{selectedJob.photos?.length || 0} uploaded</p>
+                </div>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                {selectedJob.permit_required && (
+                  <Badge variant="outline">
+                    <AlertTriangle className="mr-1 h-3 w-3" />
+                    Permit Required
+                  </Badge>
+                )}
+                {selectedJob.climbing_required && (
+                  <Badge className="bg-primary">
+                    <Mountain className="mr-1 h-3 w-3" />
+                    Climbing Required
+                  </Badge>
+                )}
+              </div>
+
+              {selectedJob.notes && (
+                <div>
+                  <p className="text-sm text-muted-foreground">Notes</p>
+                  <p className="text-sm mt-1 p-2 bg-secondary rounded">{selectedJob.notes}</p>
+                </div>
+              )}
+
+              {/* Quick Status Change */}
+              <div>
+                <p className="text-sm text-muted-foreground mb-2">Update Status</p>
+                <div className="flex flex-wrap gap-2">
+                  {["quote", "scheduled", "in-progress", "completed", "urgent"].map((status) => (
+                    <Button
+                      key={status}
+                      size="sm"
+                      variant={selectedJob.status === status ? "default" : "outline"}
+                      onClick={() => {
+                        handleStatusChange(selectedJob.id, status)
+                        setSelectedJob({ ...selectedJob, status })
+                      }}
+                    >
+                      {status}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex gap-2 pt-4 border-t">
+                <Button variant="outline" className="flex-1" onClick={() => handleCall(selectedJob)}>
+                  <Phone className="mr-2 h-4 w-4" />
+                  Call
+                </Button>
+                <Button variant="outline" className="flex-1" onClick={() => handleDirections(selectedJob)}>
+                  <Navigation className="mr-2 h-4 w-4" />
+                  Directions
+                </Button>
+              </div>
+              <div className="flex gap-2">
+                <Button variant="outline" className="flex-1" onClick={() => {
+                  setIsDetailsOpen(false)
+                  handleEditJob(selectedJob)
+                }}>
+                  <Edit className="mr-2 h-4 w-4" />
+                  Edit Job
+                </Button>
+                <Button variant="destructive" className="flex-1" onClick={() => {
+                  setIsDetailsOpen(false)
+                  setDeleteJobId(selectedJob.id)
+                }}>
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Delete
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Job Dialog */}
+      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Job</DialogTitle>
+            <DialogDescription>
+              Update job details
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="edit-address">Address</Label>
+              <Input 
+                id="edit-address"
+                value={editFormData.address}
+                onChange={(e) => setEditFormData({ ...editFormData, address: e.target.value })}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="edit-customer">Customer Name</Label>
+              <Input 
+                id="edit-customer"
+                value={editFormData.customer_name}
+                onChange={(e) => setEditFormData({ ...editFormData, customer_name: e.target.value })}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label>Job Type</Label>
+                <Select 
+                  value={editFormData.job_type}
+                  onValueChange={(value) => setEditFormData({ ...editFormData, job_type: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Tree Removal">Tree Removal</SelectItem>
+                    <SelectItem value="Pruning">Pruning</SelectItem>
+                    <SelectItem value="Stump Grinding">Stump Grinding</SelectItem>
+                    <SelectItem value="Storm Damage">Storm Damage</SelectItem>
+                    <SelectItem value="Emergency">Emergency</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-value">Price</Label>
+                <div className="relative">
+                  <DollarSign className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input 
+                    id="edit-value"
+                    type="number"
+                    className="pl-9"
+                    value={editFormData.value}
+                    onChange={(e) => setEditFormData({ ...editFormData, value: e.target.value })}
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="grid gap-2">
+              <Label>Status</Label>
+              <Select 
+                value={editFormData.status}
+                onValueChange={(value) => setEditFormData({ ...editFormData, status: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="quote">Quote</SelectItem>
+                  <SelectItem value="scheduled">Scheduled</SelectItem>
+                  <SelectItem value="in-progress">In Progress</SelectItem>
+                  <SelectItem value="completed">Completed</SelectItem>
+                  <SelectItem value="urgent">Urgent</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="edit-notes">Notes</Label>
+              <Textarea 
+                id="edit-notes"
+                rows={3}
+                value={editFormData.notes}
+                onChange={(e) => setEditFormData({ ...editFormData, notes: e.target.value })}
+              />
+            </div>
+            <div className="flex items-center gap-4">
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={editFormData.permit_required}
+                  onChange={(e) => setEditFormData({ ...editFormData, permit_required: e.target.checked })}
+                  className="rounded"
+                />
+                Permit Required
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={editFormData.climbing_required}
+                  onChange={(e) => setEditFormData({ ...editFormData, climbing_required: e.target.checked })}
+                  className="rounded"
+                />
+                Climbing Required
+              </label>
+            </div>
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setIsEditOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleUpdateJob} disabled={isSubmitting}>
+              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Save Changes
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={!!deleteJobId} onOpenChange={() => setDeleteJobId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Job?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete this job and all associated data.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteJob} className="bg-destructive text-destructive-foreground">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

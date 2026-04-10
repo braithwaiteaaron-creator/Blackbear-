@@ -449,5 +449,18 @@ export function useReferrers() {
     return { data, error: null }
   }
 
-  return { referrers, loading, error, fetchReferrers, createReferrer, updateReferrer }
+  async function deleteReferrer(id: string) {
+    const supabase = createClient()
+    const { error } = await supabase.from("referrers").delete().eq("id", id)
+    
+    if (error) {
+      console.error("Error deleting referrer:", error)
+      return { error }
+    }
+    
+    setReferrers((prev) => prev.filter((r) => r.id !== id))
+    return { error: null }
+  }
+
+  return { referrers, loading, error, fetchReferrers, createReferrer, updateReferrer, deleteReferrer }
 }
