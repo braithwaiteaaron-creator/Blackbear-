@@ -94,9 +94,9 @@ export function JobsPanel() {
 
   const filteredJobs = jobs.filter(
     (job) =>
-      job.address.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      job.customer_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      job.job_type.toLowerCase().includes(searchQuery.toLowerCase())
+      (job.address || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (job.customer_name || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (job.job_type || "").toLowerCase().includes(searchQuery.toLowerCase())
   )
 
   const handleSubmit = async () => {
@@ -244,6 +244,10 @@ export function JobsPanel() {
   }
 
   const handleDirections = (job: Job) => {
+    if (!job.address) {
+      toast.info("No address available for this job")
+      return
+    }
     const encodedAddress = encodeURIComponent(job.address)
     window.open(`https://www.google.com/maps/dir/?api=1&destination=${encodedAddress}`, "_blank")
   }

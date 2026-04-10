@@ -88,8 +88,8 @@ export function LeadsPanel() {
 
   const filteredLeads = leads.filter(
     (lead) =>
-      lead.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (lead.address?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false)
+      (lead.name || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (lead.address || "").toLowerCase().includes(searchQuery.toLowerCase())
   )
 
   const handleSubmit = async () => {

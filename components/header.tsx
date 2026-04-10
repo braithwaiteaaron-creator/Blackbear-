@@ -43,12 +43,12 @@ export function Header({ onMenuToggle }: HeaderProps) {
   // Search results
   const searchResults = searchQuery.length > 1 ? {
     jobs: jobs.filter(j => 
-      j.address.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      j.customer_name.toLowerCase().includes(searchQuery.toLowerCase())
+      (j.address || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (j.customer_name || "").toLowerCase().includes(searchQuery.toLowerCase())
     ).slice(0, 5),
     leads: leads.filter(l => 
-      l.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (l.address?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false)
+      (l.name || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (l.address || "").toLowerCase().includes(searchQuery.toLowerCase())
     ).slice(0, 3)
   } : { jobs: [], leads: [] }
 
