@@ -44,6 +44,7 @@ const SERVICE_TYPES = [
 type Tab = 'quotes' | 'jobs' | 'customers' | 'ai'
 
 export default function Dashboard() {
+  console.log('[v0] Dashboard mounted - new version with Quotes first')
   const [activeTab, setActiveTab] = useState<Tab>('quotes')
   const [aiTab, setAiTab] = useState<'assistant' | 'quote' | 'photo'>('assistant')
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
@@ -190,7 +191,7 @@ export default function Dashboard() {
           ] as { id: Tab; label: string; icon: React.ElementType }[]).map(({ id, label, icon: Icon }) => (
             <button
               key={id}
-              onClick={() => setActiveTab(id)}
+              onClick={() => { console.log('[v0] Tab clicked:', id); setActiveTab(id); }}
               className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
                 activeTab === id
                   ? 'border-primary text-foreground'
