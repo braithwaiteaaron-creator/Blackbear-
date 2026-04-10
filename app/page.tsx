@@ -654,8 +654,8 @@ export default function Dashboard() {
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <Label htmlFor="job-date">Scheduled Date</Label>
-                        <Input type="date" name="scheduled_date" className="bg-secondary border-border" required />
+                        <Label htmlFor="job-date">Scheduled Date <span className="text-muted-foreground text-xs">(Optional)</span></Label>
+                        <Input type="date" name="scheduled_date" className="bg-secondary border-border" />
                       </div>
                       <div>
                         <Label htmlFor="job-amount">Estimated Amount ($)</Label>
