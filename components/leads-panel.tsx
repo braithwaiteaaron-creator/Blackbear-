@@ -187,10 +187,7 @@ export function LeadsPanel() {
       customer_name: lead.name,
       job_type: "Tree Removal",
       value: lead.estimated_value || 0,
-      trees: [],
       notes: `Converted from lead. ${lead.notes || ""} Phone: ${lead.phone || "N/A"}`,
-      permit_required: false,
-      climbing_required: false,
       status: "quote",
     })
 

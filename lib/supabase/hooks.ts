@@ -9,19 +9,12 @@ import { createClient } from "./client"
 
 export interface Job {
   id: string
-  customer_id?: string
   address: string
   customer_name: string
   job_type: string
   status: string
   value: number
-  permit_required: boolean
-  climbing_required: boolean
-  trees: string[]
   notes?: string
-  photos_count?: number
-  scheduled_date?: string
-  completed_date?: string
   created_at: string
   updated_at: string
 }

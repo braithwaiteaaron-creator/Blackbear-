@@ -182,8 +182,6 @@ export function JobsPanel() {
       value: job.value.toString(),
       status: job.status,
       notes: job.notes || "",
-      permit_required: job.permit_required,
-      climbing_required: job.climbing_required,
     })
     setIsEditOpen(true)
   }
@@ -198,8 +196,6 @@ export function JobsPanel() {
       value: parseFloat(editFormData.value) || 0,
       status: editFormData.status,
       notes: editFormData.notes,
-      permit_required: editFormData.permit_required,
-      climbing_required: editFormData.climbing_required,
     })
     setIsSubmitting(false)
     if (error) {
@@ -461,25 +457,9 @@ export function JobsPanel() {
                               {job.job_type}
                             </span>
                             <span className="flex items-center gap-1">
-                              <Camera className="h-3 w-3" />
-                              {job.photos_count || 0} photos
-                            </span>
-                            <span className="flex items-center gap-1">
                               <Clock className="h-3 w-3" />
                               {new Date(job.created_at).toLocaleDateString()}
                             </span>
-                            {job.permit_required && (
-                              <Badge variant="outline" className="text-[10px]">
-                                <AlertTriangle className="mr-1 h-3 w-3" />
-                                Permit Required
-                              </Badge>
-                            )}
-                            {job.climbing_required && (
-                              <Badge variant="default" className="text-[10px] bg-primary">
-                                <Mountain className="mr-1 h-3 w-3" />
-                                Climbing Required
-                              </Badge>
-                            )}
                           </div>
                           {job.notes && (
                             <p className="mt-2 text-xs text-muted-foreground line-clamp-1">{job.notes}</p>
@@ -638,21 +618,6 @@ export function JobsPanel() {
                 </div>
               </div>
               
-              <div className="flex items-center gap-2">
-                {selectedJob.permit_required && (
-                  <Badge variant="outline">
-                    <AlertTriangle className="mr-1 h-3 w-3" />
-                    Permit Required
-                  </Badge>
-                )}
-                {selectedJob.climbing_required && (
-                  <Badge className="bg-primary">
-                    <Mountain className="mr-1 h-3 w-3" />
-                    Climbing Required
-                  </Badge>
-                )}
-              </div>
-
               {selectedJob.notes && (
                 <div>
                   <p className="text-sm text-muted-foreground">Notes</p>
@@ -796,26 +761,6 @@ export function JobsPanel() {
                 value={editFormData.notes}
                 onChange={(e) => setEditFormData({ ...editFormData, notes: e.target.value })}
               />
-            </div>
-            <div className="flex items-center gap-4">
-              <label className="flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  checked={editFormData.permit_required}
-                  onChange={(e) => setEditFormData({ ...editFormData, permit_required: e.target.checked })}
-                  className="rounded"
-                />
-                Permit Required
-              </label>
-              <label className="flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  checked={editFormData.climbing_required}
-                  onChange={(e) => setEditFormData({ ...editFormData, climbing_required: e.target.checked })}
-                  className="rounded"
-                />
-                Climbing Required
-              </label>
             </div>
           </div>
           <div className="flex justify-end gap-2">
