@@ -190,10 +190,8 @@ export function LeadsPanel() {
       trees: [],
       notes: `Converted from lead. ${lead.notes || ""} Phone: ${lead.phone || "N/A"}`,
       permit_required: false,
-      clearance_required: false,
       climbing_required: false,
       status: "quote",
-      photos: [],
     })
 
     if (jobError) {

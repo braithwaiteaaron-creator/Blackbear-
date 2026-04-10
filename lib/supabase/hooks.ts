@@ -16,11 +16,12 @@ export interface Job {
   status: string
   value: number
   permit_required: boolean
-  clearance_required: boolean
   climbing_required: boolean
   trees: string[]
   notes?: string
-  photos: string[]
+  photos_count?: number
+  scheduled_date?: string
+  completed_date?: string
   created_at: string
   updated_at: string
 }

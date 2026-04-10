@@ -129,10 +129,8 @@ export function JobsPanel() {
       trees: [],
       notes: notesContent,
       permit_required: false,
-      clearance_required: false,
       climbing_required: false,
       status: "quote",
-      photos: [],
     })
     setIsSubmitting(false)
 
@@ -464,7 +462,7 @@ export function JobsPanel() {
                             </span>
                             <span className="flex items-center gap-1">
                               <Camera className="h-3 w-3" />
-                              {job.photos?.length || 0} photos
+                              {job.photos_count || 0} photos
                             </span>
                             <span className="flex items-center gap-1">
                               <Clock className="h-3 w-3" />
@@ -636,7 +634,7 @@ export function JobsPanel() {
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Photos</p>
-                  <p className="font-medium">{selectedJob.photos?.length || 0} uploaded</p>
+                  <p className="font-medium">{selectedJob.photos_count || 0} uploaded</p>
                 </div>
               </div>
               
