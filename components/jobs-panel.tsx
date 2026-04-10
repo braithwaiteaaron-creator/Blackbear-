@@ -126,10 +126,8 @@ export function JobsPanel() {
       customer_name: formData.customer_name,
       job_type: formData.job_type,
       value: parseFloat(formData.value) || 0,
-      trees: [],
       notes: notesContent,
       permit_required: false,
-      climbing_required: false,
       status: "quote",
     })
     setIsSubmitting(false)
