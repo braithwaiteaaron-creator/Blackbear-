@@ -85,7 +85,7 @@ export default function InvoicesPage() {
               </div>
             </div>
             <Dialog open={showCreate} onOpenChange={setShowCreate}>
-              <DialogTrigger>
+              <DialogTrigger asChild>
                 <Button>
                   <Plus className="size-4 mr-2" />
                   Create Invoice
