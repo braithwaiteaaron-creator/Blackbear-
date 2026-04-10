@@ -32,13 +32,16 @@ export function CustomersPanel() {
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerData | null>(null)
   const [isHistoryOpen, setIsHistoryOpen] = useState(false)
 
-  // Group jobs by customer
+  // Group jobs by customer - using description to extract customer info
   const customerMap = new Map<string, CustomerData>()
   jobs.forEach((job) => {
-    if (!customerMap.has(job.customer_name)) {
-      customerMap.set(job.customer_name, {
-        name: job.customer_name,
-        address: job.address,
+    // Extract customer name from description or use location as fallback
+    const customerName = job.description?.split(' at ')[0] || job.location || 'Unknown Customer'
+    
+    if (!customerMap.has(customerName)) {
+      customerMap.set(customerName, {
+        name: customerName,
+        address: job.location || "No address",
         jobCount: 0,
         totalValue: 0,
         lastJobDate: null,
@@ -46,10 +49,10 @@ export function CustomersPanel() {
         jobs: [],
       })
     }
-    const customer = customerMap.get(job.customer_name)!
+    const customer = customerMap.get(customerName)!
     customer.jobCount += 1
-    customer.totalValue += Number(job.value || 0)
-    customer.lastJobDate = new Date(job.created_at) > new Date(customer.lastJobDate || 0) ? job.created_at : customer.lastJobDate
+    customer.totalValue += 0 // No cost field in database
+    customer.lastJobDate = new Date(job.created_at || 0) > new Date(customer.lastJobDate || 0) ? job.created_at : customer.lastJobDate
     customer.statuses.add(job.status)
     customer.jobs.push(job)
   })
@@ -245,15 +248,14 @@ export function CustomersPanel() {
                             <TreeDeciduous className="h-5 w-5 text-primary" />
                           </div>
                           <div>
-                            <p className="font-medium">{job.job_type}</p>
+                            <p className="font-medium">{job.service_type}</p>
                             <div className="flex items-center gap-2 text-xs text-muted-foreground">
                               <Clock className="h-3 w-3" />
-                              {new Date(job.created_at).toLocaleDateString()}
+                              {new Date(job.created_at || "").toLocaleDateString()}
                             </div>
                           </div>
                         </div>
                         <div className="text-right">
-                          <p className="font-bold text-accent">${Number(job.value).toLocaleString()}</p>
                           <Badge variant={job.status === "completed" ? "secondary" : "outline"} className="text-xs">
                             {job.status}
                           </Badge>

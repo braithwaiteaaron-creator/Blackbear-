@@ -85,7 +85,6 @@ export function JobsPanel() {
     description: "",
     service_type: "",
     location: "",
-    estimated_cost: "",
     status: "",
     notes: "",
   })
@@ -124,7 +123,6 @@ export function JobsPanel() {
       service_type: formData.job_type,
       status: "quote",
       location: formData.address,
-      estimated_cost: parseFloat(formData.value) || 0,
       notes: notesContent,
     })
     setIsSubmitting(false)
@@ -174,7 +172,6 @@ export function JobsPanel() {
       description: job.description,
       service_type: job.service_type,
       location: job.location || "",
-      estimated_cost: (job.estimated_cost || 0).toString(),
       status: job.status,
       notes: job.notes || "",
     })
@@ -188,7 +185,6 @@ export function JobsPanel() {
       description: editFormData.description,
       service_type: editFormData.service_type,
       location: editFormData.location,
-      estimated_cost: parseFloat(editFormData.estimated_cost) || 0,
       status: editFormData.status,
       notes: editFormData.notes,
     })
@@ -463,7 +459,7 @@ export function JobsPanel() {
                       </div>
                       <div className="flex items-center gap-3">
                         <span className="text-xl font-bold text-accent">
-                          ${Number(job.estimated_cost || 0).toLocaleString()}
+                          ${Number(formData.value || 0).toLocaleString()}
                         </span>
                         <div className="flex gap-2">
                           <Button variant="outline" size="sm" onClick={() => handleCall(job)}>
@@ -502,7 +498,7 @@ export function JobsPanel() {
                             <p className="text-sm text-muted-foreground">{job.notes}</p>
                           </div>
                         </div>
-                        <span className="text-xl font-bold text-accent">${Number(job.estimated_cost || 0).toLocaleString()}</span>
+                        <span className="text-xl font-bold text-accent">${Number(formData.value || 0).toLocaleString()}</span>
                       </div>
                     </CardContent>
                   </Card>
@@ -523,7 +519,7 @@ export function JobsPanel() {
                         <h3 className="font-semibold">{job.location}</h3>
                         <p className="text-sm text-muted-foreground">{job.description} - {job.service_type}</p>
                       </div>
-                      <span className="text-xl font-bold text-accent">${Number(job.estimated_cost || 0).toLocaleString()}</span>
+                      <span className="text-xl font-bold text-accent">${Number(formData.value || 0).toLocaleString()}</span>
                     </div>
                   </CardContent>
                 </Card>
@@ -544,7 +540,7 @@ export function JobsPanel() {
                         <h3 className="font-semibold">{job.location}</h3>
                         <p className="text-sm text-muted-foreground">{job.description} - {job.service_type}</p>
                       </div>
-                      <span className="text-xl font-bold text-accent">${Number(job.estimated_cost || 0).toLocaleString()}</span>
+                      <span className="text-xl font-bold text-accent">${Number(formData.value || 0).toLocaleString()}</span>
                     </div>
                   </CardContent>
                 </Card>
@@ -565,7 +561,7 @@ export function JobsPanel() {
                         <h3 className="font-semibold">{job.location}</h3>
                         <p className="text-sm text-muted-foreground">{job.description} - {job.service_type}</p>
                       </div>
-                      <span className="text-xl font-bold text-accent">${Number(job.estimated_cost || 0).toLocaleString()}</span>
+                      <span className="text-xl font-bold text-accent">${Number(formData.value || 0).toLocaleString()}</span>
                     </div>
                   </CardContent>
                 </Card>

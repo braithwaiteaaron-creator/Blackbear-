@@ -16,8 +16,6 @@ export interface Job {
   service_type: string
   status: string
   location?: string
-  estimated_cost?: number
-  actual_cost?: number
   scheduled_date?: string
   completed_date?: string
   notes?: string
