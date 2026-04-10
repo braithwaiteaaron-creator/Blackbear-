@@ -9,15 +9,20 @@ import { createClient } from "./client"
 
 export interface Job {
   id: string
-  address?: string
-  customer_name?: string
-  job_type?: string
-  status?: string
-  value?: number
+  customer_id?: string
+  quote_id?: string
+  job_number?: string
+  description: string
+  service_type: string
+  status: string
+  location?: string
+  estimated_cost?: number
+  actual_cost?: number
+  scheduled_date?: string
+  completed_date?: string
   notes?: string
   created_at?: string
   updated_at?: string
-  [key: string]: any // Allow any other columns from the database
 }
 
 export function useJobs() {
