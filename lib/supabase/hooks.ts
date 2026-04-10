@@ -9,14 +9,15 @@ import { createClient } from "./client"
 
 export interface Job {
   id: string
-  address: string
-  customer_name: string
-  job_type: string
-  status: string
-  value: number
+  address?: string
+  customer_name?: string
+  job_type?: string
+  status?: string
+  value?: number
   notes?: string
-  created_at: string
-  updated_at: string
+  created_at?: string
+  updated_at?: string
+  [key: string]: any // Allow any other columns from the database
 }
 
 export function useJobs() {
@@ -45,11 +46,17 @@ export function useJobs() {
     fetchJobs()
   }, [fetchJobs])
 
-  async function createJob(job: Omit<Job, "id" | "created_at" | "updated_at">) {
+  async function createJob(job: Partial<Job>) {
     const supabase = createClient()
+    
+    // Only include fields that are defined
+    const cleanJob = Object.fromEntries(
+      Object.entries(job).filter(([, value]) => value !== undefined && value !== null)
+    )
+    
     const { data, error } = await supabase
       .from("jobs")
-      .insert([job])
+      .insert([cleanJob])
       .select()
       .single()
     
@@ -64,9 +71,15 @@ export function useJobs() {
 
   async function updateJob(id: string, updates: Partial<Job>) {
     const supabase = createClient()
+    
+    // Only include fields that are defined
+    const cleanUpdates = Object.fromEntries(
+      Object.entries(updates).filter(([, value]) => value !== undefined && value !== null)
+    )
+    
     const { data, error } = await supabase
       .from("jobs")
-      .update(updates)
+      .update(cleanUpdates)
       .eq("id", id)
       .select()
       .single()
