@@ -52,6 +52,9 @@ import {
   Trash2,
   Edit,
   Calendar,
+  Mail,
+  Bell,
+  Send,
 } from "lucide-react"
 import { JobPhotoUpload } from "./job-photo-upload"
 import { useJobs, useReferrers, type Job } from "@/lib/supabase/hooks"
@@ -89,6 +92,8 @@ export function JobsPanel() {
     status: "",
     scheduled_date: "",
     scheduled_time: "",
+    customer_phone: "",
+    customer_email: "",
     notes: "",
   })
 
@@ -182,6 +187,8 @@ export function JobsPanel() {
       status: job.status,
       scheduled_date: job.scheduled_date ? job.scheduled_date.split("T")[0] : "",
       scheduled_time: scheduledTime,
+      customer_phone: job.customer_phone || "",
+      customer_email: job.customer_email || "",
       notes: job.notes || "",
     })
     setIsEditOpen(true)
@@ -205,6 +212,8 @@ export function JobsPanel() {
       status: editFormData.status,
       scheduled_date: editFormData.scheduled_date || null,
       time_started_at: timeStartedAt,
+      customer_phone: editFormData.customer_phone || null,
+      customer_email: editFormData.customer_email || null,
       notes: editFormData.notes,
     })
     setIsSubmitting(false)
@@ -661,6 +670,46 @@ export function JobsPanel() {
                   )}
                 </div>
               )}
+
+              {/* Customer Contact & Reminder Status */}
+              {(selectedJob.customer_phone || selectedJob.customer_email) && (
+                <div className="rounded-lg bg-accent/10 border border-accent/20 px-4 py-3">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Bell className="h-4 w-4 text-accent" />
+                    <p className="text-xs font-semibold text-accent uppercase tracking-wide">Customer Contact & Reminders</p>
+                  </div>
+                  <div className="space-y-1 text-sm">
+                    {selectedJob.customer_phone && (
+                      <p className="flex items-center gap-2">
+                        <Phone className="h-3 w-3 text-muted-foreground" />
+                        <a href={`tel:${selectedJob.customer_phone}`} className="text-primary hover:underline">{selectedJob.customer_phone}</a>
+                      </p>
+                    )}
+                    {selectedJob.customer_email && (
+                      <p className="flex items-center gap-2">
+                        <Mail className="h-3 w-3 text-muted-foreground" />
+                        <a href={`mailto:${selectedJob.customer_email}`} className="text-primary hover:underline">{selectedJob.customer_email}</a>
+                      </p>
+                    )}
+                  </div>
+                  {selectedJob.scheduled_date && (
+                    <div className="mt-3 pt-2 border-t border-accent/20">
+                      <p className="text-xs text-muted-foreground mb-1.5">Reminder Status</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        <Badge variant={selectedJob.reminder_3day_sent ? "default" : "outline"} className="text-[10px]">
+                          {selectedJob.reminder_3day_sent ? "3-Day Sent" : "3-Day Pending"}
+                        </Badge>
+                        <Badge variant={selectedJob.reminder_1day_sent ? "default" : "outline"} className="text-[10px]">
+                          {selectedJob.reminder_1day_sent ? "1-Day Sent" : "1-Day Pending"}
+                        </Badge>
+                        <Badge variant={selectedJob.reminder_morning_sent ? "default" : "outline"} className="text-[10px]">
+                          {selectedJob.reminder_morning_sent ? "Morning Sent" : "Morning Pending"}
+                        </Badge>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
               
               {selectedJob.notes && (
                 <div>
@@ -817,6 +866,44 @@ export function JobsPanel() {
                 </div>
               </div>
             )}
+            
+            {/* Customer Contact - Required for Reminders */}
+            <div className="rounded-lg border border-accent/30 bg-accent/5 p-3 space-y-3">
+              <p className="text-sm font-semibold text-accent flex items-center gap-2">
+                <Bell className="h-4 w-4" />
+                Customer Contact (for reminders)
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="grid gap-1.5">
+                  <Label htmlFor="edit-phone" className="text-xs flex items-center gap-1">
+                    <Phone className="h-3 w-3" />
+                    Phone
+                  </Label>
+                  <Input
+                    id="edit-phone"
+                    type="tel"
+                    placeholder="+1234567890"
+                    value={editFormData.customer_phone}
+                    onChange={(e) => setEditFormData({ ...editFormData, customer_phone: e.target.value })}
+                  />
+                </div>
+                <div className="grid gap-1.5">
+                  <Label htmlFor="edit-email" className="text-xs flex items-center gap-1">
+                    <Mail className="h-3 w-3" />
+                    Email
+                  </Label>
+                  <Input
+                    id="edit-email"
+                    type="email"
+                    placeholder="customer@email.com"
+                    value={editFormData.customer_email}
+                    onChange={(e) => setEditFormData({ ...editFormData, customer_email: e.target.value })}
+                  />
+                </div>
+              </div>
+              <p className="text-[11px] text-muted-foreground">Auto-reminders: 3 days, 1 day, and morning of scheduled job</p>
+            </div>
+
             <div className="grid gap-2">
               <Label htmlFor="edit-notes">Notes</Label>
               <Textarea
