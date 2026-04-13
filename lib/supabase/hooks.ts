@@ -37,20 +37,16 @@ export function useJobs() {
 
   const fetchJobs = useCallback(async () => {
     setLoading(true)
-    console.log("[v0] Fetching jobs...")
     const supabase = createClient()
     const { data, error } = await supabase
       .from("jobs")
       .select("*")
       .order("created_at", { ascending: false })
     
-    console.log("[v0] Jobs fetch result:", { data, error, count: data?.length })
-    
     if (error) {
-      console.error("[v0] Error fetching jobs:", error)
+      console.error("Error fetching jobs:", error)
       setError(error.message)
     } else {
-      console.log("[v0] Setting jobs:", data?.length || 0, "jobs")
       setJobs(data || [])
     }
     setLoading(false)

@@ -87,6 +87,7 @@ export function JobsPanel() {
     address: "",
     estimated_amount: "",
     status: "",
+    scheduled_date: "",
     notes: "",
   })
 
@@ -176,6 +177,7 @@ export function JobsPanel() {
       address: job.address || "",
       estimated_amount: (job.estimated_amount || 0).toString(),
       status: job.status,
+      scheduled_date: job.scheduled_date ? job.scheduled_date.split("T")[0] : "",
       notes: job.notes || "",
     })
     setIsEditOpen(true)
@@ -190,6 +192,7 @@ export function JobsPanel() {
       address: editFormData.address,
       estimated_amount: parseFloat(editFormData.estimated_amount) || 0,
       status: editFormData.status,
+      scheduled_date: editFormData.scheduled_date || null,
       notes: editFormData.notes,
     })
     setIsSubmitting(false)
@@ -588,29 +591,27 @@ export function JobsPanel() {
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-sm text-muted-foreground">Customer</p>
-                  <p className="font-medium">{selectedJob.customer_name}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Job Type</p>
-                  <p className="font-medium">{selectedJob.job_type}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Value</p>
-                  <p className="font-bold text-accent">${Number(selectedJob.value).toLocaleString()}</p>
+                  <p className="text-sm text-muted-foreground">Service Type</p>
+                  <p className="font-medium">{selectedJob.service_type}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Status</p>
-                  <Badge variant={getStatusColor(selectedJob.status)}>{selectedJob.status}</Badge>
+                  <Badge variant={getStatusColor(selectedJob.status)} className="capitalize">{selectedJob.status}</Badge>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Estimated Amount</p>
+                  <p className="font-bold text-accent">${Number(selectedJob.estimated_amount || 0).toLocaleString()}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Created</p>
-                  <p className="font-medium">{new Date(selectedJob.created_at).toLocaleDateString()}</p>
+                  <p className="font-medium">{new Date(selectedJob.created_at || "").toLocaleDateString()}</p>
                 </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Photos</p>
-                  <p className="font-medium">{selectedJob.photos_count || 0} uploaded</p>
-                </div>
+                {selectedJob.scheduled_date && (
+                  <div className="col-span-2 rounded-lg bg-primary/10 border border-primary/20 px-3 py-2">
+                    <p className="text-xs text-muted-foreground">Scheduled Date</p>
+                    <p className="font-semibold text-primary">{new Date(selectedJob.scheduled_date).toLocaleDateString("en-CA", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}</p>
+                  </div>
+                )}
               </div>
               
               {selectedJob.notes && (
@@ -624,7 +625,7 @@ export function JobsPanel() {
               <div>
                 <p className="text-sm text-muted-foreground mb-2">Update Status</p>
                 <div className="flex flex-wrap gap-2">
-                  {["quote", "scheduled", "in-progress", "completed", "urgent"].map((status) => (
+                  {["quote", "scheduled", "in_progress", "completed", "urgent"].map((status) => (
                     <Button
                       key={status}
                       size="sm"
@@ -683,26 +684,18 @@ export function JobsPanel() {
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
               <Label htmlFor="edit-address">Address</Label>
-              <Input 
+              <Input
                 id="edit-address"
                 value={editFormData.address}
                 onChange={(e) => setEditFormData({ ...editFormData, address: e.target.value })}
               />
             </div>
-            <div className="grid gap-2">
-              <Label htmlFor="edit-customer">Customer Name</Label>
-              <Input 
-                id="edit-customer"
-                value={editFormData.customer_name}
-                onChange={(e) => setEditFormData({ ...editFormData, customer_name: e.target.value })}
-              />
-            </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
-                <Label>Job Type</Label>
-                <Select 
-                  value={editFormData.job_type}
-                  onValueChange={(value) => setEditFormData({ ...editFormData, job_type: value })}
+                <Label>Service Type</Label>
+                <Select
+                  value={editFormData.service_type}
+                  onValueChange={(value) => setEditFormData({ ...editFormData, service_type: value })}
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -717,22 +710,22 @@ export function JobsPanel() {
                 </Select>
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="edit-value">Price</Label>
+                <Label htmlFor="edit-amount">Estimated Amount</Label>
                 <div className="relative">
                   <DollarSign className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input 
-                    id="edit-value"
+                  <Input
+                    id="edit-amount"
                     type="number"
                     className="pl-9"
-                    value={editFormData.value}
-                    onChange={(e) => setEditFormData({ ...editFormData, value: e.target.value })}
+                    value={editFormData.estimated_amount}
+                    onChange={(e) => setEditFormData({ ...editFormData, estimated_amount: e.target.value })}
                   />
                 </div>
               </div>
             </div>
             <div className="grid gap-2">
               <Label>Status</Label>
-              <Select 
+              <Select
                 value={editFormData.status}
                 onValueChange={(value) => setEditFormData({ ...editFormData, status: value })}
               >
@@ -742,15 +735,26 @@ export function JobsPanel() {
                 <SelectContent>
                   <SelectItem value="quote">Quote</SelectItem>
                   <SelectItem value="scheduled">Scheduled</SelectItem>
-                  <SelectItem value="in-progress">In Progress</SelectItem>
+                  <SelectItem value="in_progress">In Progress</SelectItem>
                   <SelectItem value="completed">Completed</SelectItem>
                   <SelectItem value="urgent">Urgent</SelectItem>
                 </SelectContent>
               </Select>
             </div>
+            {editFormData.status === "scheduled" && (
+              <div className="grid gap-2">
+                <Label htmlFor="edit-scheduled-date">Scheduled Date</Label>
+                <Input
+                  id="edit-scheduled-date"
+                  type="date"
+                  value={editFormData.scheduled_date}
+                  onChange={(e) => setEditFormData({ ...editFormData, scheduled_date: e.target.value })}
+                />
+              </div>
+            )}
             <div className="grid gap-2">
               <Label htmlFor="edit-notes">Notes</Label>
-              <Textarea 
+              <Textarea
                 id="edit-notes"
                 rows={3}
                 value={editFormData.notes}
