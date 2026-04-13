@@ -88,6 +88,7 @@ export function JobsPanel() {
     estimated_amount: "",
     status: "",
     scheduled_date: "",
+    scheduled_time: "",
     notes: "",
   })
 
@@ -171,6 +172,8 @@ export function JobsPanel() {
 
   const handleEditJob = (job: Job) => {
     setSelectedJob(job)
+    // Extract time from time_started_at or default to empty
+    const scheduledTime = job.time_started_at ? job.time_started_at.substring(11, 16) : ""
     setEditFormData({
       description: job.description,
       service_type: job.service_type,
@@ -178,6 +181,7 @@ export function JobsPanel() {
       estimated_amount: (job.estimated_amount || 0).toString(),
       status: job.status,
       scheduled_date: job.scheduled_date ? job.scheduled_date.split("T")[0] : "",
+      scheduled_time: scheduledTime,
       notes: job.notes || "",
     })
     setIsEditOpen(true)
@@ -186,6 +190,13 @@ export function JobsPanel() {
   const handleUpdateJob = async () => {
     if (!selectedJob) return
     setIsSubmitting(true)
+    
+    // Build time_started_at from date and time if both exist
+    let timeStartedAt = null
+    if (editFormData.scheduled_date && editFormData.scheduled_time) {
+      timeStartedAt = `${editFormData.scheduled_date}T${editFormData.scheduled_time}:00`
+    }
+    
     const { error } = await updateJob(selectedJob.id, {
       description: editFormData.description,
       service_type: editFormData.service_type,
@@ -193,6 +204,7 @@ export function JobsPanel() {
       estimated_amount: parseFloat(editFormData.estimated_amount) || 0,
       status: editFormData.status,
       scheduled_date: editFormData.scheduled_date || null,
+      time_started_at: timeStartedAt,
       notes: editFormData.notes,
     })
     setIsSubmitting(false)
@@ -456,9 +468,18 @@ export function JobsPanel() {
                             </span>
                             <span className="flex items-center gap-1">
                               <Clock className="h-3 w-3" />
-                              {new Date(job.created_at || "").toLocaleDateString()}
+                              {new Date(job.created_at || "").toLocaleDateString()} at {new Date(job.created_at || "").toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                             </span>
                           </div>
+                          {job.scheduled_date && (
+                            <div className="mt-2 inline-flex items-center gap-1.5 rounded-md bg-primary/10 px-2 py-1 text-xs font-medium text-primary">
+                              <Calendar className="h-3 w-3" />
+                              {new Date(job.scheduled_date).toLocaleDateString("en-CA", { month: "short", day: "numeric" })}
+                              {job.time_started_at && (
+                                <span className="ml-1">{new Date(job.time_started_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
+                              )}
+                            </div>
+                          )}
                           {job.notes && (
                             <p className="mt-2 text-xs text-muted-foreground line-clamp-1">{job.notes}</p>
                           )}
@@ -519,12 +540,16 @@ export function JobsPanel() {
                 <p className="text-muted-foreground text-center py-8">No pending quotes</p>
               )}
               {filteredJobs.filter((j) => j.status === "quote").map((job) => (
-                <Card key={job.id} className="bg-card border-border">
+                <Card key={job.id} className="bg-card border-border cursor-pointer hover:border-primary/50 transition-colors" onClick={() => handleViewDetails(job)}>
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between">
                       <div>
                         <h3 className="font-semibold">{job.address}</h3>
-                        <p className="text-sm text-muted-foreground">{job.description} - {job.service_type}</p>
+                        <p className="text-sm text-muted-foreground">{job.service_type}</p>
+                        <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                          <Clock className="h-3 w-3" />
+                          Quote received: {new Date(job.created_at || "").toLocaleDateString()} at {new Date(job.created_at || "").toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                        </p>
                       </div>
                       <span className="text-xl font-bold text-accent">${Number(job.estimated_amount || 0).toLocaleString()}</span>
                     </div>
@@ -540,12 +565,23 @@ export function JobsPanel() {
                 <p className="text-muted-foreground text-center py-8">No scheduled jobs</p>
               )}
               {filteredJobs.filter((j) => j.status === "scheduled").map((job) => (
-                <Card key={job.id} className="bg-card border-border">
+                <Card key={job.id} className="bg-card border-primary/30 cursor-pointer hover:border-primary/50 transition-colors" onClick={() => handleViewDetails(job)}>
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between">
                       <div>
                         <h3 className="font-semibold">{job.address}</h3>
-                        <p className="text-sm text-muted-foreground">{job.description} - {job.service_type}</p>
+                        <p className="text-sm text-muted-foreground">{job.service_type}</p>
+                        {job.scheduled_date && (
+                          <div className="mt-2 inline-flex items-center gap-1.5 rounded-md bg-primary/10 px-2 py-1 text-xs font-semibold text-primary">
+                            <Calendar className="h-3 w-3" />
+                            {new Date(job.scheduled_date).toLocaleDateString("en-CA", { weekday: "short", month: "short", day: "numeric" })}
+                            {job.time_started_at && (
+                              <span className="ml-1 border-l border-primary/30 pl-1.5">
+                                {new Date(job.time_started_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                              </span>
+                            )}
+                          </div>
+                        )}
                       </div>
                       <span className="text-xl font-bold text-accent">${Number(job.estimated_amount || 0).toLocaleString()}</span>
                     </div>
@@ -603,16 +639,28 @@ export function JobsPanel() {
                   <p className="font-bold text-accent">${Number(selectedJob.estimated_amount || 0).toLocaleString()}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Created</p>
+                  <p className="text-sm text-muted-foreground">Quote Received</p>
                   <p className="font-medium">{new Date(selectedJob.created_at || "").toLocaleDateString()}</p>
+                  <p className="text-xs text-muted-foreground">{new Date(selectedJob.created_at || "").toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</p>
                 </div>
-                {selectedJob.scheduled_date && (
-                  <div className="col-span-2 rounded-lg bg-primary/10 border border-primary/20 px-3 py-2">
-                    <p className="text-xs text-muted-foreground">Scheduled Date</p>
-                    <p className="font-semibold text-primary">{new Date(selectedJob.scheduled_date).toLocaleDateString("en-CA", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}</p>
-                  </div>
-                )}
               </div>
+              
+              {/* Scheduled Date & Time */}
+              {selectedJob.scheduled_date && (
+                <div className="rounded-lg bg-primary/10 border border-primary/20 px-4 py-3">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Calendar className="h-4 w-4 text-primary" />
+                    <p className="text-xs font-semibold text-primary uppercase tracking-wide">Scheduled</p>
+                  </div>
+                  <p className="font-semibold text-lg">{new Date(selectedJob.scheduled_date).toLocaleDateString("en-CA", { weekday: "long", month: "long", day: "numeric" })}</p>
+                  {selectedJob.time_started_at && (
+                    <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
+                      <Clock className="h-3 w-3" />
+                      {new Date(selectedJob.time_started_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                    </p>
+                  )}
+                </div>
+              )}
               
               {selectedJob.notes && (
                 <div>
@@ -742,14 +790,31 @@ export function JobsPanel() {
               </Select>
             </div>
             {editFormData.status === "scheduled" && (
-              <div className="grid gap-2">
-                <Label htmlFor="edit-scheduled-date">Scheduled Date</Label>
-                <Input
-                  id="edit-scheduled-date"
-                  type="date"
-                  value={editFormData.scheduled_date}
-                  onChange={(e) => setEditFormData({ ...editFormData, scheduled_date: e.target.value })}
-                />
+              <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 space-y-3">
+                <p className="text-sm font-semibold text-primary flex items-center gap-2">
+                  <Calendar className="h-4 w-4" />
+                  Schedule Job
+                </p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="grid gap-1.5">
+                    <Label htmlFor="edit-scheduled-date" className="text-xs">Date</Label>
+                    <Input
+                      id="edit-scheduled-date"
+                      type="date"
+                      value={editFormData.scheduled_date}
+                      onChange={(e) => setEditFormData({ ...editFormData, scheduled_date: e.target.value })}
+                    />
+                  </div>
+                  <div className="grid gap-1.5">
+                    <Label htmlFor="edit-scheduled-time" className="text-xs">Time</Label>
+                    <Input
+                      id="edit-scheduled-time"
+                      type="time"
+                      value={editFormData.scheduled_time}
+                      onChange={(e) => setEditFormData({ ...editFormData, scheduled_time: e.target.value })}
+                    />
+                  </div>
+                </div>
               </div>
             )}
             <div className="grid gap-2">
