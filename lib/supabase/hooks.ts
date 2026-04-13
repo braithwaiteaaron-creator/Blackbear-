@@ -26,6 +26,11 @@ export interface Job {
   time_started_at?: string
   time_ended_at?: string
   duration_minutes?: number
+  customer_phone?: string
+  customer_email?: string
+  reminder_3day_sent?: boolean
+  reminder_1day_sent?: boolean
+  reminder_morning_sent?: boolean
   created_at?: string
   updated_at?: string
 }
