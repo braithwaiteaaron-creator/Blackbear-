@@ -275,8 +275,13 @@ async function processSubscriptionEvent(event: Stripe.Event): Promise<void> {
 
 async function processInvoiceEvent(event: Stripe.Event): Promise<void> {
   const invoice = event.data.object as Stripe.Invoice;
+  const invoiceWithSubscription = invoice as Stripe.Invoice & {
+    subscription?: string | { id: string } | null;
+  };
   const subscriptionId =
-    typeof invoice.subscription === "string" ? invoice.subscription : invoice.subscription?.id ?? null;
+    typeof invoiceWithSubscription.subscription === "string"
+      ? invoiceWithSubscription.subscription
+      : invoiceWithSubscription.subscription?.id ?? null;
   if (!subscriptionId) {
     return;
   }
@@ -291,7 +296,7 @@ async function processInvoiceEvent(event: Stripe.Event): Promise<void> {
 
   if (event.type === "invoice.payment_failed") {
     await enqueueJob({
-      jobType: "billing_dunning_email",
+      jobType: "billing_payment_failed_dunning",
       idempotencyKey: `billing-dunning:${invoice.id}`,
       payload: {
         userId: existingSubscription.userId,

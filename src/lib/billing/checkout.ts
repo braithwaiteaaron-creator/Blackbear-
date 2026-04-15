@@ -53,36 +53,38 @@ function resolvePlanPriceId(params: {
     : env.STRIPE_PRICE_TEAM_MONTHLY ?? null;
 }
 
-function parsePositiveInteger(value: string | undefined): number {
+function parseEligiblePlans(value: string | undefined): Set<"premium" | "team"> {
   if (!value) {
-    return 0;
+    return new Set(["premium", "team"]);
   }
-  const parsed = Number.parseInt(value, 10);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+
+  const plans = value
+    .split(",")
+    .map((item) => item.trim().toLowerCase())
+    .filter((item): item is "premium" | "team" => item === "premium" || item === "team");
+
+  return new Set(plans);
 }
 
 function decideIntroOffer(planId: "premium" | "team"): IntroOfferDecision | null {
-  const globalTrial = parsePositiveInteger(env.BILLING_INTRO_TRIAL_DAYS_DEFAULT);
-  const premiumTrial = parsePositiveInteger(env.BILLING_INTRO_TRIAL_DAYS_PREMIUM);
-  const teamTrial = parsePositiveInteger(env.BILLING_INTRO_TRIAL_DAYS_TEAM);
-
-  if (planId === "premium") {
-    if (premiumTrial > 0) {
-      return { trialDays: premiumTrial, reason: "premium-default" };
-    }
-    if (globalTrial > 0) {
-      return { trialDays: globalTrial, reason: "global-default" };
-    }
+  const trialDays = env.BILLING_INTRO_TRIAL_DAYS ?? 0;
+  if (trialDays <= 0) {
     return null;
   }
 
-  if (teamTrial > 0) {
-    return { trialDays: teamTrial, reason: "team-default" };
+  const eligiblePlans = parseEligiblePlans(env.BILLING_INTRO_ELIGIBLE_PLANS);
+  if (!eligiblePlans.has(planId)) {
+    return null;
   }
-  if (globalTrial > 0) {
-    return { trialDays: globalTrial, reason: "global-default" };
+
+  if (planId === "premium") {
+    return { trialDays, reason: "premium-default" };
   }
-  return null;
+  if (planId === "team") {
+    return { trialDays, reason: "team-default" };
+  }
+
+  return { trialDays, reason: "global-default" };
 }
 
 export async function createBillingCheckoutSession(request: Request): Promise<CheckoutResult> {
