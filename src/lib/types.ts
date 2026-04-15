@@ -93,6 +93,9 @@ export type ScoreBreakdown = {
 };
 
 export type BadgeTier = "foundation" | "developing" | "advanced" | "expert";
+export type AppRole = "user" | "org_admin" | "admin";
+export type AccessRole = AppRole;
+export type SubscriptionTier = "free" | "premium" | "team" | "enterprise";
 
 export type TierFeedbackBand = {
   min: number;

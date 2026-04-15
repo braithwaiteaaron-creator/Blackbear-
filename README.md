@@ -77,21 +77,29 @@ npm run typecheck
 npm run build
 ```
 
-## Backend and auth setup
+## Backend, auth, and access control setup
 
-This project now includes:
+This project includes:
 
-- NextAuth (`/api/auth/[...nextauth]`) with a Credentials demo provider
+- NextAuth (`/api/auth/[...nextauth]`) with optional GitHub/Google OAuth providers
 - Prisma 7 client setup with PostgreSQL adapter
 - Quiz persistence API endpoints:
   - `POST /api/quiz-sessions` to save the current attempt
-  - `GET /api/quiz-sessions/me` to fetch the latest saved attempts for the signed-in user
+  - `GET /api/quiz-sessions/me` to fetch saved attempts for the signed-in user
+- RBAC route protection for:
+  - `/dashboard/*` (authenticated users)
+  - `/org/*` (role: `org_admin` or `admin`)
+  - `/admin/*` (role: `admin`)
+  enforced by both middleware and server-side route layouts
 
 Set environment variables (see `.env.example`):
 
 - `DATABASE_URL`
 - `NEXTAUTH_SECRET`
 - `NEXTAUTH_URL`
+- `AUTH_GITHUB_ID` / `AUTH_GITHUB_SECRET` (optional)
+- `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET` (optional)
+- `DEFAULT_USER_ROLE` (optional, default `user`)
 
 Prisma commands:
 
