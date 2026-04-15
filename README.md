@@ -93,9 +93,9 @@ npm run build
   - returns Stripe-backed plan catalog for Free/Premium/Team/Enterprise
   - legacy alias includes deprecation/sunset headers
 - `POST /api/v1/billing/checkout` (legacy alias: `POST /api/billing/checkout`)
-  - creates Stripe Checkout session for paid tiers (currently Premium)
+  - creates Stripe Checkout session for paid tiers (Premium + Team)
   - requires authenticated user and configured Stripe price ID
-  - returns `url` for immediate client redirect
+  - returns `checkoutUrl` for immediate client redirect
 - Legacy `/api/quiz-sessions*` routes include deprecation headers:
   - `Deprecation: true`
   - `Sunset: <date>`
@@ -139,7 +139,7 @@ Set environment variables (see `.env.example`):
 - `STRIPE_PRICE_PREMIUM_MONTHLY` / `STRIPE_PRICE_PREMIUM_YEARLY`
 - `STRIPE_PRICE_TEAM_MONTHLY` / `STRIPE_PRICE_TEAM_YEARLY`
 - `STRIPE_PRICE_ENTERPRISE_MONTHLY` / `STRIPE_PRICE_ENTERPRISE_YEARLY` (optional if enterprise is fully sales-led)
-- `APP_BASE_URL` (optional; used for Stripe checkout success/cancel URLs, defaults to `NEXTAUTH_URL`)
+- `STRIPE_CHECKOUT_SUCCESS_URL` / `STRIPE_CHECKOUT_CANCEL_URL` (optional; defaults to `NEXTAUTH_URL`)
 
 ### Authorization behavior
 

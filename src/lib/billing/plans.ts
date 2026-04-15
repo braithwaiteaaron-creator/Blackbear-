@@ -7,16 +7,16 @@ type BillingPlanConfig = {
   subscriptionTier: SubscriptionTier;
   description: string;
   seatsIncluded: number | "unlimited";
-  price: {
+  prices: Array<{
     amount: number | null;
     currency: "usd";
     interval: BillingInterval;
     display: string;
-  };
+    priceIdEnvKey?: keyof typeof env;
+  }>;
   billing: {
     productName: string;
     mode: "subscription" | "contact_sales";
-    priceIdEnvKey?: keyof typeof env;
   };
 };
 
@@ -27,12 +27,14 @@ const BILLING_PLAN_CONFIG: BillingPlanConfig[] = [
     subscriptionTier: "free",
     description: "Beginner quiz and foundational library access.",
     seatsIncluded: 1,
-    price: {
-      amount: 0,
-      currency: "usd",
-      interval: "month",
-      display: "$0",
-    },
+    prices: [
+      {
+        amount: 0,
+        currency: "usd",
+        interval: "month",
+        display: "$0",
+      },
+    ],
     billing: {
       productName: "GitHub Mastery Free",
       mode: "subscription",
@@ -44,16 +46,25 @@ const BILLING_PLAN_CONFIG: BillingPlanConfig[] = [
     subscriptionTier: "premium",
     description: "Full assessment, analytics, badges, and complete library.",
     seatsIncluded: 1,
-    price: {
-      amount: 1900,
-      currency: "usd",
-      interval: "month",
-      display: "$19/mo",
-    },
+    prices: [
+      {
+        amount: 1900,
+        currency: "usd",
+        interval: "month",
+        display: "$19/mo",
+        priceIdEnvKey: "STRIPE_PRICE_PREMIUM_MONTHLY",
+      },
+      {
+        amount: 14900,
+        currency: "usd",
+        interval: "year",
+        display: "$149/yr",
+        priceIdEnvKey: "STRIPE_PRICE_PREMIUM_YEARLY",
+      },
+    ],
     billing: {
       productName: "GitHub Mastery Premium",
       mode: "subscription",
-      priceIdEnvKey: "STRIPE_PRICE_PREMIUM_MONTHLY",
     },
   },
   {
@@ -62,16 +73,25 @@ const BILLING_PLAN_CONFIG: BillingPlanConfig[] = [
     subscriptionTier: "team",
     description: "Premium for up to 25 members with team dashboards and reporting.",
     seatsIncluded: 25,
-    price: {
-      amount: 19900,
-      currency: "usd",
-      interval: "month",
-      display: "$199/mo",
-    },
+    prices: [
+      {
+        amount: 19900,
+        currency: "usd",
+        interval: "month",
+        display: "$199/mo",
+        priceIdEnvKey: "STRIPE_PRICE_TEAM_MONTHLY",
+      },
+      {
+        amount: 179900,
+        currency: "usd",
+        interval: "year",
+        display: "$1,799/yr",
+        priceIdEnvKey: "STRIPE_PRICE_TEAM_YEARLY",
+      },
+    ],
     billing: {
       productName: "GitHub Mastery Team",
       mode: "subscription",
-      priceIdEnvKey: "STRIPE_PRICE_TEAM_MONTHLY",
     },
   },
   {
@@ -80,12 +100,14 @@ const BILLING_PLAN_CONFIG: BillingPlanConfig[] = [
     subscriptionTier: "enterprise",
     description: "Custom contract with unlimited seats and advanced controls.",
     seatsIncluded: "unlimited",
-    price: {
-      amount: null,
-      currency: "usd",
-      interval: "custom",
-      display: "Custom",
-    },
+    prices: [
+      {
+        amount: null,
+        currency: "usd",
+        interval: "custom",
+        display: "Custom",
+      },
+    ],
     billing: {
       productName: "GitHub Mastery Enterprise",
       mode: "contact_sales",
@@ -94,18 +116,24 @@ const BILLING_PLAN_CONFIG: BillingPlanConfig[] = [
 ];
 
 function materializePlan(config: BillingPlanConfig): BillingPlan {
+  const defaultPrice = config.prices[0];
   return {
     id: config.id,
     name: config.name,
     subscriptionTier: config.subscriptionTier,
     description: config.description,
     seatsIncluded: config.seatsIncluded,
-    price: config.price,
+    price: {
+      amount: defaultPrice.amount,
+      currency: defaultPrice.currency,
+      interval: defaultPrice.interval,
+      display: defaultPrice.display,
+    },
     billing: {
       provider: "stripe",
       productName: config.billing.productName,
       mode: config.billing.mode,
-      priceId: config.billing.priceIdEnvKey ? env[config.billing.priceIdEnvKey] ?? null : null,
+      priceId: defaultPrice.priceIdEnvKey ? env[defaultPrice.priceIdEnvKey] ?? null : null,
     },
   };
 }
@@ -127,4 +155,27 @@ export function getPublicBillingPlans(): BillingPlan[] {
       priceId: null,
     },
   }));
+}
+
+export function getPlanPrice(
+  planId: BillingPlanId,
+  interval: Extract<BillingInterval, "month" | "year">
+): { amount: number | null; currency: "usd"; interval: BillingInterval; display: string; priceId: string | null } | null {
+  const config = BILLING_PLAN_CONFIG.find((plan) => plan.id === planId);
+  if (!config) {
+    return null;
+  }
+
+  const matched = config.prices.find((price) => price.interval === interval);
+  if (!matched) {
+    return null;
+  }
+
+  return {
+    amount: matched.amount,
+    currency: matched.currency,
+    interval: matched.interval,
+    display: matched.display,
+    priceId: matched.priceIdEnvKey ? env[matched.priceIdEnvKey] ?? null : null,
+  };
 }

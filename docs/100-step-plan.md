@@ -68,7 +68,7 @@ Status legend:
 - [x] **51.** Choose billing provider and architecture.
 - [x] **52.** Configure products/prices for Free/Premium/Team/Enterprise.
 - [x] **53.** Implement Premium checkout flow.
-- [ ] **54.** Implement Team checkout flow.
+- [x] **54.** Implement Team checkout flow.
 - [ ] **55.** Integrate self-serve billing portal.
 - [ ] **56.** Verify and secure billing webhooks.
 - [ ] **57.** Sync subscription state into application DB.

@@ -1,8 +1,8 @@
 import { apiError, apiSuccess } from "@/lib/api";
-import { createPremiumCheckoutSession } from "@/lib/billing/checkout";
+import { createBillingCheckoutSession } from "@/lib/billing/checkout";
 
 export async function POST(request: Request) {
-  const checkoutResult = await createPremiumCheckoutSession(request);
+  const checkoutResult = await createBillingCheckoutSession(request);
   if (!checkoutResult.ok) {
     return apiError(
       checkoutResult.error.code,

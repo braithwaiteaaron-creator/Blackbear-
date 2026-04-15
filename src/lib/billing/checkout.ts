@@ -9,8 +9,8 @@ import { getStripeClient, hasStripeSecretKey } from "@/lib/billing/stripe";
 import { prisma } from "@/lib/prisma";
 
 const checkoutRequestSchema = z.object({
-  planId: z.enum(["premium"]),
-  interval: z.enum(["month"]),
+  planId: z.enum(["premium", "team"]),
+  interval: z.enum(["month", "year"]).default("month"),
 });
 
 type CheckoutError = {
@@ -33,7 +33,22 @@ export type CheckoutResult =
       error: CheckoutError;
     };
 
-export async function createPremiumCheckoutSession(request: Request): Promise<CheckoutResult> {
+function resolvePlanPriceId(params: {
+  planId: "premium" | "team";
+  interval: "month" | "year";
+}) {
+  if (params.planId === "premium") {
+    return params.interval === "year"
+      ? env.STRIPE_PRICE_PREMIUM_YEARLY ?? null
+      : env.STRIPE_PRICE_PREMIUM_MONTHLY ?? null;
+  }
+
+  return params.interval === "year"
+    ? env.STRIPE_PRICE_TEAM_YEARLY ?? null
+    : env.STRIPE_PRICE_TEAM_MONTHLY ?? null;
+}
+
+export async function createBillingCheckoutSession(request: Request): Promise<CheckoutResult> {
   const payload = checkoutRequestSchema.safeParse(await request.json());
   if (!payload.success) {
     return {
@@ -72,12 +87,17 @@ export async function createPremiumCheckoutSession(request: Request): Promise<Ch
   }
 
   const plan = getBillingPlan(payload.data.planId);
-  if (!plan || plan.billing.mode !== "subscription" || !plan.billing.priceId) {
+  const priceId = resolvePlanPriceId({
+    planId: payload.data.planId,
+    interval: payload.data.interval,
+  });
+
+  if (!plan || plan.billing.mode !== "subscription" || !priceId) {
     return {
       ok: false,
       error: {
         code: API_ERROR_CODES.VALIDATION_ERROR,
-        message: "Selected plan is not available for checkout.",
+        message: "Selected plan and interval are not available for checkout.",
         status: 400,
       },
     };
@@ -108,7 +128,7 @@ export async function createPremiumCheckoutSession(request: Request): Promise<Ch
     customer_email: user.email,
     line_items: [
       {
-        price: plan.billing.priceId,
+        price: priceId,
         quantity: 1,
       },
     ],
