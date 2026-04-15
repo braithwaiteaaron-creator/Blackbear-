@@ -79,16 +79,24 @@ npm run build
 
 ## API behavior (current)
 
-- `POST /api/quiz-sessions`
+- `POST /api/v1/quiz-sessions` (legacy alias: `POST /api/quiz-sessions`)
   - request body validated via `zod`
   - standardized success/error envelope with error codes
   - idempotency support through `x-idempotency-key` header
   - 24-hour retake cooldown enforced per authenticated user
-- `GET /api/quiz-sessions/me`
+- `GET /api/v1/quiz-sessions/me` (legacy alias: `GET /api/quiz-sessions/me`)
   - standardized response envelope
   - pagination (`page`, `pageSize`)
-  - filters (`from`, `to`, `minScore`, `maxScore`)
-  - returns `meta` object for client pagination
+  - filters (`tierCompleted`, `minScore`, `maxScore`)
+  - returns pagination details in `data`
+- Legacy `/api/quiz-sessions*` routes include deprecation headers:
+  - `Deprecation: true`
+  - `Sunset: <date>`
+  - `Link: </api/v1/...>; rel="successor-version"`
+- Internal queue worker route:
+  - `POST /api/internal/jobs/process`
+  - requires `x-job-worker-key` header matching `JOB_WORKER_KEY`
+  - processes pending async jobs in small batches
 
 ## Backend, auth, and access control setup
 
@@ -116,7 +124,9 @@ Set environment variables (see `.env.example`):
 - `DEFAULT_SUBSCRIPTION_TIER` (optional, `free|premium|team|enterprise`, default `free`)
 - `ADMIN_EMAILS` (optional, comma-separated emails promoted to `admin`)
 - `ORG_ADMIN_EMAILS` (optional, comma-separated emails promoted to `org_admin`)
-- `ENTERPRISE_EMAILS` (optional, comma-separated emails promoted to `enterprise`)
+- `TEAM_TIER_EMAILS` (optional, comma-separated emails promoted to `team`)
+- `ENTERPRISE_TIER_EMAILS` (optional, comma-separated emails promoted to `enterprise`)
+- `JOB_WORKER_KEY` (required to run internal queue processing endpoint)
 
 ### Authorization behavior
 

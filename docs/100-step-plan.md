@@ -61,8 +61,8 @@ Status legend:
 - [x] **46.** Add filters (date range, tier, score range) for session queries.
 - [x] **47.** Separate service layer from route handlers.
 - [x] **48.** Add idempotency protection for session submission.
-- [ ] **49.** Introduce async job queue for non-critical background tasks.
-- [ ] **50.** Define API versioning strategy.
+- [x] **49.** Introduce async job queue for non-critical background tasks.
+- [x] **50.** Define API versioning strategy.
 
 ## Phase 6 — Monetization and Subscription Infrastructure (51–60)
 - [ ] **51.** Choose billing provider and architecture.

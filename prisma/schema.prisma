@@ -37,101 +37,129 @@ enum OrganizationSubscriptionType {
   enterprise
 }
 
+enum JobStatus {
+  pending
+  processing
+  completed
+  failed
+}
+
+enum JobType {
+  quiz_session_created
+}
+
 model User {
-  id               String          @id @default(uuid()) @db.Uuid
-  email            String          @unique
+  id               String           @id @default(uuid()) @db.Uuid
+  email            String           @unique
   name             String
   organization     String?
   role             String?
-  linkedinUrl      String?         @map("linkedin_url")
+  linkedinUrl      String?          @map("linkedin_url")
   subscriptionTier SubscriptionTier @default(free) @map("subscription_tier")
-  createdAt        DateTime        @default(now()) @map("created_at")
-  updatedAt        DateTime        @updatedAt @map("updated_at")
+  createdAt        DateTime         @default(now()) @map("created_at")
+  updatedAt        DateTime         @updatedAt @map("updated_at")
 
-  quizSessions     QuizSession[]
-  certifications   Certification[]
-  organizations    Organization[]  @relation("OrganizationAdmin")
+  quizSessions   QuizSession[]
+  certifications Certification[]
+  organizations  Organization[]  @relation("OrganizationAdmin")
 
   @@map("users")
 }
 
 model QuizSession {
-  id                 String        @id @default(uuid()) @db.Uuid
-  userId             String        @db.Uuid @map("user_id")
-  tierCompleted      TierCompleted @map("tier_completed")
-  totalScore         Int           @map("total_score")
-  beginnerScore      Int           @map("beginner_score")
-  intermediateScore  Int           @map("intermediate_score")
-  advancedScore      Int           @map("advanced_score")
-  timeToComplete     Int           @map("time_to_complete")
-  deviceType         DeviceType    @map("device_type")
-  trafficSource      String        @map("traffic_source")
-  idempotencyKey     String?       @unique @map("idempotency_key")
-  completedAt        DateTime      @default(now()) @map("completed_at")
+  id                String        @id @default(uuid()) @db.Uuid
+  userId            String        @map("user_id") @db.Uuid
+  tierCompleted     TierCompleted @map("tier_completed")
+  totalScore        Int           @map("total_score")
+  beginnerScore     Int           @map("beginner_score")
+  intermediateScore Int           @map("intermediate_score")
+  advancedScore     Int           @map("advanced_score")
+  timeToComplete    Int           @map("time_to_complete")
+  deviceType        DeviceType    @map("device_type")
+  trafficSource     String        @map("traffic_source")
+  idempotencyKey    String?       @unique @map("idempotency_key")
+  completedAt       DateTime      @default(now()) @map("completed_at")
 
-  user               User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  questionResponses  QuestionResponse[]
+  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  questionResponses QuestionResponse[]
 
   @@map("quiz_sessions")
 }
 
 model QuestionResponse {
-  id              String      @id @default(uuid()) @db.Uuid
-  sessionId       String      @db.Uuid @map("session_id")
-  questionId      Int         @map("question_id")
-  selectedAnswer  String      @map("selected_answer")
-  isCorrect       Boolean     @map("is_correct")
-  timeOnQuestion  Int         @map("time_on_question")
-  createdAt       DateTime    @default(now()) @map("created_at")
+  id             String   @id @default(uuid()) @db.Uuid
+  sessionId      String   @map("session_id") @db.Uuid
+  questionId     Int      @map("question_id")
+  selectedAnswer String   @map("selected_answer")
+  isCorrect      Boolean  @map("is_correct")
+  timeOnQuestion Int      @map("time_on_question")
+  createdAt      DateTime @default(now()) @map("created_at")
 
-  session         QuizSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  session QuizSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 
   @@map("question_responses")
 }
 
 model Certification {
-  id                String             @id @default(uuid()) @db.Uuid
-  userId            String             @db.Uuid @map("user_id")
-  certificationTier CertificationTier  @map("certification_tier")
-  badgeUrl          String             @map("badge_url")
-  credlyBadgeId     String             @map("credly_badge_id")
-  issuedAt          DateTime           @default(now()) @map("issued_at")
-  expiresAt         DateTime?          @map("expires_at")
-  shareCount        Int                @default(0) @map("share_count")
+  id                String            @id @default(uuid()) @db.Uuid
+  userId            String            @map("user_id") @db.Uuid
+  certificationTier CertificationTier @map("certification_tier")
+  badgeUrl          String            @map("badge_url")
+  credlyBadgeId     String            @map("credly_badge_id")
+  issuedAt          DateTime          @default(now()) @map("issued_at")
+  expiresAt         DateTime?         @map("expires_at")
+  shareCount        Int               @default(0) @map("share_count")
 
-  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("certifications")
 }
 
 model Organization {
-  id               String                      @id @default(uuid()) @db.Uuid
+  id               String                       @id @default(uuid()) @db.Uuid
   name             String
   domain           String
   subscriptionType OrganizationSubscriptionType @map("subscription_type")
-  seatCount        Int                         @map("seat_count")
-  adminUserId      String                      @db.Uuid @map("admin_user_id")
-  createdAt        DateTime                    @default(now()) @map("created_at")
+  seatCount        Int                          @map("seat_count")
+  adminUserId      String                       @map("admin_user_id") @db.Uuid
+  createdAt        DateTime                     @default(now()) @map("created_at")
 
-  adminUser        User                        @relation("OrganizationAdmin", fields: [adminUserId], references: [id], onDelete: Restrict)
-  assessments      OrganizationAssessment[]
+  adminUser   User                     @relation("OrganizationAdmin", fields: [adminUserId], references: [id], onDelete: Restrict)
+  assessments OrganizationAssessment[]
 
   @@map("organizations")
 }
 
 model OrganizationAssessment {
-  id                String       @id @default(uuid()) @db.Uuid
-  organizationId    String       @db.Uuid @map("organization_id")
-  totalParticipants Int          @map("total_participants")
-  averageScore      Decimal      @db.Decimal(5, 2) @map("average_score")
-  beginnerAvg       Decimal      @db.Decimal(5, 2) @map("beginner_avg")
-  intermediateAvg   Decimal      @db.Decimal(5, 2) @map("intermediate_avg")
-  advancedAvg       Decimal      @db.Decimal(5, 2) @map("advanced_avg")
-  topKnowledgeGaps  Json         @map("top_knowledge_gaps")
-  reportUrl         String       @map("report_url")
-  generatedAt       DateTime     @default(now()) @map("generated_at")
+  id                String   @id @default(uuid()) @db.Uuid
+  organizationId    String   @map("organization_id") @db.Uuid
+  totalParticipants Int      @map("total_participants")
+  averageScore      Decimal  @map("average_score") @db.Decimal(5, 2)
+  beginnerAvg       Decimal  @map("beginner_avg") @db.Decimal(5, 2)
+  intermediateAvg   Decimal  @map("intermediate_avg") @db.Decimal(5, 2)
+  advancedAvg       Decimal  @map("advanced_avg") @db.Decimal(5, 2)
+  topKnowledgeGaps  Json     @map("top_knowledge_gaps")
+  reportUrl         String   @map("report_url")
+  generatedAt       DateTime @default(now()) @map("generated_at")
 
-  organization      Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   @@map("organization_assessments")
+}
+
+model JobQueue {
+  id             String    @id @default(uuid()) @db.Uuid
+  jobType        JobType   @map("job_type")
+  status         JobStatus @default(pending)
+  payload        Json
+  idempotencyKey String?   @unique @map("idempotency_key")
+  attempts       Int       @default(0)
+  maxAttempts    Int       @default(5) @map("max_attempts")
+  lastError      String?   @map("last_error")
+  availableAt    DateTime  @default(now()) @map("available_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  @@index([status, availableAt], map: "job_queue_status_available_at_idx")
+  @@map("job_queue")
 }

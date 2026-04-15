@@ -1,9 +1,10 @@
 import type { Prisma } from "@prisma/client";
 
-import { getBadgeAward } from "@/lib/scoring";
-import { prisma } from "@/lib/prisma";
 import { API_ERROR_CODES, type ApiErrorCode } from "@/lib/api";
+import { enqueueJob } from "@/lib/job-queue";
+import { prisma } from "@/lib/prisma";
 import { mapSessionSummary } from "@/lib/quiz-persistence";
+import { getBadgeAward } from "@/lib/scoring";
 import type {
   PersistQuizSessionResult,
   PersistedQuizSessionSummary,
@@ -50,25 +51,8 @@ export type ListQuizSessionsSuccess = {
   totalPages: number;
 };
 
-function addIdempotencyHint(source: string, key: string): string {
-  const encoded = encodeURIComponent(`idempotency:${source}:${key}`);
-  if (source.length >= 256) {
-    return source.slice(0, 255);
-  }
-  const next = `${source}|${encoded}`;
-  return next.length <= 256 ? next : source.slice(0, 256);
-}
-
-function extractIdempotencyKey(trafficSource: string): string | null {
-  const marker = "idempotency:";
-  const tokens = trafficSource.split("|");
-  for (const token of tokens) {
-    const decoded = decodeURIComponent(token);
-    if (decoded.startsWith(marker)) {
-      return decoded.slice(marker.length);
-    }
-  }
-  return null;
+function buildIdempotencyValue(userId: string, rawKey: string): string {
+  return `${userId}:${rawKey}`;
 }
 
 async function getOrCreateUser(params: {
@@ -101,23 +85,16 @@ async function findIdempotentDuplicate(params: {
   userId: string;
   idempotencyKey: string;
 }) {
-  const matches = await prisma.quizSession.findFirst({
+  return prisma.quizSession.findFirst({
     where: {
       userId: params.userId,
-      trafficSource: {
-        contains: params.idempotencyKey,
-      },
-    },
-    orderBy: {
-      completedAt: "desc",
+      idempotencyKey: buildIdempotencyValue(params.userId, params.idempotencyKey),
     },
     select: {
       id: true,
       totalScore: true,
     },
   });
-
-  return matches;
 }
 
 async function checkRetakeCooldown(userId: string, now: Date) {
@@ -173,9 +150,9 @@ export async function saveQuizSession(
     };
   }
 
-  const trafficSource = params.idempotencyKey
-    ? addIdempotencyHint(params.payload.trafficSource, params.idempotencyKey)
-    : params.payload.trafficSource;
+  const idempotencyValue = params.idempotencyKey
+    ? buildIdempotencyValue(user.id, params.idempotencyKey)
+    : null;
 
   const createdSession = await prisma.quizSession.create({
     data: {
@@ -187,7 +164,8 @@ export async function saveQuizSession(
       advancedScore: params.payload.advancedScore,
       timeToComplete: params.payload.timeToComplete,
       deviceType: params.payload.deviceType,
-      trafficSource,
+      trafficSource: params.payload.trafficSource,
+      idempotencyKey: idempotencyValue,
       questionResponses: {
         create: params.payload.responses.map((response) => ({
           questionId: response.questionId,
@@ -199,9 +177,25 @@ export async function saveQuizSession(
     },
   });
 
+  const badgeTier = getBadgeAward(params.payload.totalScore).tier;
+  try {
+    await enqueueJob({
+      jobType: "quiz_session_created",
+      idempotencyKey: `quiz-session-created:${createdSession.id}`,
+      payload: {
+        sessionId: createdSession.id,
+        userId: user.id,
+        totalScore: params.payload.totalScore,
+        badgeTier,
+      },
+    });
+  } catch {
+    // Queueing is non-critical and should not fail session persistence.
+  }
+
   return {
     sessionId: createdSession.id,
-    badgeTier: getBadgeAward(params.payload.totalScore).tier,
+    badgeTier,
     totalScore: params.payload.totalScore,
   };
 }
@@ -260,11 +254,7 @@ export async function listQuizSessions(
   const totalPages = Math.ceil(total / params.pageSize);
 
   return {
-    sessions: sessions.map((session) => {
-      const mapped = mapSessionSummary(session);
-      const idempotency = extractIdempotencyKey(session.trafficSource);
-      return idempotency ? { ...mapped, idempotencyKey: idempotency } : mapped;
-    }),
+    sessions: sessions.map((session) => mapSessionSummary(session)),
     page: params.page,
     pageSize: params.pageSize,
     total,

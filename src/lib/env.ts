@@ -16,6 +16,7 @@ const envSchema = z.object({
   ORG_ADMIN_EMAILS: z.string().optional(),
   TEAM_TIER_EMAILS: z.string().optional(),
   ENTERPRISE_TIER_EMAILS: z.string().optional(),
+  JOB_WORKER_KEY: z.string().min(1).optional(),
 });
 
 export const env = envSchema.parse(process.env);
@@ -50,3 +51,7 @@ export const accessEnv = {
   teamTierEmails: parseCsvEmails(env.TEAM_TIER_EMAILS),
   enterpriseTierEmails: parseCsvEmails(env.ENTERPRISE_TIER_EMAILS),
 };
+
+export function hasJobWorkerKey(): boolean {
+  return Boolean(env.JOB_WORKER_KEY);
+}
