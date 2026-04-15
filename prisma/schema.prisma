@@ -66,6 +66,7 @@ model QuizSession {
   timeToComplete     Int           @map("time_to_complete")
   deviceType         DeviceType    @map("device_type")
   trafficSource      String        @map("traffic_source")
+  idempotencyKey     String?       @unique @map("idempotency_key")
   completedAt        DateTime      @default(now()) @map("completed_at")
 
   user               User          @relation(fields: [userId], references: [id], onDelete: Cascade)

@@ -1,14 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { PersistedQuizSession } from "@/lib/types";
+import type { PersistedQuizSessionSummary } from "@/lib/types";
 
 type SavedSessionsListProps = {
   fallbackItems?: Array<{ title: string; body: string }>;
 };
 
 export function SavedSessionsList({ fallbackItems = [] }: SavedSessionsListProps) {
-  const [sessions, setSessions] = useState<PersistedQuizSession[]>([]);
+  const [sessions, setSessions] = useState<PersistedQuizSessionSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -28,10 +28,19 @@ export function SavedSessionsList({ fallbackItems = [] }: SavedSessionsListProps
           throw new Error("Unable to load quiz sessions.");
         }
 
-        const payload = (await response.json()) as { sessions: PersistedQuizSession[] };
+        const payload = (await response.json()) as {
+          ok: boolean;
+          data: {
+            sessions: PersistedQuizSessionSummary[];
+            page: number;
+            pageSize: number;
+            total: number;
+            totalPages: number;
+          };
+        };
 
         if (!ignore) {
-          setSessions(payload.sessions ?? []);
+          setSessions(payload.data?.sessions ?? []);
           setError(null);
         }
       } catch (unknownError) {
@@ -103,7 +112,7 @@ export function SavedSessionsList({ fallbackItems = [] }: SavedSessionsListProps
           className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm"
         >
           <h3 className="text-base font-semibold text-slate-900">
-            {session.totalScore}/15
+            {session.totalScore}/15 • {session.badge}
           </h3>
           <p className="mt-2 text-sm text-slate-700">
             Beginner: {session.beginnerScore}/5 • Intermediate: {session.intermediateScore}

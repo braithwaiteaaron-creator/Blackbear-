@@ -1,11 +1,10 @@
-import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { z } from "zod";
 
 import { authConfig } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
-import { getBadgeAward } from "@/lib/scoring";
-import type { PersistQuizSessionResult, QuizSessionCreatePayload } from "@/lib/types";
+import { apiError, apiSuccess } from "@/lib/api";
+import { saveQuizSession } from "@/lib/quiz-session-service";
+import type { QuizSessionCreatePayload } from "@/lib/types";
 
 const requestSchema = z.object({
   tierCompleted: z.enum(["beginner", "intermediate", "advanced", "full"]),
@@ -29,57 +28,39 @@ const requestSchema = z.object({
 export async function POST(request: Request) {
   const parsedBody = requestSchema.safeParse(await request.json());
   if (!parsedBody.success) {
-    return NextResponse.json({ error: "Invalid request payload" }, { status: 400 });
+    return apiError(
+      "VALIDATION_ERROR",
+      "Invalid request payload.",
+      400,
+      parsedBody.error.flatten()
+    );
   }
 
   const payload = parsedBody.data as QuizSessionCreatePayload;
   const session = await getServerSession(authConfig);
   const email = session?.user?.email;
+  const idempotencyKey = request.headers.get("x-idempotency-key");
 
   if (!email) {
-    return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+    return apiError("AUTH_REQUIRED", "Authentication required.", 401);
   }
 
-  const user = await prisma.user.upsert({
-    where: { email },
-    update: {
-      name: session?.user?.name ?? "GitHub Mastery User",
-    },
-    create: {
-      email,
-      name: session?.user?.name ?? "GitHub Mastery User",
-      subscriptionTier: "free",
-    },
+  const result = await saveQuizSession({
+    userEmail: email,
+    userName: session?.user?.name ?? "GitHub Mastery User",
+    payload,
+    idempotencyKey: idempotencyKey ?? undefined,
   });
 
-  const createdSession = await prisma.quizSession.create({
-    data: {
-      userId: user.id,
-      tierCompleted: payload.tierCompleted,
-      totalScore: payload.totalScore,
-      beginnerScore: payload.beginnerScore,
-      intermediateScore: payload.intermediateScore,
-      advancedScore: payload.advancedScore,
-      timeToComplete: payload.timeToComplete,
-      deviceType: payload.deviceType,
-      trafficSource: payload.trafficSource,
-      questionResponses: {
-        create: payload.responses.map((response) => ({
-          questionId: response.questionId,
-          selectedAnswer: response.selectedAnswer,
-          isCorrect: response.isCorrect,
-          timeOnQuestion: response.timeOnQuestion,
-        })),
-      },
-    },
-  });
+  if ("error" in result) {
+    return apiError(
+      result.error.code,
+      result.error.message,
+      result.error.status,
+      result.error.details
+    );
+  }
 
-  const badgeAward = getBadgeAward(payload.totalScore);
-  const result: PersistQuizSessionResult = {
-    sessionId: createdSession.id,
-    badgeTier: badgeAward.tier,
-    totalScore: payload.totalScore,
-  };
-
-  return NextResponse.json(result, { status: 201 });
+  const duplicate = Boolean(result.duplicate);
+  return apiSuccess(result, duplicate ? 200 : 201, { duplicate });
 }

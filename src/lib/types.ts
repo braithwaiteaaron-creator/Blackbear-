@@ -85,6 +85,17 @@ export type PersistQuizSessionResult = {
   totalScore: number;
 };
 
+export type ApiListResponse<T> = {
+  ok: true;
+  data: {
+    sessions: T[];
+    page: number;
+    pageSize: number;
+    total: number;
+    totalPages: number;
+  };
+};
+
 export type ScoreBreakdown = {
   beginner: number;
   intermediate: number;

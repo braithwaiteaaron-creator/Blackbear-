@@ -42,7 +42,7 @@ Status legend:
 
 ## Phase 4 — Assessment Engine Hardening (31–40)
 - [ ] **31.** Define question order strategy (fixed vs randomized by tier).
-- [ ] **32.** Enforce retake cooldown logic (24-hour anti-gaming).
+- [x] **32.** Enforce retake cooldown logic (24-hour anti-gaming).
 - [ ] **33.** Capture accurate time-on-question telemetry.
 - [ ] **34.** Prevent multi-submit race conditions.
 - [ ] **35.** Persist in-progress quiz state.
@@ -53,14 +53,14 @@ Status legend:
 - [ ] **40.** Benchmark quiz performance on low-end mobile devices.
 
 ## Phase 5 — Data Layer and API Maturity (41–50)
-- [ ] **41.** Create migration baseline and migration policy.
-- [ ] **42.** Add seed data for local/staging test scenarios.
+- [x] **41.** Create migration baseline and migration policy.
+- [x] **42.** Add seed data for local/staging test scenarios.
 - [x] **43.** Enforce schema validation on all write APIs.
-- [ ] **44.** Standardize API error format and error codes.
-- [ ] **45.** Add pagination for historical session endpoints.
-- [ ] **46.** Add filters (date range, tier, score range) for session queries.
-- [ ] **47.** Separate service layer from route handlers.
-- [ ] **48.** Add idempotency protection for session submission.
+- [x] **44.** Standardize API error format and error codes.
+- [x] **45.** Add pagination for historical session endpoints.
+- [x] **46.** Add filters (date range, tier, score range) for session queries.
+- [x] **47.** Separate service layer from route handlers.
+- [x] **48.** Add idempotency protection for session submission.
 - [ ] **49.** Introduce async job queue for non-critical background tasks.
 - [ ] **50.** Define API versioning strategy.
 

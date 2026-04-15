@@ -1,42 +1,50 @@
-import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 import { getServerSession } from "next-auth";
+import { z } from "zod";
 
 import { authConfig } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
-import { mapSessionSummary } from "@/lib/quiz-persistence";
+import { apiError, apiSuccess } from "@/lib/api";
+import { listQuizSessions } from "@/lib/quiz-session-service";
 
-export async function GET() {
+const querySchema = z.object({
+  page: z.coerce.number().int().min(1).optional(),
+  pageSize: z.coerce.number().int().min(1).max(100).optional(),
+  minScore: z.coerce.number().int().min(0).max(15).optional(),
+  maxScore: z.coerce.number().int().min(0).max(15).optional(),
+  tierCompleted: z.enum(["beginner", "intermediate", "advanced", "full"]).optional(),
+});
+
+export async function GET(request: NextRequest) {
   const session = await getServerSession(authConfig);
   const email = session?.user?.email;
 
   if (!email) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return apiError("AUTH_REQUIRED", "Authentication required.", 401);
   }
 
-  const user = await prisma.user.findUnique({
-    where: { email },
-    select: { id: true },
-  });
-
-  if (!user) {
-    return NextResponse.json({ sessions: [] });
+  const parsedQuery = querySchema.safeParse(
+    Object.fromEntries(request.nextUrl.searchParams.entries())
+  );
+  if (!parsedQuery.success) {
+    return apiError(
+      "VALIDATION_ERROR",
+      "Invalid query parameters.",
+      400,
+      parsedQuery.error.flatten()
+    );
   }
 
-  const sessions = await prisma.quizSession.findMany({
-    where: { userId: user.id },
-    orderBy: { completedAt: "desc" },
-    take: 25,
-    include: {
-      questionResponses: {
-        select: {
-          questionId: true,
-          isCorrect: true,
-        },
-      },
-    },
+  const page = parsedQuery.data.page ?? 1;
+  const pageSize = parsedQuery.data.pageSize ?? 25;
+
+  const result = await listQuizSessions({
+    userEmail: email,
+    page,
+    pageSize,
+    minScore: parsedQuery.data.minScore,
+    maxScore: parsedQuery.data.maxScore,
+    tier: parsedQuery.data.tierCompleted,
   });
 
-  return NextResponse.json({
-    sessions: sessions.map((item) => mapSessionSummary(item)),
-  });
+  return apiSuccess(result);
 }

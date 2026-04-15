@@ -37,9 +37,13 @@ export function ResultsSummary() {
 
     const persist = async () => {
       setSaveState("saving");
-      const data = (await persistQuizSession(payload)) as PersistQuizSessionResult;
-      setPersistedResult(data);
-      setSaveState("saved");
+      try {
+        const data = (await persistQuizSession(payload)) as PersistQuizSessionResult;
+        setPersistedResult(data);
+        setSaveState("saved");
+      } catch {
+        setSaveState("error");
+      }
     };
 
     void persist();

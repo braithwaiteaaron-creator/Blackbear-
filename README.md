@@ -77,6 +77,19 @@ npm run typecheck
 npm run build
 ```
 
+## API behavior (current)
+
+- `POST /api/quiz-sessions`
+  - request body validated via `zod`
+  - standardized success/error envelope with error codes
+  - idempotency support through `x-idempotency-key` header
+  - 24-hour retake cooldown enforced per authenticated user
+- `GET /api/quiz-sessions/me`
+  - standardized response envelope
+  - pagination (`page`, `pageSize`)
+  - filters (`from`, `to`, `minScore`, `maxScore`)
+  - returns `meta` object for client pagination
+
 ## Backend, auth, and access control setup
 
 This project includes:
@@ -115,4 +128,5 @@ Prisma commands:
 
 ```bash
 npx prisma generate
+npm run db:seed
 ```
