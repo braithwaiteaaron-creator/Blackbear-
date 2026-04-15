@@ -30,6 +30,9 @@ export const metadata: Metadata = {
   },
 }
 
+// Force fresh content on every request
+export const revalidate = 0
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -45,3 +48,4 @@ export default function RootLayout({
     </html>
   )
 }
+

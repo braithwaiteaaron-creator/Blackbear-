@@ -38,15 +38,32 @@ import {
   Calendar,
   Loader2,
   DollarSign,
+  Navigation,
+  CheckCircle,
+  Trash2,
+  ArrowRight,
 } from "lucide-react"
-import { useLeads } from "@/lib/supabase/hooks"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import { useLeads, useJobs, type Lead } from "@/lib/supabase/hooks"
 import { toast } from "sonner"
 
 export function LeadsPanel() {
-  const { leads, loading, createLead } = useLeads()
+  const { leads, loading, createLead, updateLead, deleteLead } = useLeads()
+  const { createJob } = useJobs()
   const [searchQuery, setSearchQuery] = useState("")
   const [isNewLeadOpen, setIsNewLeadOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [deleteLeadId, setDeleteLeadId] = useState<string | null>(null)
+  const [convertingLead, setConvertingLead] = useState<string | null>(null)
   
   const [formData, setFormData] = useState({
     name: "",
@@ -71,8 +88,8 @@ export function LeadsPanel() {
 
   const filteredLeads = leads.filter(
     (lead) =>
-      lead.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (lead.address?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false)
+      (lead.name || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (lead.address || "").toLowerCase().includes(searchQuery.toLowerCase())
   )
 
   const handleSubmit = async () => {
@@ -140,6 +157,75 @@ export function LeadsPanel() {
         return "bg-yellow-500/10 border-yellow-500/20"
       default:
         return "bg-secondary/50 border-secondary"
+    }
+  }
+
+  const handleCallLead = (lead: Lead) => {
+    if (lead.phone) {
+      window.location.href = `tel:${lead.phone}`
+      toast.info(`Calling ${lead.name}...`)
+    } else {
+      toast.info("No phone number on record for this lead")
+    }
+  }
+
+  const handleDirections = (lead: Lead) => {
+    if (lead.address) {
+      const encodedAddress = encodeURIComponent(lead.address)
+      window.open(`https://www.google.com/maps/dir/?api=1&destination=${encodedAddress}`, "_blank")
+    } else {
+      toast.info("No address on record for this lead")
+    }
+  }
+
+  const handleConvertToJob = async (lead: Lead) => {
+    setConvertingLead(lead.id)
+    
+    // Create a new job from the lead
+    const { error: jobError } = await createJob({
+      address: lead.address || "TBD",
+      customer_name: lead.name,
+      job_type: "Tree Removal",
+      value: lead.estimated_value || 0,
+      notes: `Converted from lead. ${lead.notes || ""} Phone: ${lead.phone || "N/A"}`,
+      status: "quote",
+    })
+
+    if (jobError) {
+      toast.error("Failed to create job from lead")
+      setConvertingLead(null)
+      return
+    }
+
+    // Update lead status
+    const { error: leadError } = await updateLead(lead.id, { status: "converted" })
+    
+    setConvertingLead(null)
+    
+    if (leadError) {
+      toast.warning("Job created but failed to update lead status")
+    } else {
+      toast.success(`${lead.name} converted to job!`)
+    }
+  }
+
+  const handleDeleteLead = async () => {
+    if (!deleteLeadId) return
+    const { error } = await deleteLead(deleteLeadId)
+    if (error) {
+      toast.error("Failed to delete lead")
+    } else {
+      toast.success("Lead deleted")
+    }
+    setDeleteLeadId(null)
+  }
+
+  const handleUpdatePriority = async (lead: Lead, priority: string) => {
+    const { error } = await updateLead(lead.id, { priority })
+    if (error) {
+      toast.error("Failed to update priority")
+    } else {
+      toast.success(`Priority updated to ${priority}`)
     }
   }
 
@@ -410,11 +496,42 @@ export function LeadsPanel() {
                           </p>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <p className="font-bold text-lg">
-                          ${Number(lead.estimated_value || 0).toLocaleString()}
-                        </p>
-                        <Badge>{lead.priority}</Badge>
+                      <div className="flex flex-col items-end gap-2">
+                        <div className="flex items-center gap-2">
+                          <p className="font-bold text-lg">
+                            ${Number(lead.estimated_value || 0).toLocaleString()}
+                          </p>
+                          <Badge>{lead.priority}</Badge>
+                        </div>
+                        <div className="flex gap-1">
+                          <Button variant="outline" size="sm" onClick={() => handleCallLead(lead)}>
+                            <Phone className="h-3 w-3" />
+                          </Button>
+                          <Button variant="outline" size="sm" onClick={() => handleDirections(lead)}>
+                            <Navigation className="h-3 w-3" />
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            onClick={() => handleConvertToJob(lead)}
+                            disabled={convertingLead === lead.id || lead.status === "converted"}
+                          >
+                            {convertingLead === lead.id ? (
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                            ) : (
+                              <>
+                                <ArrowRight className="h-3 w-3 mr-1" />
+                                Convert
+                              </>
+                            )}
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={() => setDeleteLeadId(lead.id)}
+                          >
+                            <Trash2 className="h-3 w-3 text-destructive" />
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   </CardContent>
@@ -452,6 +569,24 @@ export function LeadsPanel() {
           </TabsContent>
         </Tabs>
       )}
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={!!deleteLeadId} onOpenChange={() => setDeleteLeadId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Lead?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete this lead.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteLead} className="bg-destructive text-destructive-foreground">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

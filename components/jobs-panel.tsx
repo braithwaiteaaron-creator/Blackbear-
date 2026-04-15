@@ -14,6 +14,16 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import {
@@ -36,18 +46,31 @@ import {
   Loader2,
   AlertTriangle,
   Mountain,
+  Phone,
+  Navigation,
+  CheckCircle,
+  Trash2,
+  Edit,
+  Calendar,
+  Mail,
+  Bell,
+  Send,
 } from "lucide-react"
 import { JobPhotoUpload } from "./job-photo-upload"
-import { useJobs, useReferrers } from "@/lib/supabase/hooks"
+import { useJobs, useReferrers, type Job } from "@/lib/supabase/hooks"
 import { toast } from "sonner"
 
 export function JobsPanel() {
-  const { jobs, loading, createJob } = useJobs()
+  const { jobs, loading, createJob, updateJob, deleteJob } = useJobs()
   const { referrers } = useReferrers()
   const [searchQuery, setSearchQuery] = useState("")
   const [isNewJobOpen, setIsNewJobOpen] = useState(false)
   const [newJobPhotos, setNewJobPhotos] = useState<File[]>([])
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [selectedJob, setSelectedJob] = useState<Job | null>(null)
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false)
+  const [isEditOpen, setIsEditOpen] = useState(false)
+  const [deleteJobId, setDeleteJobId] = useState<string | null>(null)
   
   // Form state
   const [formData, setFormData] = useState({
@@ -60,11 +83,25 @@ export function JobsPanel() {
     notes: "",
   })
 
+  // Edit form state
+  const [editFormData, setEditFormData] = useState({
+    description: "",
+    service_type: "",
+    address: "",
+    estimated_amount: "",
+    status: "",
+    scheduled_date: "",
+    scheduled_time: "",
+    customer_phone: "",
+    customer_email: "",
+    notes: "",
+  })
+
   const filteredJobs = jobs.filter(
     (job) =>
-      job.address.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      job.customer_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      job.job_type.toLowerCase().includes(searchQuery.toLowerCase())
+      (job.address || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (job.description || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (job.service_type || "").toLowerCase().includes(searchQuery.toLowerCase())
   )
 
   const handleSubmit = async () => {
@@ -80,18 +117,22 @@ export function JobsPanel() {
       ? referrers.find(r => r.referral_code.toLowerCase() === formData.referral_code.toLowerCase())
       : null
 
+    // Build notes with phone and referral info
+    let notesContent = formData.notes
+    if (formData.customer_phone) {
+      notesContent = `Phone: ${formData.customer_phone}. ${notesContent}`
+    }
+    if (matchedReferrer) {
+      notesContent += ` [Referral: ${matchedReferrer.name}]`
+    }
+
     const { data, error } = await createJob({
-      address: formData.address,
-      customer_name: formData.customer_name,
-      job_type: formData.job_type,
-      value: parseFloat(formData.value) || 0,
-      trees: [],
-      notes: formData.notes + (matchedReferrer ? ` [Referral: ${matchedReferrer.name}]` : ""),
-      permit_required: false,
-      clearance_required: false,
-      climbing_required: false,
+      description: `${formData.job_type} at ${formData.address}`,
+      service_type: formData.job_type,
       status: "quote",
-      photos: [],
+      address: formData.address,
+      estimated_amount: parseFloat(formData.value) || 0,
+      notes: notesContent,
     })
     setIsSubmitting(false)
 
@@ -127,6 +168,101 @@ export function JobsPanel() {
       default:
         return "secondary"
     }
+  }
+
+  const handleViewDetails = (job: Job) => {
+    setSelectedJob(job)
+    setIsDetailsOpen(true)
+  }
+
+  const handleEditJob = (job: Job) => {
+    setSelectedJob(job)
+    // Extract time from time_started_at or default to empty
+    const scheduledTime = job.time_started_at ? job.time_started_at.substring(11, 16) : ""
+    setEditFormData({
+      description: job.description,
+      service_type: job.service_type,
+      address: job.address || "",
+      estimated_amount: (job.estimated_amount || 0).toString(),
+      status: job.status,
+      scheduled_date: job.scheduled_date ? job.scheduled_date.split("T")[0] : "",
+      scheduled_time: scheduledTime,
+      customer_phone: job.customer_phone || "",
+      customer_email: job.customer_email || "",
+      notes: job.notes || "",
+    })
+    setIsEditOpen(true)
+  }
+
+  const handleUpdateJob = async () => {
+    if (!selectedJob) return
+    setIsSubmitting(true)
+    
+    // Build time_started_at from date and time if both exist
+    let timeStartedAt = null
+    if (editFormData.scheduled_date && editFormData.scheduled_time) {
+      timeStartedAt = `${editFormData.scheduled_date}T${editFormData.scheduled_time}:00`
+    }
+    
+    const { error } = await updateJob(selectedJob.id, {
+      description: editFormData.description,
+      service_type: editFormData.service_type,
+      address: editFormData.address,
+      estimated_amount: parseFloat(editFormData.estimated_amount) || 0,
+      status: editFormData.status,
+      scheduled_date: editFormData.scheduled_date || null,
+      time_started_at: timeStartedAt,
+      customer_phone: editFormData.customer_phone || null,
+      customer_email: editFormData.customer_email || null,
+      notes: editFormData.notes,
+    })
+    setIsSubmitting(false)
+    if (error) {
+      toast.error("Failed to update job")
+    } else {
+      toast.success("Job updated successfully")
+      setIsEditOpen(false)
+      setSelectedJob(null)
+    }
+  }
+
+  const handleDeleteJob = async () => {
+    if (!deleteJobId) return
+    const { error } = await deleteJob(deleteJobId)
+    if (error) {
+      toast.error("Failed to delete job")
+    } else {
+      toast.success("Job deleted")
+    }
+    setDeleteJobId(null)
+  }
+
+  const handleStatusChange = async (jobId: string, newStatus: string) => {
+    const { error } = await updateJob(jobId, { status: newStatus })
+    if (error) {
+      toast.error("Failed to update status")
+    } else {
+      toast.success(`Status updated to ${newStatus}`)
+    }
+  }
+
+  const handleCall = (job: Job) => {
+    // Try to find a phone number in notes or use a default
+    const phoneMatch = job.notes?.match(/\d{3}[-.]?\d{3}[-.]?\d{4}/)
+    if (phoneMatch) {
+      window.location.href = `tel:${phoneMatch[0]}`
+    } else {
+      toast.info("No phone number found for this customer")
+    }
+  }
+
+  const handleDirections = (job: Job) => {
+    if (!job.address) {
+      toast.info("No address available for this job")
+      return
+    }
+    const encodedAddress = encodeURIComponent(job.address)
+    window.open(`https://www.google.com/maps/dir/?api=1&destination=${encodedAddress}`, "_blank")
   }
 
   return (
@@ -333,33 +469,26 @@ export function JobsPanel() {
                             <h3 className="font-semibold">{job.address}</h3>
                             <Badge variant={getStatusColor(job.status)}>{job.status}</Badge>
                           </div>
-                          <p className="text-sm text-muted-foreground">{job.customer_name}</p>
+                          <p className="text-sm text-muted-foreground">{job.description}</p>
                           <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                             <span className="flex items-center gap-1">
                               <FileText className="h-3 w-3" />
-                              {job.job_type}
-                            </span>
-                            <span className="flex items-center gap-1">
-                              <Camera className="h-3 w-3" />
-                              {job.photos?.length || 0} photos
+                              {job.service_type}
                             </span>
                             <span className="flex items-center gap-1">
                               <Clock className="h-3 w-3" />
-                              {new Date(job.created_at).toLocaleDateString()}
+                              {new Date(job.created_at || "").toLocaleDateString()} at {new Date(job.created_at || "").toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                             </span>
-                            {job.permit_required && (
-                              <Badge variant="outline" className="text-[10px]">
-                                <AlertTriangle className="mr-1 h-3 w-3" />
-                                Permit Required
-                              </Badge>
-                            )}
-                            {job.climbing_required && (
-                              <Badge variant="default" className="text-[10px] bg-primary">
-                                <Mountain className="mr-1 h-3 w-3" />
-                                Climbing Required
-                              </Badge>
-                            )}
                           </div>
+                          {job.scheduled_date && (
+                            <div className="mt-2 inline-flex items-center gap-1.5 rounded-md bg-primary/10 px-2 py-1 text-xs font-medium text-primary">
+                              <Calendar className="h-3 w-3" />
+                              {new Date(job.scheduled_date).toLocaleDateString("en-CA", { month: "short", day: "numeric" })}
+                              {job.time_started_at && (
+                                <span className="ml-1">{new Date(job.time_started_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
+                              )}
+                            </div>
+                          )}
                           {job.notes && (
                             <p className="mt-2 text-xs text-muted-foreground line-clamp-1">{job.notes}</p>
                           )}
@@ -367,11 +496,19 @@ export function JobsPanel() {
                       </div>
                       <div className="flex items-center gap-3">
                         <span className="text-xl font-bold text-accent">
-                          ${Number(job.value).toLocaleString()}
+                          ${Number(job.estimated_amount || 0).toLocaleString()}
                         </span>
-                        <Button variant="outline" size="sm">
-                          View Details
-                        </Button>
+                        <div className="flex gap-2">
+                          <Button variant="outline" size="sm" onClick={() => handleCall(job)}>
+                            <Phone className="h-4 w-4" />
+                          </Button>
+                          <Button variant="outline" size="sm" onClick={() => handleDirections(job)}>
+                            <Navigation className="h-4 w-4" />
+                          </Button>
+                          <Button variant="outline" size="sm" onClick={() => handleViewDetails(job)}>
+                            View Details
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   </CardContent>
@@ -398,7 +535,7 @@ export function JobsPanel() {
                             <p className="text-sm text-muted-foreground">{job.notes}</p>
                           </div>
                         </div>
-                        <span className="text-xl font-bold text-accent">${Number(job.value).toLocaleString()}</span>
+                        <span className="text-xl font-bold text-accent">${Number(job.estimated_amount || 0).toLocaleString()}</span>
                       </div>
                     </CardContent>
                   </Card>
@@ -412,14 +549,18 @@ export function JobsPanel() {
                 <p className="text-muted-foreground text-center py-8">No pending quotes</p>
               )}
               {filteredJobs.filter((j) => j.status === "quote").map((job) => (
-                <Card key={job.id} className="bg-card border-border">
+                <Card key={job.id} className="bg-card border-border cursor-pointer hover:border-primary/50 transition-colors" onClick={() => handleViewDetails(job)}>
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between">
                       <div>
                         <h3 className="font-semibold">{job.address}</h3>
-                        <p className="text-sm text-muted-foreground">{job.customer_name} - {job.job_type}</p>
+                        <p className="text-sm text-muted-foreground">{job.service_type}</p>
+                        <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                          <Clock className="h-3 w-3" />
+                          Quote received: {new Date(job.created_at || "").toLocaleDateString()} at {new Date(job.created_at || "").toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                        </p>
                       </div>
-                      <span className="text-xl font-bold text-accent">${Number(job.value).toLocaleString()}</span>
+                      <span className="text-xl font-bold text-accent">${Number(job.estimated_amount || 0).toLocaleString()}</span>
                     </div>
                   </CardContent>
                 </Card>
@@ -433,14 +574,25 @@ export function JobsPanel() {
                 <p className="text-muted-foreground text-center py-8">No scheduled jobs</p>
               )}
               {filteredJobs.filter((j) => j.status === "scheduled").map((job) => (
-                <Card key={job.id} className="bg-card border-border">
+                <Card key={job.id} className="bg-card border-primary/30 cursor-pointer hover:border-primary/50 transition-colors" onClick={() => handleViewDetails(job)}>
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between">
                       <div>
                         <h3 className="font-semibold">{job.address}</h3>
-                        <p className="text-sm text-muted-foreground">{job.customer_name} - {job.job_type}</p>
+                        <p className="text-sm text-muted-foreground">{job.service_type}</p>
+                        {job.scheduled_date && (
+                          <div className="mt-2 inline-flex items-center gap-1.5 rounded-md bg-primary/10 px-2 py-1 text-xs font-semibold text-primary">
+                            <Calendar className="h-3 w-3" />
+                            {new Date(job.scheduled_date).toLocaleDateString("en-CA", { weekday: "short", month: "short", day: "numeric" })}
+                            {job.time_started_at && (
+                              <span className="ml-1 border-l border-primary/30 pl-1.5">
+                                {new Date(job.time_started_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                              </span>
+                            )}
+                          </div>
+                        )}
                       </div>
-                      <span className="text-xl font-bold text-accent">${Number(job.value).toLocaleString()}</span>
+                      <span className="text-xl font-bold text-accent">${Number(job.estimated_amount || 0).toLocaleString()}</span>
                     </div>
                   </CardContent>
                 </Card>
@@ -459,9 +611,9 @@ export function JobsPanel() {
                     <div className="flex items-center justify-between">
                       <div>
                         <h3 className="font-semibold">{job.address}</h3>
-                        <p className="text-sm text-muted-foreground">{job.customer_name} - {job.job_type}</p>
+                        <p className="text-sm text-muted-foreground">{job.description} - {job.service_type}</p>
                       </div>
-                      <span className="text-xl font-bold text-accent">${Number(job.value).toLocaleString()}</span>
+                      <span className="text-xl font-bold text-accent">${Number(job.estimated_amount || 0).toLocaleString()}</span>
                     </div>
                   </CardContent>
                 </Card>
@@ -470,6 +622,327 @@ export function JobsPanel() {
           </TabsContent>
         </Tabs>
       )}
+
+      {/* Job Details Dialog */}
+      <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Job Details</DialogTitle>
+            <DialogDescription>
+              {selectedJob?.address}
+            </DialogDescription>
+          </DialogHeader>
+          {selectedJob && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-muted-foreground">Service Type</p>
+                  <p className="font-medium">{selectedJob.service_type}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Status</p>
+                  <Badge variant={getStatusColor(selectedJob.status)} className="capitalize">{selectedJob.status}</Badge>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Estimated Amount</p>
+                  <p className="font-bold text-accent">${Number(selectedJob.estimated_amount || 0).toLocaleString()}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Quote Received</p>
+                  <p className="font-medium">{new Date(selectedJob.created_at || "").toLocaleDateString()}</p>
+                  <p className="text-xs text-muted-foreground">{new Date(selectedJob.created_at || "").toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</p>
+                </div>
+              </div>
+              
+              {/* Scheduled Date & Time */}
+              {selectedJob.scheduled_date && (
+                <div className="rounded-lg bg-primary/10 border border-primary/20 px-4 py-3">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Calendar className="h-4 w-4 text-primary" />
+                    <p className="text-xs font-semibold text-primary uppercase tracking-wide">Scheduled</p>
+                  </div>
+                  <p className="font-semibold text-lg">{new Date(selectedJob.scheduled_date).toLocaleDateString("en-CA", { weekday: "long", month: "long", day: "numeric" })}</p>
+                  {selectedJob.time_started_at && (
+                    <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
+                      <Clock className="h-3 w-3" />
+                      {new Date(selectedJob.time_started_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* Customer Contact & Reminder Status */}
+              {(selectedJob.customer_phone || selectedJob.customer_email) && (
+                <div className="rounded-lg bg-accent/10 border border-accent/20 px-4 py-3">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Bell className="h-4 w-4 text-accent" />
+                    <p className="text-xs font-semibold text-accent uppercase tracking-wide">Customer Contact & Reminders</p>
+                  </div>
+                  <div className="space-y-1 text-sm">
+                    {selectedJob.customer_phone && (
+                      <p className="flex items-center gap-2">
+                        <Phone className="h-3 w-3 text-muted-foreground" />
+                        <a href={`tel:${selectedJob.customer_phone}`} className="text-primary hover:underline">{selectedJob.customer_phone}</a>
+                      </p>
+                    )}
+                    {selectedJob.customer_email && (
+                      <p className="flex items-center gap-2">
+                        <Mail className="h-3 w-3 text-muted-foreground" />
+                        <a href={`mailto:${selectedJob.customer_email}`} className="text-primary hover:underline">{selectedJob.customer_email}</a>
+                      </p>
+                    )}
+                  </div>
+                  {selectedJob.scheduled_date && (
+                    <div className="mt-3 pt-2 border-t border-accent/20">
+                      <p className="text-xs text-muted-foreground mb-1.5">Reminder Status</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        <Badge variant={selectedJob.reminder_3day_sent ? "default" : "outline"} className="text-[10px]">
+                          {selectedJob.reminder_3day_sent ? "3-Day Sent" : "3-Day Pending"}
+                        </Badge>
+                        <Badge variant={selectedJob.reminder_1day_sent ? "default" : "outline"} className="text-[10px]">
+                          {selectedJob.reminder_1day_sent ? "1-Day Sent" : "1-Day Pending"}
+                        </Badge>
+                        <Badge variant={selectedJob.reminder_morning_sent ? "default" : "outline"} className="text-[10px]">
+                          {selectedJob.reminder_morning_sent ? "Morning Sent" : "Morning Pending"}
+                        </Badge>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+              
+              {selectedJob.notes && (
+                <div>
+                  <p className="text-sm text-muted-foreground">Notes</p>
+                  <p className="text-sm mt-1 p-2 bg-secondary rounded">{selectedJob.notes}</p>
+                </div>
+              )}
+
+              {/* Quick Status Change */}
+              <div>
+                <p className="text-sm text-muted-foreground mb-2">Update Status</p>
+                <div className="flex flex-wrap gap-2">
+                  {["quote", "scheduled", "in_progress", "completed", "urgent"].map((status) => (
+                    <Button
+                      key={status}
+                      size="sm"
+                      variant={selectedJob.status === status ? "default" : "outline"}
+                      onClick={() => {
+                        handleStatusChange(selectedJob.id, status)
+                        setSelectedJob({ ...selectedJob, status })
+                      }}
+                    >
+                      {status}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex gap-2 pt-4 border-t">
+                <Button variant="outline" className="flex-1" onClick={() => handleCall(selectedJob)}>
+                  <Phone className="mr-2 h-4 w-4" />
+                  Call
+                </Button>
+                <Button variant="outline" className="flex-1" onClick={() => handleDirections(selectedJob)}>
+                  <Navigation className="mr-2 h-4 w-4" />
+                  Directions
+                </Button>
+              </div>
+              <div className="flex gap-2">
+                <Button variant="outline" className="flex-1" onClick={() => {
+                  setIsDetailsOpen(false)
+                  handleEditJob(selectedJob)
+                }}>
+                  <Edit className="mr-2 h-4 w-4" />
+                  Edit Job
+                </Button>
+                <Button variant="destructive" className="flex-1" onClick={() => {
+                  setIsDetailsOpen(false)
+                  setDeleteJobId(selectedJob.id)
+                }}>
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Delete
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Job Dialog */}
+      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Job</DialogTitle>
+            <DialogDescription>
+              Update job details
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="edit-address">Address</Label>
+              <Input
+                id="edit-address"
+                value={editFormData.address}
+                onChange={(e) => setEditFormData({ ...editFormData, address: e.target.value })}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label>Service Type</Label>
+                <Select
+                  value={editFormData.service_type}
+                  onValueChange={(value) => setEditFormData({ ...editFormData, service_type: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Tree Removal">Tree Removal</SelectItem>
+                    <SelectItem value="Pruning">Pruning</SelectItem>
+                    <SelectItem value="Stump Grinding">Stump Grinding</SelectItem>
+                    <SelectItem value="Storm Damage">Storm Damage</SelectItem>
+                    <SelectItem value="Emergency">Emergency</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-amount">Estimated Amount</Label>
+                <div className="relative">
+                  <DollarSign className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    id="edit-amount"
+                    type="number"
+                    className="pl-9"
+                    value={editFormData.estimated_amount}
+                    onChange={(e) => setEditFormData({ ...editFormData, estimated_amount: e.target.value })}
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="grid gap-2">
+              <Label>Status</Label>
+              <Select
+                value={editFormData.status}
+                onValueChange={(value) => setEditFormData({ ...editFormData, status: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="quote">Quote</SelectItem>
+                  <SelectItem value="scheduled">Scheduled</SelectItem>
+                  <SelectItem value="in_progress">In Progress</SelectItem>
+                  <SelectItem value="completed">Completed</SelectItem>
+                  <SelectItem value="urgent">Urgent</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {editFormData.status === "scheduled" && (
+              <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 space-y-3">
+                <p className="text-sm font-semibold text-primary flex items-center gap-2">
+                  <Calendar className="h-4 w-4" />
+                  Schedule Job
+                </p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="grid gap-1.5">
+                    <Label htmlFor="edit-scheduled-date" className="text-xs">Date</Label>
+                    <Input
+                      id="edit-scheduled-date"
+                      type="date"
+                      value={editFormData.scheduled_date}
+                      onChange={(e) => setEditFormData({ ...editFormData, scheduled_date: e.target.value })}
+                    />
+                  </div>
+                  <div className="grid gap-1.5">
+                    <Label htmlFor="edit-scheduled-time" className="text-xs">Time</Label>
+                    <Input
+                      id="edit-scheduled-time"
+                      type="time"
+                      value={editFormData.scheduled_time}
+                      onChange={(e) => setEditFormData({ ...editFormData, scheduled_time: e.target.value })}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {/* Customer Contact - Required for Reminders */}
+            <div className="rounded-lg border border-accent/30 bg-accent/5 p-3 space-y-3">
+              <p className="text-sm font-semibold text-accent flex items-center gap-2">
+                <Bell className="h-4 w-4" />
+                Customer Contact (for reminders)
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="grid gap-1.5">
+                  <Label htmlFor="edit-phone" className="text-xs flex items-center gap-1">
+                    <Phone className="h-3 w-3" />
+                    Phone
+                  </Label>
+                  <Input
+                    id="edit-phone"
+                    type="tel"
+                    placeholder="+1234567890"
+                    value={editFormData.customer_phone}
+                    onChange={(e) => setEditFormData({ ...editFormData, customer_phone: e.target.value })}
+                  />
+                </div>
+                <div className="grid gap-1.5">
+                  <Label htmlFor="edit-email" className="text-xs flex items-center gap-1">
+                    <Mail className="h-3 w-3" />
+                    Email
+                  </Label>
+                  <Input
+                    id="edit-email"
+                    type="email"
+                    placeholder="customer@email.com"
+                    value={editFormData.customer_email}
+                    onChange={(e) => setEditFormData({ ...editFormData, customer_email: e.target.value })}
+                  />
+                </div>
+              </div>
+              <p className="text-[11px] text-muted-foreground">Auto-reminders: 3 days, 1 day, and morning of scheduled job</p>
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="edit-notes">Notes</Label>
+              <Textarea
+                id="edit-notes"
+                rows={3}
+                value={editFormData.notes}
+                onChange={(e) => setEditFormData({ ...editFormData, notes: e.target.value })}
+              />
+            </div>
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setIsEditOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleUpdateJob} disabled={isSubmitting}>
+              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Save Changes
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={!!deleteJobId} onOpenChange={() => setDeleteJobId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Job?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete this job and all associated data.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteJob} className="bg-destructive text-destructive-foreground">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

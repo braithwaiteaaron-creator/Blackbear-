@@ -4,12 +4,58 @@ import { useState } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Calendar, Clock, MapPin, User, DollarSign, Phone } from "lucide-react"
-import { useJobs } from "@/lib/supabase/hooks"
+import { Calendar, Clock, MapPin, User, DollarSign, Phone, Navigation, CheckCircle, Loader2 } from "lucide-react"
+import { useJobs, type Job } from "@/lib/supabase/hooks"
+import { toast } from "sonner"
 
 export function SchedulePanel() {
-  const { jobs, loading } = useJobs()
+  const { jobs, loading, updateJob } = useJobs()
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
+  const [completingJob, setCompletingJob] = useState<string | null>(null)
+
+  const handleCall = (job: Job) => {
+    const phoneMatch = job.notes?.match(/\d{3}[-.]?\d{3}[-.]?\d{4}/)
+    if (phoneMatch) {
+      window.location.href = `tel:${phoneMatch[0]}`
+    } else {
+      toast.info("No phone number found. Add phone to job notes.")
+    }
+  }
+
+  const handleDirections = (job: Job) => {
+    const encodedAddress = encodeURIComponent(job.address)
+    window.open(`https://www.google.com/maps/dir/?api=1&destination=${encodedAddress}`, "_blank")
+  }
+
+  const handleComplete = async (job: Job) => {
+    setCompletingJob(job.id)
+    const { error } = await updateJob(job.id, { status: "completed" })
+    setCompletingJob(null)
+    if (error) {
+      toast.error("Failed to complete job")
+    } else {
+      toast.success(`${job.address} marked as completed!`)
+    }
+  }
+
+  const handleFollowUp = (job: Job) => {
+    const phoneMatch = job.notes?.match(/\d{3}[-.]?\d{3}[-.]?\d{4}/)
+    if (phoneMatch) {
+      window.location.href = `tel:${phoneMatch[0]}`
+      toast.info(`Calling ${job.customer_name}...`)
+    } else {
+      toast.info("No phone found. Consider adding phone to the job notes.")
+    }
+  }
+
+  const handleScheduleJob = async (job: Job) => {
+    const { error } = await updateJob(job.id, { status: "scheduled" })
+    if (error) {
+      toast.error("Failed to schedule job")
+    } else {
+      toast.success(`${job.address} scheduled!`)
+    }
+  }
 
   // Group scheduled jobs by date
   const jobsByDate = new Map<string, any[]>()
@@ -156,15 +202,25 @@ export function SchedulePanel() {
                     </div>
                   </div>
                   <div className="mt-3 flex gap-2 border-t pt-3">
-                    <Button size="sm" variant="outline" className="flex-1">
+                    <Button size="sm" variant="outline" className="flex-1" onClick={() => handleCall(job)}>
                       <Phone className="h-4 w-4 mr-1" />
                       Call
                     </Button>
-                    <Button size="sm" variant="outline" className="flex-1">
-                      <MapPin className="h-4 w-4 mr-1" />
+                    <Button size="sm" variant="outline" className="flex-1" onClick={() => handleDirections(job)}>
+                      <Navigation className="h-4 w-4 mr-1" />
                       Directions
                     </Button>
-                    <Button size="sm" className="flex-1">
+                    <Button 
+                      size="sm" 
+                      className="flex-1" 
+                      onClick={() => handleComplete(job)}
+                      disabled={completingJob === job.id}
+                    >
+                      {completingJob === job.id ? (
+                        <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                      ) : (
+                        <CheckCircle className="h-4 w-4 mr-1" />
+                      )}
                       Complete
                     </Button>
                   </div>
@@ -189,10 +245,16 @@ export function SchedulePanel() {
                       <p className="text-sm text-muted-foreground">{job.address}</p>
                       <p className="text-sm text-muted-foreground">Quote: ${Number(job.value).toLocaleString()}</p>
                     </div>
-                    <Button size="sm">
-                      <Phone className="h-4 w-4 mr-1" />
-                      Follow-up
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button size="sm" variant="outline" onClick={() => handleFollowUp(job)}>
+                        <Phone className="h-4 w-4 mr-1" />
+                        Call
+                      </Button>
+                      <Button size="sm" onClick={() => handleScheduleJob(job)}>
+                        <Calendar className="h-4 w-4 mr-1" />
+                        Schedule
+                      </Button>
+                    </div>
                   </div>
                 </CardContent>
               </Card>

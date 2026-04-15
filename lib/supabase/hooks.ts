@@ -10,19 +10,29 @@ import { createClient } from "./client"
 export interface Job {
   id: string
   customer_id?: string
-  address: string
-  customer_name: string
-  job_type: string
+  quote_id?: string
+  job_number?: string
+  description: string
+  service_type: string
   status: string
-  value: number
-  permit_required: boolean
-  clearance_required: boolean
-  climbing_required: boolean
-  trees: string[]
+  address?: string
+  estimated_amount?: number
+  actual_amount?: number
+  paid?: boolean
   notes?: string
-  photos: string[]
-  created_at: string
-  updated_at: string
+  job_notes?: string
+  scheduled_date?: string
+  completed_date?: string
+  time_started_at?: string
+  time_ended_at?: string
+  duration_minutes?: number
+  customer_phone?: string
+  customer_email?: string
+  reminder_3day_sent?: boolean
+  reminder_1day_sent?: boolean
+  reminder_morning_sent?: boolean
+  created_at?: string
+  updated_at?: string
 }
 
 export function useJobs() {
@@ -51,11 +61,17 @@ export function useJobs() {
     fetchJobs()
   }, [fetchJobs])
 
-  async function createJob(job: Omit<Job, "id" | "created_at" | "updated_at">) {
+  async function createJob(job: Partial<Job>) {
     const supabase = createClient()
+    
+    // Only include fields that are defined
+    const cleanJob = Object.fromEntries(
+      Object.entries(job).filter(([, value]) => value !== undefined && value !== null)
+    )
+    
     const { data, error } = await supabase
       .from("jobs")
-      .insert([job])
+      .insert([cleanJob])
       .select()
       .single()
     
@@ -70,9 +86,15 @@ export function useJobs() {
 
   async function updateJob(id: string, updates: Partial<Job>) {
     const supabase = createClient()
+    
+    // Only include fields that are defined
+    const cleanUpdates = Object.fromEntries(
+      Object.entries(updates).filter(([, value]) => value !== undefined && value !== null)
+    )
+    
     const { data, error } = await supabase
       .from("jobs")
-      .update(updates)
+      .update(cleanUpdates)
       .eq("id", id)
       .select()
       .single()
@@ -449,5 +471,18 @@ export function useReferrers() {
     return { data, error: null }
   }
 
-  return { referrers, loading, error, fetchReferrers, createReferrer, updateReferrer }
+  async function deleteReferrer(id: string) {
+    const supabase = createClient()
+    const { error } = await supabase.from("referrers").delete().eq("id", id)
+    
+    if (error) {
+      console.error("Error deleting referrer:", error)
+      return { error }
+    }
+    
+    setReferrers((prev) => prev.filter((r) => r.id !== id))
+    return { error: null }
+  }
+
+  return { referrers, loading, error, fetchReferrers, createReferrer, updateReferrer, deleteReferrer }
 }

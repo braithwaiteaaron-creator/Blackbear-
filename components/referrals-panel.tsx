@@ -21,16 +21,28 @@ import {
   Phone,
   Loader2,
   CheckCircle,
+  Trash2,
 } from "lucide-react"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { useReferrers, useJobs } from "@/lib/supabase/hooks"
 import { toast } from "sonner"
 
 export function ReferralsPanel() {
-  const { referrers, loading, createReferrer } = useReferrers()
+  const { referrers, loading, createReferrer, deleteReferrer } = useReferrers()
   const { jobs } = useJobs()
   const [isNewOpen, setIsNewOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [copiedCode, setCopiedCode] = useState<string | null>(null)
+  const [deleteReferrerId, setDeleteReferrerId] = useState<string | null>(null)
   
   const [formData, setFormData] = useState({
     name: "",
@@ -45,6 +57,17 @@ export function ReferralsPanel() {
     setCopiedCode(code)
     toast.success(`Copied ${code} to clipboard`)
     setTimeout(() => setCopiedCode(null), 2000)
+  }
+
+  const handleDeleteReferrer = async () => {
+    if (!deleteReferrerId) return
+    const { error } = await deleteReferrer(deleteReferrerId)
+    if (error) {
+      toast.error("Failed to delete code")
+    } else {
+      toast.success("Code deleted")
+    }
+    setDeleteReferrerId(null)
   }
 
   const getReferralStats = (name: string, code: string) => {
@@ -282,6 +305,13 @@ export function ReferralsPanel() {
                         )}
                         {referrer.referral_code}
                       </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => setDeleteReferrerId(referrer.id)}
+                      >
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
                     </div>
                   </div>
                 </CardContent>
@@ -290,6 +320,24 @@ export function ReferralsPanel() {
           })
         )}
       </div>
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={!!deleteReferrerId} onOpenChange={() => setDeleteReferrerId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Discount Code?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete this discount code.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteReferrer} className="bg-destructive text-destructive-foreground">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
