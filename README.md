@@ -115,6 +115,14 @@ npm run build
   - admin-protected CSV export for subscription-level finance reporting rows
   - supports same `preset` and `from` / `to` filters as summary endpoint
   - returns CSV attachment with estimated monthly recurring revenue per subscription
+- `GET /api/v1/certifications/me` (legacy alias: `GET /api/certifications/me`)
+  - returns current user's issued certifications (newest first)
+  - includes tier, issue/expiry dates, verification code, and downloadable certificate URL
+- `POST /api/v1/certifications/me` (legacy alias: `POST /api/certifications/me`)
+  - issues a certificate from the user's latest persisted quiz session
+  - derives certification tier from latest score badge mapping
+  - generates and stores a downloadable PDF under `/public/certificates`
+  - returns existing active certificate for the same tier if already issued
 - Legacy `/api/quiz-sessions*` routes include deprecation headers:
   - `Deprecation: true`
   - `Sunset: <date>`
@@ -166,6 +174,11 @@ Set environment variables (see `.env.example`):
 - `BILLING_INTRO_TRIAL_DAYS_TEAM` (optional; overrides Team trial duration)
 - `BILLING_INTRO_ELIGIBLE_PLANS` (optional; comma-separated, defaults to `premium,team`)
 - `BILLING_DUNNING_ENABLED` (optional; set `false` to disable dunning queue behavior)
+
+Certification artifacts:
+
+- Generated certificate PDFs are written to `public/certificates/`.
+- Each generated certificate includes a verification code saved in the `certifications` table.
 
 ### Authorization behavior
 

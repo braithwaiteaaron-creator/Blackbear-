@@ -77,7 +77,7 @@ Status legend:
 - [x] **60.** Build finance export/reporting views.
 
 ## Phase 7 — Certifications and Badge Operations (61–70)
-- [ ] **61.** Build certificate generation pipeline (PDF).
+- [x] **61.** Build certificate generation pipeline (PDF).
 - [ ] **62.** Implement credential metadata + verification endpoint.
 - [ ] **63.** Build public badge verification page behavior.
 - [ ] **64.** Integrate external credential provider (Credly/Badgr).

@@ -146,3 +146,15 @@ export type BadgeRule = {
   summary: string;
   unlocks: string[];
 };
+
+export type CertificationTierId = "foundation" | "developing" | "advanced" | "expert";
+
+export type UserCertification = {
+  id: string;
+  tier: CertificationTierId;
+  issuedAt: string;
+  expiresAt: string | null;
+  certificateUrl: string;
+  verificationCode: string;
+  isActive: boolean;
+};

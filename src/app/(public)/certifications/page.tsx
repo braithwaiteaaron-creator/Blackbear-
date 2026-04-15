@@ -28,13 +28,25 @@ export default function CertificationsPage() {
   return (
     <PageShell
       title="Certification Programs"
-      description="Monetize verified proficiency with stack-ranked certification tiers."
+      description="Monetize verified proficiency with stack-ranked certification tiers and generated PDF credentials."
     >
       <InfoGrid
         title="Certification Catalog"
         subtitle="Tiered credentials designed for individual and team monetization."
         items={certificationOffers}
       />
+      <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <h2 className="text-xl font-semibold text-slate-900">Certificate generation pipeline</h2>
+        <p className="mt-2 text-sm text-slate-700">
+          Signed-in learners can issue downloadable PDF certifications from their latest quiz
+          score in the dashboard.
+        </p>
+        <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-slate-700">
+          <li>Eligibility derives from your most recent persisted quiz session.</li>
+          <li>Issued certificates include tier, score, dates, and a verification code.</li>
+          <li>Generated PDFs are stored under a stable certificate URL for download.</li>
+        </ul>
+      </section>
     </PageShell>
   );
 }
