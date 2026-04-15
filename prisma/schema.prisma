@@ -1,0 +1,137 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum SubscriptionTier {
+  free
+  premium
+  enterprise
+}
+
+enum TierCompleted {
+  beginner
+  intermediate
+  advanced
+  full
+}
+
+enum DeviceType {
+  mobile
+  tablet
+  desktop
+}
+
+enum CertificationTier {
+  foundation
+  developing
+  advanced
+  expert
+}
+
+enum OrganizationSubscriptionType {
+  team
+  enterprise
+}
+
+model User {
+  id               String          @id @default(uuid()) @db.Uuid
+  email            String          @unique
+  name             String
+  organization     String?
+  role             String?
+  linkedinUrl      String?         @map("linkedin_url")
+  subscriptionTier SubscriptionTier @default(free) @map("subscription_tier")
+  createdAt        DateTime        @default(now()) @map("created_at")
+  updatedAt        DateTime        @updatedAt @map("updated_at")
+
+  quizSessions     QuizSession[]
+  certifications   Certification[]
+  organizations    Organization[]  @relation("OrganizationAdmin")
+
+  @@map("users")
+}
+
+model QuizSession {
+  id                 String        @id @default(uuid()) @db.Uuid
+  userId             String        @db.Uuid @map("user_id")
+  tierCompleted      TierCompleted @map("tier_completed")
+  totalScore         Int           @map("total_score")
+  beginnerScore      Int           @map("beginner_score")
+  intermediateScore  Int           @map("intermediate_score")
+  advancedScore      Int           @map("advanced_score")
+  timeToComplete     Int           @map("time_to_complete")
+  deviceType         DeviceType    @map("device_type")
+  trafficSource      String        @map("traffic_source")
+  completedAt        DateTime      @default(now()) @map("completed_at")
+
+  user               User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  questionResponses  QuestionResponse[]
+
+  @@map("quiz_sessions")
+}
+
+model QuestionResponse {
+  id              String      @id @default(uuid()) @db.Uuid
+  sessionId       String      @db.Uuid @map("session_id")
+  questionId      Int         @map("question_id")
+  selectedAnswer  String      @map("selected_answer")
+  isCorrect       Boolean     @map("is_correct")
+  timeOnQuestion  Int         @map("time_on_question")
+  createdAt       DateTime    @default(now()) @map("created_at")
+
+  session         QuizSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@map("question_responses")
+}
+
+model Certification {
+  id                String             @id @default(uuid()) @db.Uuid
+  userId            String             @db.Uuid @map("user_id")
+  certificationTier CertificationTier  @map("certification_tier")
+  badgeUrl          String             @map("badge_url")
+  credlyBadgeId     String             @map("credly_badge_id")
+  issuedAt          DateTime           @default(now()) @map("issued_at")
+  expiresAt         DateTime?          @map("expires_at")
+  shareCount        Int                @default(0) @map("share_count")
+
+  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("certifications")
+}
+
+model Organization {
+  id               String                      @id @default(uuid()) @db.Uuid
+  name             String
+  domain           String
+  subscriptionType OrganizationSubscriptionType @map("subscription_type")
+  seatCount        Int                         @map("seat_count")
+  adminUserId      String                      @db.Uuid @map("admin_user_id")
+  createdAt        DateTime                    @default(now()) @map("created_at")
+
+  adminUser        User                        @relation("OrganizationAdmin", fields: [adminUserId], references: [id], onDelete: Restrict)
+  assessments      OrganizationAssessment[]
+
+  @@map("organizations")
+}
+
+model OrganizationAssessment {
+  id                String       @id @default(uuid()) @db.Uuid
+  organizationId    String       @db.Uuid @map("organization_id")
+  totalParticipants Int          @map("total_participants")
+  averageScore      Decimal      @db.Decimal(5, 2) @map("average_score")
+  beginnerAvg       Decimal      @db.Decimal(5, 2) @map("beginner_avg")
+  intermediateAvg   Decimal      @db.Decimal(5, 2) @map("intermediate_avg")
+  advancedAvg       Decimal      @db.Decimal(5, 2) @map("advanced_avg")
+  topKnowledgeGaps  Json         @map("top_knowledge_gaps")
+  reportUrl         String       @map("report_url")
+  generatedAt       DateTime     @default(now()) @map("generated_at")
+
+  organization      Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@map("organization_assessments")
+}
