@@ -20,6 +20,73 @@ export const ACCESS_DEFAULTS = {
   subscriptionTier: "free" as SubscriptionTier,
 };
 
+export function normalizeRole(value: string | null | undefined): AppRole {
+  if (value === "admin" || value === "org_admin" || value === "user") {
+    return value;
+  }
+  return ACCESS_DEFAULTS.role;
+}
+
+export function normalizeSubscriptionTier(
+  value: string | null | undefined
+): SubscriptionTier {
+  if (
+    value === "free" ||
+    value === "premium" ||
+    value === "team" ||
+    value === "enterprise"
+  ) {
+    return value;
+  }
+  return ACCESS_DEFAULTS.subscriptionTier;
+}
+
+function parseCsv(value: string | null | undefined): string[] {
+  return (value ?? "")
+    .split(",")
+    .map((item) => item.trim().toLowerCase())
+    .filter(Boolean);
+}
+
+export function resolveClaimsForEmail(input: {
+  email?: string | null;
+  defaultRole: AppRole;
+  defaultSubscriptionTier: SubscriptionTier;
+  adminEmailsCsv?: string | null;
+  orgAdminEmailsCsv?: string | null;
+  enterpriseEmailsCsv?: string | null;
+  teamEmailsCsv?: string | null;
+}): { role: AppRole; subscriptionTier: SubscriptionTier } {
+  const email = (input.email ?? "").trim().toLowerCase();
+  let role = input.defaultRole;
+  let subscriptionTier = input.defaultSubscriptionTier;
+
+  if (!email) {
+    return { role, subscriptionTier };
+  }
+
+  const adminEmails = parseCsv(input.adminEmailsCsv);
+  const orgAdminEmails = parseCsv(input.orgAdminEmailsCsv);
+  const enterpriseEmails = parseCsv(input.enterpriseEmailsCsv);
+  const teamEmails = parseCsv(input.teamEmailsCsv);
+
+  if (teamEmails.includes(email)) {
+    subscriptionTier = "team";
+  }
+  if (enterpriseEmails.includes(email)) {
+    subscriptionTier = "enterprise";
+  }
+
+  if (orgAdminEmails.includes(email)) {
+    role = "org_admin";
+  }
+  if (adminEmails.includes(email)) {
+    role = "admin";
+  }
+
+  return { role, subscriptionTier };
+}
+
 export function canAccessArea(input: {
   area: AccessArea;
   role?: AppRole | null;

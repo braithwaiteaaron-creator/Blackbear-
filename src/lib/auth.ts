@@ -3,7 +3,7 @@ import GithubProvider from "next-auth/providers/github";
 import GoogleProvider from "next-auth/providers/google";
 
 import { env, hasGitHubOAuthConfig, hasGoogleOAuthConfig } from "@/lib/env";
-import { ACCESS_DEFAULTS } from "@/lib/access-control";
+import { ACCESS_DEFAULTS, resolveClaimsForEmail } from "@/lib/access-control";
 import type { AppRole, SubscriptionTier } from "@/lib/types";
 
 const providers: NextAuthOptions["providers"] = [];
@@ -36,11 +36,23 @@ export const authConfig: NextAuthOptions = {
   },
   callbacks: {
     jwt({ token }) {
+      const email =
+        typeof token.email === "string" && token.email.length > 0 ? token.email : undefined;
+      const resolvedClaims = resolveClaimsForEmail({
+        email,
+        defaultRole: env.DEFAULT_USER_ROLE ?? ACCESS_DEFAULTS.role,
+        defaultSubscriptionTier:
+          env.DEFAULT_SUBSCRIPTION_TIER ?? ACCESS_DEFAULTS.subscriptionTier,
+        adminEmailsCsv: env.ADMIN_EMAILS,
+        orgAdminEmailsCsv: env.ORG_ADMIN_EMAILS,
+        enterpriseEmailsCsv: env.ENTERPRISE_TIER_EMAILS,
+        teamEmailsCsv: env.TEAM_TIER_EMAILS,
+      });
       if (!token.role) {
-        token.role = ACCESS_DEFAULTS.role as AppRole;
+        token.role = resolvedClaims.role as AppRole;
       }
       if (!token.subscriptionTier) {
-        token.subscriptionTier = ACCESS_DEFAULTS.subscriptionTier as SubscriptionTier;
+        token.subscriptionTier = resolvedClaims.subscriptionTier as SubscriptionTier;
       }
       return token;
     },

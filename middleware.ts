@@ -1,4 +1,5 @@
 import { withAuth } from "next-auth/middleware";
+import { NextResponse } from "next/server";
 
 import {
   canAccessAdminRoute,
@@ -24,7 +25,30 @@ function toClaims(token: Record<string, unknown>): AccessClaims {
 }
 
 export default withAuth(
-  function middleware() {},
+  function middleware(req) {
+    const pathname = req.nextUrl.pathname;
+
+    const token = req.nextauth.token as Record<string, unknown> | null;
+    if (!token) {
+      return NextResponse.redirect(new URL("/", req.url));
+    }
+
+    const claims = toClaims(token);
+    const needsAdmin = pathname.startsWith("/admin");
+    const needsOrg = pathname.startsWith("/org");
+    const needsDashboard = pathname.startsWith("/dashboard");
+
+    const allowed =
+      (needsAdmin && canAccessAdminRoute(claims)) ||
+      (needsOrg && canAccessOrganizationRoute(claims)) ||
+      (needsDashboard && canAccessDashboardRoute(claims));
+
+    if (!allowed) {
+      return NextResponse.redirect(new URL("/unauthorized", req.url));
+    }
+
+    return NextResponse.next();
+  },
   {
     callbacks: {
       authorized: ({ req, token }) => {

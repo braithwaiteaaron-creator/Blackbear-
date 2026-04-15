@@ -8,6 +8,14 @@ const envSchema = z.object({
   AUTH_GITHUB_SECRET: z.string().min(1).optional(),
   AUTH_GOOGLE_ID: z.string().min(1).optional(),
   AUTH_GOOGLE_SECRET: z.string().min(1).optional(),
+  DEFAULT_USER_ROLE: z.enum(["user", "org_admin", "admin"]).optional(),
+  DEFAULT_SUBSCRIPTION_TIER: z
+    .enum(["free", "premium", "team", "enterprise"])
+    .optional(),
+  ADMIN_EMAILS: z.string().optional(),
+  ORG_ADMIN_EMAILS: z.string().optional(),
+  TEAM_TIER_EMAILS: z.string().optional(),
+  ENTERPRISE_TIER_EMAILS: z.string().optional(),
 });
 
 export const env = envSchema.parse(process.env);
@@ -23,3 +31,22 @@ export function hasGitHubOAuthConfig(): boolean {
 export function hasGoogleOAuthConfig(): boolean {
   return Boolean(env.AUTH_GOOGLE_ID && env.AUTH_GOOGLE_SECRET);
 }
+
+function parseCsvEmails(value: string | undefined): string[] {
+  if (!value) {
+    return [];
+  }
+  return value
+    .split(",")
+    .map((item) => item.trim().toLowerCase())
+    .filter(Boolean);
+}
+
+export const accessEnv = {
+  defaultRole: env.DEFAULT_USER_ROLE ?? "user",
+  defaultSubscriptionTier: env.DEFAULT_SUBSCRIPTION_TIER ?? "free",
+  adminEmails: parseCsvEmails(env.ADMIN_EMAILS),
+  orgAdminEmails: parseCsvEmails(env.ORG_ADMIN_EMAILS),
+  teamTierEmails: parseCsvEmails(env.TEAM_TIER_EMAILS),
+  enterpriseTierEmails: parseCsvEmails(env.ENTERPRISE_TIER_EMAILS),
+};

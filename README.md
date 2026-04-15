@@ -99,7 +99,17 @@ Set environment variables (see `.env.example`):
 - `NEXTAUTH_URL`
 - `AUTH_GITHUB_ID` / `AUTH_GITHUB_SECRET` (optional)
 - `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET` (optional)
-- `DEFAULT_USER_ROLE` (optional, default `user`)
+- `DEFAULT_USER_ROLE` (optional, `user|org_admin|admin`, default `user`)
+- `DEFAULT_SUBSCRIPTION_TIER` (optional, `free|premium|team|enterprise`, default `free`)
+- `ADMIN_EMAILS` (optional, comma-separated emails promoted to `admin`)
+- `ORG_ADMIN_EMAILS` (optional, comma-separated emails promoted to `org_admin`)
+- `ENTERPRISE_EMAILS` (optional, comma-separated emails promoted to `enterprise`)
+
+### Authorization behavior
+
+- Unauthenticated users visiting `/dashboard/*`, `/org/*`, `/admin/*` are redirected to `/`.
+- Authenticated users without sufficient permission are redirected to `/unauthorized`.
+- Access checks are enforced in **both middleware and server route guards**.
 
 Prisma commands:
 

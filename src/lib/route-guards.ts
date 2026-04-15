@@ -23,21 +23,30 @@ async function buildClaims(): Promise<AccessTokenClaims | null> {
 
 export async function requireDashboardAccess() {
   const claims = await buildClaims();
-  if (!claims || !canAccessDashboard(claims)) {
+  if (!claims) {
     redirect("/");
+  }
+  if (!canAccessDashboard(claims)) {
+    redirect("/unauthorized");
   }
 }
 
 export async function requireOrganizationAccess() {
   const claims = await buildClaims();
-  if (!claims || !canAccessOrganization(claims)) {
+  if (!claims) {
     redirect("/");
+  }
+  if (!canAccessOrganization(claims)) {
+    redirect("/unauthorized");
   }
 }
 
 export async function requireAdminAccess() {
   const claims = await buildClaims();
-  if (!claims || !canAccessAdmin(claims)) {
+  if (!claims) {
     redirect("/");
+  }
+  if (!canAccessAdmin(claims)) {
+    redirect("/unauthorized");
   }
 }
