@@ -296,7 +296,7 @@ async function processInvoiceEvent(event: Stripe.Event): Promise<void> {
 
   if (event.type === "invoice.payment_failed") {
     await enqueueJob({
-      jobType: "billing_payment_failed_dunning",
+      jobType: "billing_dunning_notice",
       idempotencyKey: `billing-dunning:${invoice.id}`,
       payload: {
         userId: existingSubscription.userId,

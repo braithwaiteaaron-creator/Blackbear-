@@ -31,6 +31,7 @@ const envSchema = z.object({
   BILLING_INTRO_TRIAL_DAYS_DEFAULT: z.coerce.number().int().min(0).max(365).optional(),
   BILLING_INTRO_TRIAL_DAYS_PREMIUM: z.coerce.number().int().min(0).max(365).optional(),
   BILLING_INTRO_TRIAL_DAYS_TEAM: z.coerce.number().int().min(0).max(365).optional(),
+  BILLING_INTRO_ELIGIBLE_PLANS: z.string().optional(),
   BILLING_DUNNING_ENABLED: z
     .string()
     .optional()
