@@ -89,6 +89,9 @@ npm run build
   - pagination (`page`, `pageSize`)
   - filters (`tierCompleted`, `minScore`, `maxScore`)
   - returns pagination details in `data`
+- `GET /api/v1/billing/plans` (legacy alias: `GET /api/billing/plans`)
+  - returns Stripe-backed plan catalog for Free/Premium/Team/Enterprise
+  - legacy alias includes deprecation/sunset headers
 - Legacy `/api/quiz-sessions*` routes include deprecation headers:
   - `Deprecation: true`
   - `Sunset: <date>`
@@ -127,6 +130,11 @@ Set environment variables (see `.env.example`):
 - `TEAM_TIER_EMAILS` (optional, comma-separated emails promoted to `team`)
 - `ENTERPRISE_TIER_EMAILS` (optional, comma-separated emails promoted to `enterprise`)
 - `JOB_WORKER_KEY` (required to run internal queue processing endpoint)
+- `STRIPE_SECRET_KEY` (required for Stripe server operations)
+- `STRIPE_WEBHOOK_SECRET` (required for webhook signature validation)
+- `STRIPE_PRICE_PREMIUM_MONTHLY` / `STRIPE_PRICE_PREMIUM_YEARLY`
+- `STRIPE_PRICE_TEAM_MONTHLY` / `STRIPE_PRICE_TEAM_YEARLY`
+- `STRIPE_PRICE_ENTERPRISE_MONTHLY` / `STRIPE_PRICE_ENTERPRISE_YEARLY` (optional if enterprise is fully sales-led)
 
 ### Authorization behavior
 

@@ -9,6 +9,7 @@ datasource db {
 enum SubscriptionTier {
   free
   premium
+  team
   enterprise
 }
 
@@ -48,6 +49,20 @@ enum JobType {
   quiz_session_created
 }
 
+enum BillingProvider {
+  stripe
+}
+
+enum BillingSubscriptionStatus {
+  trialing
+  active
+  past_due
+  canceled
+  unpaid
+  incomplete
+  incomplete_expired
+}
+
 model User {
   id               String           @id @default(uuid()) @db.Uuid
   email            String           @unique
@@ -59,9 +74,10 @@ model User {
   createdAt        DateTime         @default(now()) @map("created_at")
   updatedAt        DateTime         @updatedAt @map("updated_at")
 
-  quizSessions   QuizSession[]
-  certifications Certification[]
-  organizations  Organization[]  @relation("OrganizationAdmin")
+  quizSessions         QuizSession[]
+  certifications       Certification[]
+  organizations        Organization[]        @relation("OrganizationAdmin")
+  billingSubscriptions BillingSubscription[]
 
   @@map("users")
 }
@@ -162,4 +178,26 @@ model JobQueue {
 
   @@index([status, availableAt], map: "job_queue_status_available_at_idx")
   @@map("job_queue")
+}
+
+model BillingSubscription {
+  id                     String                    @id @default(uuid()) @db.Uuid
+  userId                 String                    @map("user_id") @db.Uuid
+  provider               BillingProvider
+  providerCustomerId     String                    @map("provider_customer_id")
+  providerSubscriptionId String                    @unique @map("provider_subscription_id")
+  planCode               String                    @map("plan_code")
+  status                 BillingSubscriptionStatus
+  currentPeriodStart     DateTime                  @map("current_period_start")
+  currentPeriodEnd       DateTime                  @map("current_period_end")
+  cancelAtPeriodEnd      Boolean                   @default(false) @map("cancel_at_period_end")
+  metadata               Json?
+  createdAt              DateTime                  @default(now()) @map("created_at")
+  updatedAt              DateTime                  @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId], map: "billing_subscriptions_user_id_idx")
+  @@index([provider, providerCustomerId], map: "billing_subscriptions_provider_customer_idx")
+  @@map("billing_subscriptions")
 }

@@ -17,6 +17,13 @@ const envSchema = z.object({
   TEAM_TIER_EMAILS: z.string().optional(),
   ENTERPRISE_TIER_EMAILS: z.string().optional(),
   JOB_WORKER_KEY: z.string().min(1).optional(),
+  STRIPE_SECRET_KEY: z.string().min(1).optional(),
+  STRIPE_WEBHOOK_SECRET: z.string().min(1).optional(),
+  STRIPE_PRICE_PREMIUM_MONTHLY: z.string().min(1).optional(),
+  STRIPE_PRICE_PREMIUM_YEARLY: z.string().min(1).optional(),
+  STRIPE_PRICE_TEAM_MONTHLY: z.string().min(1).optional(),
+  STRIPE_PRICE_TEAM_YEARLY: z.string().min(1).optional(),
+  STRIPE_ENTERPRISE_CONTACT_URL: z.string().url().optional(),
 });
 
 export const env = envSchema.parse(process.env);
@@ -54,4 +61,8 @@ export const accessEnv = {
 
 export function hasJobWorkerKey(): boolean {
   return Boolean(env.JOB_WORKER_KEY);
+}
+
+export function hasStripeConfig(): boolean {
+  return Boolean(env.STRIPE_SECRET_KEY);
 }

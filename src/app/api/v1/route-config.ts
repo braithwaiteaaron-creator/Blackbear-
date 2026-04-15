@@ -12,3 +12,8 @@ export function setDeprecationHeaders(
   response.headers.set("Link", `<${successorPath}>; rel="successor-version"`);
   return response;
 }
+
+export function setApiVersionHeader(response: Response, version = "v1"): Response {
+  response.headers.set("X-API-Version", version);
+  return response;
+}

@@ -107,6 +107,29 @@ export type BadgeTier = "foundation" | "developing" | "advanced" | "expert";
 export type AppRole = "user" | "org_admin" | "admin";
 export type AccessRole = AppRole;
 export type SubscriptionTier = "free" | "premium" | "team" | "enterprise";
+export type BillingProvider = "stripe";
+export type BillingInterval = "month" | "year" | "one_time" | "custom";
+export type BillingPlanId = "free" | "premium" | "team" | "enterprise";
+
+export type BillingPlan = {
+  id: BillingPlanId;
+  name: string;
+  subscriptionTier: SubscriptionTier;
+  description: string;
+  seatsIncluded: number | "unlimited";
+  price: {
+    amount: number | null;
+    currency: "usd";
+    interval: BillingInterval;
+    display: string;
+  };
+  billing: {
+    provider: BillingProvider;
+    productName: string;
+    priceId: string | null;
+    mode: "subscription" | "contact_sales";
+  };
+};
 
 export type TierFeedbackBand = {
   min: number;
