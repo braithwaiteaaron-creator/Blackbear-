@@ -63,6 +63,12 @@ enum BillingSubscriptionStatus {
   incomplete_expired
 }
 
+enum BillingWebhookStatus {
+  received
+  processed
+  failed
+}
+
 model User {
   id               String           @id @default(uuid()) @db.Uuid
   email            String           @unique
@@ -200,4 +206,23 @@ model BillingSubscription {
   @@index([userId], map: "billing_subscriptions_user_id_idx")
   @@index([provider, providerCustomerId], map: "billing_subscriptions_provider_customer_idx")
   @@map("billing_subscriptions")
+}
+
+model BillingWebhookEvent {
+  id                 String               @id @default(uuid()) @db.Uuid
+  provider           BillingProvider
+  providerEventId    String               @unique @map("provider_event_id")
+  eventType          String               @map("event_type")
+  status             BillingWebhookStatus @default(received)
+  payload            Json
+  receivedAt         DateTime             @default(now()) @map("received_at")
+  processedAt        DateTime?            @map("processed_at")
+  errorMessage       String?              @map("error_message")
+  processingAttempts Int                  @default(0) @map("processing_attempts")
+  createdAt          DateTime             @default(now()) @map("created_at")
+  updatedAt          DateTime             @updatedAt @map("updated_at")
+
+  @@index([provider, eventType], map: "billing_webhook_events_provider_event_type_idx")
+  @@index([status, receivedAt], map: "billing_webhook_events_status_received_at_idx")
+  @@map("billing_webhook_events")
 }

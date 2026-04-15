@@ -70,7 +70,7 @@ Status legend:
 - [x] **53.** Implement Premium checkout flow.
 - [x] **54.** Implement Team checkout flow.
 - [x] **55.** Integrate self-serve billing portal.
-- [ ] **56.** Verify and secure billing webhooks.
+- [x] **56.** Verify and secure billing webhooks.
 - [ ] **57.** Sync subscription state into application DB.
 - [ ] **58.** Implement intro pricing/trial rules.
 - [ ] **59.** Add failed payment handling and dunning path.

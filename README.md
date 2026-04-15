@@ -100,6 +100,10 @@ npm run build
   - creates Stripe Billing Portal session for authenticated users
   - reuses existing Stripe customer when available, otherwise initializes from user email
   - returns `portalUrl` for immediate client redirect
+- `POST /api/v1/billing/webhooks/stripe` (legacy alias: `POST /api/billing/webhooks/stripe`)
+  - verifies Stripe webhook signatures using `STRIPE_WEBHOOK_SECRET`
+  - persists webhook events for replay protection and observability
+  - stores processing status and error details for failed event handling
 - Legacy `/api/quiz-sessions*` routes include deprecation headers:
   - `Deprecation: true`
   - `Sunset: <date>`
@@ -140,6 +144,7 @@ Set environment variables (see `.env.example`):
 - `JOB_WORKER_KEY` (required to run internal queue processing endpoint)
 - `STRIPE_SECRET_KEY` (required for Stripe server operations)
 - `STRIPE_WEBHOOK_SECRET` (required for webhook signature validation)
+- `STRIPE_WEBHOOK_TOLERANCE_SECONDS` (optional; defaults to `300`)
 - `STRIPE_PRICE_PREMIUM_MONTHLY` / `STRIPE_PRICE_PREMIUM_YEARLY`
 - `STRIPE_PRICE_TEAM_MONTHLY` / `STRIPE_PRICE_TEAM_YEARLY`
 - `STRIPE_PRICE_ENTERPRISE_MONTHLY` / `STRIPE_PRICE_ENTERPRISE_YEARLY` (optional if enterprise is fully sales-led)
