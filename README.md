@@ -107,6 +107,14 @@ npm run build
   - syncs subscription rows and user subscription tiers from subscription lifecycle events
   - handles invoice payment failures/success to drive dunning state updates
   - stores processing status and error details for failed event handling
+- `GET /api/v1/billing/reports/finance/summary` (legacy alias: `GET /api/billing/reports/finance/summary`)
+  - admin-protected finance summary endpoint for subscription status and estimated recurring revenue
+  - supports `preset` windows (`all`, `last_30_days`, `quarter_to_date`, `year_to_date`)
+  - supports custom `from` / `to` ISO date range filters
+- `GET /api/v1/billing/reports/finance/export` (legacy alias: `GET /api/billing/reports/finance/export`)
+  - admin-protected CSV export for subscription-level finance reporting rows
+  - supports same `preset` and `from` / `to` filters as summary endpoint
+  - returns CSV attachment with estimated monthly recurring revenue per subscription
 - Legacy `/api/quiz-sessions*` routes include deprecation headers:
   - `Deprecation: true`
   - `Sunset: <date>`
@@ -153,9 +161,11 @@ Set environment variables (see `.env.example`):
 - `STRIPE_PRICE_ENTERPRISE_MONTHLY` / `STRIPE_PRICE_ENTERPRISE_YEARLY` (optional if enterprise is fully sales-led)
 - `STRIPE_CHECKOUT_SUCCESS_URL` / `STRIPE_CHECKOUT_CANCEL_URL` (optional; defaults to `NEXTAUTH_URL`)
 - `STRIPE_BILLING_PORTAL_RETURN_URL` (optional; defaults to `/dashboard` under `NEXTAUTH_URL`)
-- `STRIPE_INTRO_TRIAL_DAYS` (optional; defaults to `14`)
-- `STRIPE_INTRO_TRIAL_ENABLED` (optional; defaults to `true`)
-- `STRIPE_INTRO_TRIAL_MAX_USES_PER_USER` (optional; defaults to `1`)
+- `BILLING_INTRO_TRIAL_DAYS_DEFAULT` (optional; defaults to `14`)
+- `BILLING_INTRO_TRIAL_DAYS_PREMIUM` (optional; overrides Premium trial duration)
+- `BILLING_INTRO_TRIAL_DAYS_TEAM` (optional; overrides Team trial duration)
+- `BILLING_INTRO_ELIGIBLE_PLANS` (optional; comma-separated, defaults to `premium,team`)
+- `BILLING_DUNNING_ENABLED` (optional; set `false` to disable dunning queue behavior)
 
 ### Authorization behavior
 

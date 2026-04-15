@@ -74,7 +74,7 @@ Status legend:
 - [x] **57.** Sync subscription state into application DB.
 - [x] **58.** Implement intro pricing/trial rules.
 - [x] **59.** Add failed payment handling and dunning path.
-- [ ] **60.** Build finance export/reporting views.
+- [x] **60.** Build finance export/reporting views.
 
 ## Phase 7 — Certifications and Badge Operations (61–70)
 - [ ] **61.** Build certificate generation pipeline (PDF).
