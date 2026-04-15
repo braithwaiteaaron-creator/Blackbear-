@@ -26,6 +26,7 @@ const envSchema = z.object({
   STRIPE_CHECKOUT_SUCCESS_URL: z.string().url().optional(),
   STRIPE_CHECKOUT_CANCEL_URL: z.string().url().optional(),
   STRIPE_BILLING_PORTAL_RETURN_URL: z.string().url().optional(),
+  STRIPE_WEBHOOK_TOLERANCE_SECONDS: z.coerce.number().int().min(0).optional(),
   STRIPE_ENTERPRISE_CONTACT_URL: z.string().url().optional(),
 });
 

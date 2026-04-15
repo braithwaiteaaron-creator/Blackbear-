@@ -1,6 +1,7 @@
 import Stripe from "stripe";
 
 import { API_ERROR_CODES, type ApiErrorCode } from "@/lib/api";
+import { env } from "@/lib/env";
 import { getStripeClient, getStripeWebhookSecret } from "@/lib/billing/stripe";
 import { prisma } from "@/lib/prisma";
 
@@ -25,11 +26,21 @@ type WebhookResult =
       error: WebhookError;
     };
 
-function toInputJson(value: unknown): Stripe.MetadataParam {
-  if (value === null || typeof value !== "object" || Array.isArray(value)) {
-    return {};
+function toInputJson(
+  value: unknown
+): Record<string, unknown> | Array<unknown> | string | number | boolean | null {
+  if (value === undefined) {
+    return null;
   }
-  return value as Stripe.MetadataParam;
+  if (value === null || typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
+    return value;
+  }
+  if (Array.isArray(value)) {
+    return value.map((entry) => toInputJson(entry));
+  }
+  return Object.fromEntries(
+    Object.entries(value).map(([key, entry]) => [key, toInputJson(entry)])
+  );
 }
 
 function statusFromStripe(status: string): string {
@@ -69,8 +80,9 @@ async function processSubscriptionEvent(event: Stripe.Event): Promise<void> {
   }
 
   const planCode = object.items.data[0]?.price?.id ?? "unknown";
-  const currentPeriodStart = new Date(object.current_period_start * 1000);
-  const currentPeriodEnd = new Date(object.current_period_end * 1000);
+  const subscription = await getStripeClient().subscriptions.retrieve(object.id);
+  const currentPeriodStart = new Date(subscription.current_period_start * 1000);
+  const currentPeriodEnd = new Date(subscription.current_period_end * 1000);
 
   await prisma.billingSubscription.upsert({
     where: {
@@ -142,7 +154,9 @@ export async function verifyAndHandleStripeWebhook(request: Request): Promise<We
   const payload = await request.text();
   let event: Stripe.Event;
   try {
-    event = getStripeClient().webhooks.constructEvent(payload, signature, webhookSecret);
+    const toleranceValue = Number.parseInt(env.STRIPE_WEBHOOK_TOLERANCE_SECONDS ?? "300", 10);
+    const tolerance = Number.isFinite(toleranceValue) && toleranceValue > 0 ? toleranceValue : 300;
+    event = getStripeClient().webhooks.constructEvent(payload, signature, webhookSecret, tolerance);
   } catch (error) {
     return {
       ok: false,
@@ -156,7 +170,7 @@ export async function verifyAndHandleStripeWebhook(request: Request): Promise<We
   }
 
   const existing = await prisma.billingWebhookEvent.findUnique({
-    where: { eventId: event.id },
+    where: { providerEventId: event.id },
     select: { id: true, processedAt: true },
   });
   if (existing) {
@@ -173,11 +187,9 @@ export async function verifyAndHandleStripeWebhook(request: Request): Promise<We
   await prisma.billingWebhookEvent.create({
     data: {
       provider: "stripe",
-      eventId: event.id,
+      providerEventId: event.id,
       eventType: event.type,
-      payload: JSON.parse(payload),
-      signature,
-      receivedAt: new Date(),
+      payload: toInputJson(event) as Record<string, unknown>,
     },
   });
 
@@ -191,8 +203,13 @@ export async function verifyAndHandleStripeWebhook(request: Request): Promise<We
     }
 
     await prisma.billingWebhookEvent.update({
-      where: { eventId: event.id },
-      data: { processedAt: new Date(), processingError: null },
+      where: { providerEventId: event.id },
+      data: {
+        processedAt: new Date(),
+        status: "processed",
+        errorMessage: null,
+        processingAttempts: { increment: 1 },
+      },
     });
 
     return {
@@ -205,9 +222,11 @@ export async function verifyAndHandleStripeWebhook(request: Request): Promise<We
     };
   } catch (error) {
     await prisma.billingWebhookEvent.update({
-      where: { eventId: event.id },
+      where: { providerEventId: event.id },
       data: {
-        processingError:
+        status: "failed",
+        processingAttempts: { increment: 1 },
+        errorMessage:
           error instanceof Error ? error.message : "Unknown billing webhook processing error",
       },
     });

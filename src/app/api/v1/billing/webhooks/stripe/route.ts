@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 
-import { handleStripeWebhook } from "@/lib/billing/webhooks";
+import { verifyAndHandleStripeWebhook } from "@/lib/billing/webhooks";
 
 export async function POST(request: Request) {
-  const result = await handleStripeWebhook(request);
+  const result = await verifyAndHandleStripeWebhook(request);
   if (!result.ok) {
     return NextResponse.json(
       {
