@@ -137,6 +137,7 @@ function materializePlan(config: BillingPlanConfig): BillingPlan {
     id: config.id,
     name: config.name,
     subscriptionTier: config.subscriptionTier,
+    planCode: getEnvPriceId(defaultPrice.priceIdEnvKey),
     description: config.description,
     seatsIncluded: config.seatsIncluded,
     price: {
@@ -176,6 +177,7 @@ export function getPlanIdByPriceId(priceId: string): BillingPlanId | null {
 export function getPublicBillingPlans(): BillingPlan[] {
   return getBillingPlans().map((plan) => ({
     ...plan,
+    planCode: null,
     billing: {
       ...plan.billing,
       // Public APIs should never disclose internal provider identifiers.
