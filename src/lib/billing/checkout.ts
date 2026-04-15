@@ -67,24 +67,25 @@ function parseEligiblePlans(value: string | undefined): Set<"premium" | "team"> 
 }
 
 function decideIntroOffer(planId: "premium" | "team"): IntroOfferDecision | null {
-  const trialDays = env.BILLING_INTRO_TRIAL_DAYS ?? 0;
-  if (trialDays <= 0) {
-    return null;
-  }
-
+  const globalTrial = env.BILLING_INTRO_TRIAL_DAYS_DEFAULT ?? 0;
+  const premiumTrial = env.BILLING_INTRO_TRIAL_DAYS_PREMIUM ?? 0;
+  const teamTrial = env.BILLING_INTRO_TRIAL_DAYS_TEAM ?? 0;
   const eligiblePlans = parseEligiblePlans(env.BILLING_INTRO_ELIGIBLE_PLANS);
   if (!eligiblePlans.has(planId)) {
     return null;
   }
 
   if (planId === "premium") {
-    return { trialDays, reason: "premium-default" };
-  }
-  if (planId === "team") {
-    return { trialDays, reason: "team-default" };
+    if (premiumTrial > 0) {
+      return { trialDays: premiumTrial, reason: "premium-default" };
+    }
+    return globalTrial > 0 ? { trialDays: globalTrial, reason: "global-default" } : null;
   }
 
-  return { trialDays, reason: "global-default" };
+  if (teamTrial > 0) {
+    return { trialDays: teamTrial, reason: "team-default" };
+  }
+  return globalTrial > 0 ? { trialDays: globalTrial, reason: "global-default" } : null;
 }
 
 export async function createBillingCheckoutSession(request: Request): Promise<CheckoutResult> {
