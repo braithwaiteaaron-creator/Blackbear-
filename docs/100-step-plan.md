@@ -69,7 +69,7 @@ Status legend:
 - [x] **52.** Configure products/prices for Free/Premium/Team/Enterprise.
 - [x] **53.** Implement Premium checkout flow.
 - [x] **54.** Implement Team checkout flow.
-- [ ] **55.** Integrate self-serve billing portal.
+- [x] **55.** Integrate self-serve billing portal.
 - [ ] **56.** Verify and secure billing webhooks.
 - [ ] **57.** Sync subscription state into application DB.
 - [ ] **58.** Implement intro pricing/trial rules.

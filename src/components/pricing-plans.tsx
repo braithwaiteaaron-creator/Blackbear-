@@ -17,6 +17,13 @@ type CheckoutApiResponse = {
   };
 };
 
+type PortalApiResponse = {
+  ok: true;
+  data: {
+    portalUrl: string;
+  };
+};
+
 const SUBSCRIPTION_TIERS: PricingTier[] = [
   { name: "Free", price: "$0", details: "Beginner quiz and foundational library access." },
   {
@@ -37,6 +44,7 @@ const SUBSCRIPTION_TIERS: PricingTier[] = [
 export function PricingPlans() {
   const { data: session, status } = useSession();
   const [activePlan, setActivePlan] = useState<"premium" | "team" | null>(null);
+  const [isOpeningPortal, setIsOpeningPortal] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const canStartCheckout = status === "authenticated" && Boolean(session?.user?.email);
@@ -86,6 +94,35 @@ export function PricingPlans() {
     }
   };
 
+  const openBillingPortal = async () => {
+    setError(null);
+    if (!canStartCheckout || activePlan || isOpeningPortal) {
+      return;
+    }
+
+    try {
+      setIsOpeningPortal(true);
+      const response = await fetch("/api/v1/billing/portal", {
+        method: "POST",
+      });
+
+      const payload = (await response.json()) as
+        | PortalApiResponse
+        | { ok: false; error?: { message?: string } };
+
+      if (!response.ok || !payload.ok) {
+        setError(payload.ok ? "Unable to open billing portal." : payload.error?.message ?? "Unable to open billing portal.");
+        return;
+      }
+
+      window.location.assign(payload.data.portalUrl);
+    } catch {
+      setError("Unable to open billing portal right now. Please try again.");
+    } finally {
+      setIsOpeningPortal(false);
+    }
+  };
+
   return (
     <div style={{ display: "grid", gap: "1rem" }}>
       {SUBSCRIPTION_TIERS.map((tier) => {
@@ -114,13 +151,19 @@ export function PricingPlans() {
             {isCheckoutPlan && tier.planId ? (
               <div style={{ marginTop: "0.75rem", display: "grid", gap: "0.5rem" }}>
                 <button
-                  disabled={!canStartCheckout || Boolean(activePlan)}
+                  disabled={!canStartCheckout || Boolean(activePlan) || isOpeningPortal}
                   onClick={() => startCheckout(tier.planId!)}
                   style={{
-                    cursor: canStartCheckout && !activePlan ? "pointer" : "not-allowed",
+                    cursor:
+                      canStartCheckout && !activePlan && !isOpeningPortal
+                        ? "pointer"
+                        : "not-allowed",
                     borderRadius: 8,
                     border: "1px solid #1d4ed8",
-                    background: canStartCheckout && !activePlan ? "#1d4ed8" : "#93c5fd",
+                    background:
+                      canStartCheckout && !activePlan && !isOpeningPortal
+                        ? "#1d4ed8"
+                        : "#93c5fd",
                     color: "#fff",
                     fontWeight: 600,
                     padding: "0.5rem 0.75rem",
@@ -145,6 +188,25 @@ export function PricingPlans() {
         <p style={{ margin: 0, color: "#1d4ed8", fontSize: "0.875rem" }}>
           Preparing {activePlanName} checkout...
         </p>
+      ) : null}
+      {canStartCheckout ? (
+        <button
+          disabled={Boolean(activePlan) || isOpeningPortal}
+          onClick={openBillingPortal}
+          style={{
+            cursor: !activePlan && !isOpeningPortal ? "pointer" : "not-allowed",
+            borderRadius: 8,
+            border: "1px solid #334155",
+            background: !activePlan && !isOpeningPortal ? "#334155" : "#94a3b8",
+            color: "#fff",
+            fontWeight: 600,
+            padding: "0.5rem 0.75rem",
+            width: "fit-content",
+          }}
+          type="button"
+        >
+          {isOpeningPortal ? "Opening billing portal..." : "Manage billing"}
+        </button>
       ) : null}
     </div>
   );

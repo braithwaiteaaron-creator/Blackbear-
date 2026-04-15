@@ -96,6 +96,10 @@ npm run build
   - creates Stripe Checkout session for paid tiers (Premium + Team)
   - requires authenticated user and configured Stripe price ID
   - returns `checkoutUrl` for immediate client redirect
+- `POST /api/v1/billing/portal` (legacy alias: `POST /api/billing/portal`)
+  - creates Stripe Billing Portal session for authenticated users
+  - reuses existing Stripe customer when available, otherwise initializes from user email
+  - returns `portalUrl` for immediate client redirect
 - Legacy `/api/quiz-sessions*` routes include deprecation headers:
   - `Deprecation: true`
   - `Sunset: <date>`
@@ -140,6 +144,7 @@ Set environment variables (see `.env.example`):
 - `STRIPE_PRICE_TEAM_MONTHLY` / `STRIPE_PRICE_TEAM_YEARLY`
 - `STRIPE_PRICE_ENTERPRISE_MONTHLY` / `STRIPE_PRICE_ENTERPRISE_YEARLY` (optional if enterprise is fully sales-led)
 - `STRIPE_CHECKOUT_SUCCESS_URL` / `STRIPE_CHECKOUT_CANCEL_URL` (optional; defaults to `NEXTAUTH_URL`)
+- `STRIPE_BILLING_PORTAL_RETURN_URL` (optional; defaults to `/dashboard` under `NEXTAUTH_URL`)
 
 ### Authorization behavior
 

@@ -25,6 +25,7 @@ const envSchema = z.object({
   STRIPE_PRICE_TEAM_YEARLY: z.string().min(1).optional(),
   STRIPE_CHECKOUT_SUCCESS_URL: z.string().url().optional(),
   STRIPE_CHECKOUT_CANCEL_URL: z.string().url().optional(),
+  STRIPE_BILLING_PORTAL_RETURN_URL: z.string().url().optional(),
   STRIPE_ENTERPRISE_CONTACT_URL: z.string().url().optional(),
 });
 
