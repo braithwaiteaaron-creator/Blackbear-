@@ -23,6 +23,8 @@ const envSchema = z.object({
   STRIPE_PRICE_PREMIUM_YEARLY: z.string().min(1).optional(),
   STRIPE_PRICE_TEAM_MONTHLY: z.string().min(1).optional(),
   STRIPE_PRICE_TEAM_YEARLY: z.string().min(1).optional(),
+  STRIPE_CHECKOUT_SUCCESS_URL: z.string().url().optional(),
+  STRIPE_CHECKOUT_CANCEL_URL: z.string().url().optional(),
   STRIPE_ENTERPRISE_CONTACT_URL: z.string().url().optional(),
 });
 

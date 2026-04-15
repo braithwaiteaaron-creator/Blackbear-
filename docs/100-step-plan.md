@@ -67,7 +67,7 @@ Status legend:
 ## Phase 6 — Monetization and Subscription Infrastructure (51–60)
 - [x] **51.** Choose billing provider and architecture.
 - [x] **52.** Configure products/prices for Free/Premium/Team/Enterprise.
-- [ ] **53.** Implement Premium checkout flow.
+- [x] **53.** Implement Premium checkout flow.
 - [ ] **54.** Implement Team checkout flow.
 - [ ] **55.** Integrate self-serve billing portal.
 - [ ] **56.** Verify and secure billing webhooks.
