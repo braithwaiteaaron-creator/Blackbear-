@@ -1,6 +1,13 @@
 import { env } from "@/lib/env";
 import type { BillingInterval, BillingPlan, BillingPlanId, SubscriptionTier } from "@/lib/types";
 
+type StripePriceEnvKey =
+  | "STRIPE_PRICE_PREMIUM_MONTHLY"
+  | "STRIPE_PRICE_PREMIUM_YEARLY"
+  | "STRIPE_PRICE_TEAM_MONTHLY"
+  | "STRIPE_PRICE_TEAM_YEARLY"
+  | "STRIPE_PRICE_ENTERPRISE_MONTHLY";
+
 type BillingPlanConfig = {
   id: BillingPlanId;
   name: string;
@@ -12,13 +19,22 @@ type BillingPlanConfig = {
     currency: "usd";
     interval: BillingInterval;
     display: string;
-    priceIdEnvKey?: keyof typeof env;
+    priceIdEnvKey?: StripePriceEnvKey;
   }>;
   billing: {
     productName: string;
     mode: "subscription" | "contact_sales";
   };
 };
+
+function getEnvPriceId(key?: StripePriceEnvKey): string | null {
+  if (!key) {
+    return null;
+  }
+
+  const value = env[key];
+  return typeof value === "string" && value.length > 0 ? value : null;
+}
 
 const BILLING_PLAN_CONFIG: BillingPlanConfig[] = [
   {
@@ -133,7 +149,7 @@ function materializePlan(config: BillingPlanConfig): BillingPlan {
       provider: "stripe",
       productName: config.billing.productName,
       mode: config.billing.mode,
-      priceId: defaultPrice.priceIdEnvKey ? env[defaultPrice.priceIdEnvKey] ?? null : null,
+      priceId: getEnvPriceId(defaultPrice.priceIdEnvKey),
     },
   };
 }
@@ -144,6 +160,17 @@ export function getBillingPlans(): BillingPlan[] {
 
 export function getBillingPlan(planId: BillingPlanId): BillingPlan | undefined {
   return getBillingPlans().find((plan) => plan.id === planId);
+}
+
+export function getPlanIdByPriceId(priceId: string): BillingPlanId | null {
+  for (const plan of BILLING_PLAN_CONFIG) {
+    for (const price of plan.prices) {
+      if (getEnvPriceId(price.priceIdEnvKey) === priceId) {
+        return plan.id;
+      }
+    }
+  }
+  return null;
 }
 
 export function getPublicBillingPlans(): BillingPlan[] {
@@ -176,6 +203,6 @@ export function getPlanPrice(
     currency: matched.currency,
     interval: matched.interval,
     display: matched.display,
-    priceId: matched.priceIdEnvKey ? env[matched.priceIdEnvKey] ?? null : null,
+    priceId: getEnvPriceId(matched.priceIdEnvKey),
   };
 }

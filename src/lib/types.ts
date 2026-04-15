@@ -115,6 +115,7 @@ export type BillingPlan = {
   id: BillingPlanId;
   name: string;
   subscriptionTier: SubscriptionTier;
+  planCode: string | null;
   description: string;
   seatsIncluded: number | "unlimited";
   price: {

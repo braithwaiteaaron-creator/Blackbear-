@@ -103,6 +103,7 @@ npm run build
 - `POST /api/v1/billing/webhooks/stripe` (legacy alias: `POST /api/billing/webhooks/stripe`)
   - verifies Stripe webhook signatures using `STRIPE_WEBHOOK_SECRET`
   - persists webhook events for replay protection and observability
+  - syncs subscription rows and user subscription tiers from subscription lifecycle events
   - stores processing status and error details for failed event handling
 - Legacy `/api/quiz-sessions*` routes include deprecation headers:
   - `Deprecation: true`

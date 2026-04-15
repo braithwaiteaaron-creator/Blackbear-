@@ -1,5 +1,5 @@
 import Stripe from "stripe";
-import type { BillingSubscriptionStatus, Prisma } from "@prisma/client";
+import type { BillingSubscriptionStatus, Prisma, SubscriptionTier } from "@prisma/client";
 
 import { API_ERROR_CODES, type ApiErrorCode } from "@/lib/api";
 import { env } from "@/lib/env";
@@ -42,7 +42,13 @@ function toInputJson(value: unknown): Prisma.InputJsonValue {
   ) as Prisma.InputJsonValue;
 }
 
-function statusFromStripe(status: string): string {
+function toSubscriptionTier(
+  tier: SubscriptionTier
+): "free" | "premium" | "team" | "enterprise" {
+  return tier;
+}
+
+function statusFromStripe(status: string): BillingSubscriptionStatus {
   switch (status) {
     case "trialing":
     case "active":
@@ -57,42 +63,183 @@ function statusFromStripe(status: string): string {
   }
 }
 
-async function processSubscriptionEvent(event: Stripe.Event): Promise<void> {
-  const object = event.data.object as Stripe.Subscription;
+const ACTIVE_SUBSCRIPTION_STATUSES: BillingSubscriptionStatus[] = [
+  "trialing",
+  "active",
+  "past_due",
+];
+
+const SUBSCRIPTION_TIER_PRIORITY: Record<SubscriptionTier, number> = {
+  free: 0,
+  premium: 1,
+  team: 2,
+  enterprise: 3,
+};
+
+function inferTierFromPlanCode(planCode: string): SubscriptionTier {
+  const normalized = planCode.toLowerCase();
+  const premiumPriceIds = [env.STRIPE_PRICE_PREMIUM_MONTHLY, env.STRIPE_PRICE_PREMIUM_YEARLY].filter(
+    (value): value is string => Boolean(value)
+  );
+  const teamPriceIds = [env.STRIPE_PRICE_TEAM_MONTHLY, env.STRIPE_PRICE_TEAM_YEARLY].filter(
+    (value): value is string => Boolean(value)
+  );
+  const enterprisePriceIds = [env.STRIPE_PRICE_ENTERPRISE_MONTHLY].filter(
+    (value): value is string => Boolean(value)
+  );
+
+  if (teamPriceIds.includes(planCode) || normalized.includes("team")) {
+    return "team";
+  }
+  if (enterprisePriceIds.includes(planCode) || normalized.includes("enterprise")) {
+    return "enterprise";
+  }
+  if (premiumPriceIds.includes(planCode) || normalized.includes("premium")) {
+    return "premium";
+  }
+  return "free";
+}
+
+async function syncUserSubscriptionTier(userId: string): Promise<void> {
+  const activeSubscriptions = await prisma.billingSubscription.findMany({
+    where: {
+      userId,
+      status: { in: ACTIVE_SUBSCRIPTION_STATUSES },
+    },
+    select: {
+      planCode: true,
+    },
+  });
+
+  const nextTier = activeSubscriptions.reduce<SubscriptionTier>((currentTier, subscription) => {
+    const candidateTier = inferTierFromPlanCode(subscription.planCode);
+    return SUBSCRIPTION_TIER_PRIORITY[candidateTier] > SUBSCRIPTION_TIER_PRIORITY[currentTier]
+      ? candidateTier
+      : currentTier;
+  }, "free");
+
+  await prisma.user.update({
+    where: { id: userId },
+    data: {
+      subscriptionTier: toSubscriptionTier(nextTier),
+    },
+  });
+}
+
+async function resolveUserForSubscription(params: {
+  subscription: Stripe.Subscription;
+  customerId: string;
+}) {
+  const metadataUserId = params.subscription.metadata?.userId;
+  if (metadataUserId) {
+    const userById = await prisma.user.findUnique({
+      where: { id: metadataUserId },
+      select: { id: true },
+    });
+    if (userById) {
+      return userById;
+    }
+  }
+
+  const metadataEmail = params.subscription.metadata?.userEmail;
+  if (metadataEmail) {
+    const userByEmail = await prisma.user.findUnique({
+      where: { email: metadataEmail },
+      select: { id: true },
+    });
+    if (userByEmail) {
+      return userByEmail;
+    }
+  }
+
+  const existingBySubscription = await prisma.billingSubscription.findUnique({
+    where: { providerSubscriptionId: params.subscription.id },
+    select: { userId: true },
+  });
+  if (existingBySubscription) {
+    return { id: existingBySubscription.userId };
+  }
+
+  const existingByCustomer = await prisma.billingSubscription.findFirst({
+    where: {
+      provider: "stripe",
+      providerCustomerId: params.customerId,
+    },
+    orderBy: { updatedAt: "desc" },
+    select: { userId: true },
+  });
+  if (existingByCustomer) {
+    return { id: existingByCustomer.userId };
+  }
+
+  const customerObject = params.subscription.customer;
+  const embeddedEmail =
+    typeof customerObject === "object" && customerObject && "email" in customerObject
+      ? customerObject.email
+      : null;
+  if (embeddedEmail) {
+    const userByEmbeddedEmail = await prisma.user.findUnique({
+      where: { email: embeddedEmail },
+      select: { id: true },
+    });
+    if (userByEmbeddedEmail) {
+      return userByEmbeddedEmail;
+    }
+  }
+
+  const stripe = getStripeClient();
+  const stripeCustomer = await stripe.customers.retrieve(params.customerId);
+  const customerEmail =
+    typeof stripeCustomer === "object" && !("deleted" in stripeCustomer)
+      ? stripeCustomer.email
+      : null;
+  if (!customerEmail) {
+    return null;
+  }
+
+  return prisma.user.findUnique({
+    where: { email: customerEmail },
+    select: { id: true },
+  });
+}
+
+function getSubscriptionPeriods(subscription: Stripe.Subscription) {
+  const withPeriods = subscription as Stripe.Subscription & {
+    current_period_start?: number;
+    current_period_end?: number;
+  };
+  const fallbackUnixSeconds = subscription.created ?? Math.floor(Date.now() / 1000);
+
+  return {
+    currentPeriodStart: new Date((withPeriods.current_period_start ?? fallbackUnixSeconds) * 1000),
+    currentPeriodEnd: new Date((withPeriods.current_period_end ?? fallbackUnixSeconds) * 1000),
+  };
+}
+
+async function processSubscriptionObject(subscription: Stripe.Subscription): Promise<void> {
   const customerId =
-    typeof object.customer === "string" ? object.customer : object.customer?.id ?? null;
+    typeof subscription.customer === "string"
+      ? subscription.customer
+      : subscription.customer?.id ?? null;
   if (!customerId) {
     return;
   }
 
-  const email = object.metadata?.userEmail;
-  const user =
-    email && email.length > 0
-      ? await prisma.user.findUnique({
-          where: { email },
-          select: { id: true },
-        })
-      : null;
-
+  const user = await resolveUserForSubscription({
+    subscription,
+    customerId,
+  });
   if (!user) {
     return;
   }
 
-  const planCode = object.items.data[0]?.price?.id ?? "unknown";
-  const withPeriods = object as Stripe.Subscription & {
-    current_period_start?: number;
-    current_period_end?: number;
-  };
-  const fallbackUnixSeconds = Math.floor(Date.now() / 1000);
-  const currentPeriodStart = new Date(
-    (withPeriods.current_period_start ?? fallbackUnixSeconds) * 1000
-  );
-  const currentPeriodEnd = new Date((withPeriods.current_period_end ?? fallbackUnixSeconds) * 1000);
-  const normalizedStatus = statusFromStripe(object.status) as BillingSubscriptionStatus;
+  const planCode = subscription.items.data[0]?.price?.id ?? "unknown";
+  const { currentPeriodStart, currentPeriodEnd } = getSubscriptionPeriods(subscription);
+  const normalizedStatus = statusFromStripe(subscription.status);
 
   await prisma.billingSubscription.upsert({
     where: {
-      providerSubscriptionId: object.id,
+      providerSubscriptionId: subscription.id,
     },
     update: {
       status: normalizedStatus,
@@ -100,22 +247,29 @@ async function processSubscriptionEvent(event: Stripe.Event): Promise<void> {
       providerCustomerId: customerId,
       currentPeriodStart,
       currentPeriodEnd,
-      cancelAtPeriodEnd: object.cancel_at_period_end,
-      metadata: toInputJson(object.metadata ?? {}),
+      cancelAtPeriodEnd: subscription.cancel_at_period_end,
+      metadata: toInputJson(subscription.metadata ?? {}),
     },
     create: {
       userId: user.id,
       provider: "stripe",
       providerCustomerId: customerId,
-      providerSubscriptionId: object.id,
+      providerSubscriptionId: subscription.id,
       status: normalizedStatus,
       planCode,
       currentPeriodStart,
       currentPeriodEnd,
-      cancelAtPeriodEnd: object.cancel_at_period_end,
-      metadata: toInputJson(object.metadata ?? {}),
+      cancelAtPeriodEnd: subscription.cancel_at_period_end,
+      metadata: toInputJson(subscription.metadata ?? {}),
     },
   });
+
+  await syncUserSubscriptionTier(user.id);
+}
+
+async function processSubscriptionEvent(event: Stripe.Event): Promise<void> {
+  const subscription = event.data.object as Stripe.Subscription;
+  await processSubscriptionObject(subscription);
 }
 
 export async function verifyAndHandleStripeWebhook(request: Request): Promise<WebhookResult> {
@@ -192,6 +346,19 @@ export async function verifyAndHandleStripeWebhook(request: Request): Promise<We
       event.type === "customer.subscription.deleted"
     ) {
       await processSubscriptionEvent(event);
+    }
+    if (event.type === "checkout.session.completed") {
+      const session = event.data.object as Stripe.Checkout.Session;
+      if (session.mode === "subscription") {
+        const subscriptionId =
+          typeof session.subscription === "string"
+            ? session.subscription
+            : session.subscription?.id ?? null;
+        if (subscriptionId) {
+          const subscription = await getStripeClient().subscriptions.retrieve(subscriptionId);
+          await processSubscriptionObject(subscription);
+        }
+      }
     }
 
     await prisma.billingWebhookEvent.update({
