@@ -1,4 +1,5 @@
 import Stripe from "stripe";
+import type { BillingSubscriptionStatus, Prisma } from "@prisma/client";
 
 import { API_ERROR_CODES, type ApiErrorCode } from "@/lib/api";
 import { env } from "@/lib/env";
@@ -26,21 +27,19 @@ type WebhookResult =
       error: WebhookError;
     };
 
-function toInputJson(
-  value: unknown
-): Record<string, unknown> | Array<unknown> | string | number | boolean | null {
-  if (value === undefined) {
-    return null;
+function toInputJson(value: unknown): Prisma.InputJsonValue {
+  if (value === undefined || value === null) {
+    return {};
   }
-  if (value === null || typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
+  if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
     return value;
   }
   if (Array.isArray(value)) {
-    return value.map((entry) => toInputJson(entry));
+    return value.map((entry) => toInputJson(entry)) as Prisma.InputJsonValue;
   }
   return Object.fromEntries(
     Object.entries(value).map(([key, entry]) => [key, toInputJson(entry)])
-  );
+  ) as Prisma.InputJsonValue;
 }
 
 function statusFromStripe(status: string): string {
@@ -80,48 +79,41 @@ async function processSubscriptionEvent(event: Stripe.Event): Promise<void> {
   }
 
   const planCode = object.items.data[0]?.price?.id ?? "unknown";
-  const subscription = await getStripeClient().subscriptions.retrieve(object.id);
-  const currentPeriodStart = new Date(subscription.current_period_start * 1000);
-  const currentPeriodEnd = new Date(subscription.current_period_end * 1000);
+  const withPeriods = object as Stripe.Subscription & {
+    current_period_start?: number;
+    current_period_end?: number;
+  };
+  const fallbackUnixSeconds = Math.floor(Date.now() / 1000);
+  const currentPeriodStart = new Date(
+    (withPeriods.current_period_start ?? fallbackUnixSeconds) * 1000
+  );
+  const currentPeriodEnd = new Date((withPeriods.current_period_end ?? fallbackUnixSeconds) * 1000);
+  const normalizedStatus = statusFromStripe(object.status) as BillingSubscriptionStatus;
 
   await prisma.billingSubscription.upsert({
     where: {
       providerSubscriptionId: object.id,
     },
     update: {
-      status: statusFromStripe(object.status) as
-        | "trialing"
-        | "active"
-        | "past_due"
-        | "canceled"
-        | "unpaid"
-        | "incomplete"
-        | "incomplete_expired",
+      status: normalizedStatus,
       planCode,
       providerCustomerId: customerId,
       currentPeriodStart,
       currentPeriodEnd,
       cancelAtPeriodEnd: object.cancel_at_period_end,
-      metadata: toInputJson(object.metadata),
+      metadata: toInputJson(object.metadata ?? {}),
     },
     create: {
       userId: user.id,
       provider: "stripe",
       providerCustomerId: customerId,
       providerSubscriptionId: object.id,
-      status: statusFromStripe(object.status) as
-        | "trialing"
-        | "active"
-        | "past_due"
-        | "canceled"
-        | "unpaid"
-        | "incomplete"
-        | "incomplete_expired",
+      status: normalizedStatus,
       planCode,
       currentPeriodStart,
       currentPeriodEnd,
       cancelAtPeriodEnd: object.cancel_at_period_end,
-      metadata: toInputJson(object.metadata),
+      metadata: toInputJson(object.metadata ?? {}),
     },
   });
 }
@@ -154,7 +146,7 @@ export async function verifyAndHandleStripeWebhook(request: Request): Promise<We
   const payload = await request.text();
   let event: Stripe.Event;
   try {
-    const toleranceValue = Number.parseInt(env.STRIPE_WEBHOOK_TOLERANCE_SECONDS ?? "300", 10);
+    const toleranceValue = env.STRIPE_WEBHOOK_TOLERANCE_SECONDS ?? 300;
     const tolerance = Number.isFinite(toleranceValue) && toleranceValue > 0 ? toleranceValue : 300;
     event = getStripeClient().webhooks.constructEvent(payload, signature, webhookSecret, tolerance);
   } catch (error) {
@@ -189,7 +181,7 @@ export async function verifyAndHandleStripeWebhook(request: Request): Promise<We
       provider: "stripe",
       providerEventId: event.id,
       eventType: event.type,
-      payload: toInputJson(event) as Record<string, unknown>,
+      payload: toInputJson(event),
     },
   });
 
