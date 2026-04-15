@@ -1,6 +1,8 @@
 export type QuizTier = "beginner" | "intermediate" | "advanced";
 
 export type OptionId = "A" | "B" | "C" | "D";
+export type DeviceType = "mobile" | "tablet" | "desktop";
+export type TierCompleted = "beginner" | "intermediate" | "advanced" | "full";
 
 export type QuestionOption = {
   id: OptionId;
@@ -27,6 +29,60 @@ export type QuestionResponse = {
   isCorrect: boolean;
   timeOnQuestionMs: number;
   tier: QuizTier;
+};
+
+export type QuizSessionCreatePayload = {
+  tierCompleted: TierCompleted;
+  totalScore: number;
+  beginnerScore: number;
+  intermediateScore: number;
+  advancedScore: number;
+  timeToComplete: number;
+  deviceType: DeviceType;
+  trafficSource: string;
+  responses: Array<{
+    questionId: number;
+    selectedAnswer: OptionId;
+    isCorrect: boolean;
+    timeOnQuestion: number;
+  }>;
+};
+
+export type PersistedQuizSession = {
+  id: string;
+  completedAt: string;
+  tierCompleted: TierCompleted;
+  totalScore: number;
+  beginnerScore: number;
+  intermediateScore: number;
+  advancedScore: number;
+  timeToComplete: number;
+  deviceType: DeviceType;
+  trafficSource: string;
+  responses: Array<{
+    id: string;
+    questionId: number;
+    selectedAnswer: string;
+    isCorrect: boolean;
+    timeOnQuestion: number;
+    createdAt: string;
+  }>;
+};
+
+export type PersistedQuizSessionSummary = {
+  id: string;
+  totalScore: number;
+  beginnerScore: number;
+  intermediateScore: number;
+  advancedScore: number;
+  completedAt: string;
+  badge: string;
+};
+
+export type PersistQuizSessionResult = {
+  sessionId: string;
+  badgeTier: BadgeTier;
+  totalScore: number;
 };
 
 export type ScoreBreakdown = {

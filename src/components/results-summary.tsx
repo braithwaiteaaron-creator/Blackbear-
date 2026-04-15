@@ -1,15 +1,49 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 
 import { useQuizStore } from "@/lib/store";
 import { getBadgeAward, getTierFeedback } from "@/lib/scoring";
+import { detectDeviceType } from "@/lib/device";
+import { buildQuizSessionPayload, persistQuizSession } from "@/lib/quiz-persistence";
+import type { PersistQuizSessionResult } from "@/lib/types";
 
 export function ResultsSummary() {
+  const responses = useQuizStore((state) => state.getAllResponses());
+  const startedAt = useQuizStore((state) => state.startedAt);
   const breakdown = useQuizStore((state) => state.getScoreBreakdown());
   const reset = useQuizStore((state) => state.resetQuiz);
   const badge = getBadgeAward(breakdown.total);
+  const [saveState, setSaveState] = useState<
+    "idle" | "saving" | "saved" | "error"
+  >("idle");
+  const [persistedResult, setPersistedResult] =
+    useState<PersistQuizSessionResult | null>(null);
+  useEffect(() => {
+    if (!responses.length || saveState === "saved" || saveState === "saving") {
+      return;
+    }
+
+    const payload = buildQuizSessionPayload({
+      responses,
+      breakdown,
+      startedAt,
+      completedAt: Date.now(),
+      deviceType: detectDeviceType(),
+      trafficSource: "direct",
+    });
+
+    const persist = async () => {
+      setSaveState("saving");
+      const data = (await persistQuizSession(payload)) as PersistQuizSessionResult;
+      setPersistedResult(data);
+      setSaveState("saved");
+    };
+
+    void persist();
+  }, [responses, breakdown, startedAt, saveState]);
 
   return (
     <section className="space-y-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -44,6 +78,15 @@ export function ResultsSummary() {
         <p className="mt-1 text-2xl font-semibold">{badge.label}</p>
         <p className="mt-2 text-sm text-slate-300">
           Share on LinkedIn, X, or copy your public badge link.
+        </p>
+        <p className="mt-2 text-xs text-slate-400">
+          {saveState === "saving" ? "Saving your assessment..." : null}
+          {saveState === "saved" && persistedResult
+            ? `Saved as session ${persistedResult.sessionId.slice(0, 8)}.`
+            : null}
+          {saveState === "error"
+            ? "Could not save this attempt. You can still review your score."
+            : null}
         </p>
       </div>
 

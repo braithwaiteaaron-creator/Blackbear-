@@ -63,6 +63,7 @@ Interactive SaaS assessment and learning platform prototype aligned to the "Comp
 
 ```bash
 npm install
+cp .env.example .env.local
 npm run dev
 ```
 
@@ -74,4 +75,26 @@ Then open <http://localhost:3000>.
 npm run lint
 npm run typecheck
 npm run build
+```
+
+## Backend and auth setup
+
+This project now includes:
+
+- NextAuth (`/api/auth/[...nextauth]`) with a Credentials demo provider
+- Prisma 7 client setup with PostgreSQL adapter
+- Quiz persistence API endpoints:
+  - `POST /api/quiz-sessions` to save the current attempt
+  - `GET /api/quiz-sessions/me` to fetch the latest saved attempts for the signed-in user
+
+Set environment variables (see `.env.example`):
+
+- `DATABASE_URL`
+- `NEXTAUTH_SECRET`
+- `NEXTAUTH_URL`
+
+Prisma commands:
+
+```bash
+npx prisma generate
 ```

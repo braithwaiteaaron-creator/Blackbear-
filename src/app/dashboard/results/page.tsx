@@ -1,5 +1,6 @@
 import { DashboardGrid } from "@/components/dashboard-grid";
 import { PageShell } from "@/components/page-shell";
+import { SavedSessionsList } from "@/components/saved-sessions-list";
 
 export default function DashboardResultsPage() {
   return (
@@ -23,6 +24,9 @@ export default function DashboardResultsPage() {
           },
         ]}
       />
+      <div className="mt-6">
+        <SavedSessionsList />
+      </div>
     </PageShell>
   );
 }
