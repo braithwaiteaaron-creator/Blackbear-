@@ -28,6 +28,12 @@ const envSchema = z.object({
   STRIPE_CHECKOUT_CANCEL_URL: z.string().url().optional(),
   STRIPE_BILLING_PORTAL_RETURN_URL: z.string().url().optional(),
   STRIPE_WEBHOOK_TOLERANCE_SECONDS: z.coerce.number().int().min(0).optional(),
+  BILLING_INTRO_TRIAL_DAYS: z.coerce.number().int().min(0).max(365).optional(),
+  BILLING_INTRO_ELIGIBLE_PLANS: z.string().optional(),
+  BILLING_DUNNING_ENABLED: z
+    .string()
+    .optional()
+    .transform((value) => value !== "false"),
   STRIPE_ENTERPRISE_CONTACT_URL: z.string().url().optional(),
 });
 

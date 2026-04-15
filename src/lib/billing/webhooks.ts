@@ -4,6 +4,7 @@ import type { BillingSubscriptionStatus, Prisma, SubscriptionTier } from "@prism
 import { API_ERROR_CODES, type ApiErrorCode } from "@/lib/api";
 import { env } from "@/lib/env";
 import { getStripeClient, getStripeWebhookSecret } from "@/lib/billing/stripe";
+import { enqueueJob } from "@/lib/job-queue";
 import { prisma } from "@/lib/prisma";
 
 type WebhookError = {
@@ -272,6 +273,42 @@ async function processSubscriptionEvent(event: Stripe.Event): Promise<void> {
   await processSubscriptionObject(subscription);
 }
 
+async function processInvoiceEvent(event: Stripe.Event): Promise<void> {
+  const invoice = event.data.object as Stripe.Invoice;
+  const subscriptionId =
+    typeof invoice.subscription === "string" ? invoice.subscription : invoice.subscription?.id ?? null;
+  if (!subscriptionId) {
+    return;
+  }
+
+  const existingSubscription = await prisma.billingSubscription.findUnique({
+    where: { providerSubscriptionId: subscriptionId },
+    select: { userId: true, planCode: true },
+  });
+  if (!existingSubscription) {
+    return;
+  }
+
+  if (event.type === "invoice.payment_failed") {
+    await enqueueJob({
+      jobType: "billing_dunning_email",
+      idempotencyKey: `billing-dunning:${invoice.id}`,
+      payload: {
+        userId: existingSubscription.userId,
+        subscriptionId,
+        invoiceId: invoice.id,
+        amountDue: invoice.amount_due,
+        amountPaid: invoice.amount_paid,
+        currency: invoice.currency,
+        attemptCount: invoice.attempt_count,
+        nextPaymentAttempt: invoice.next_payment_attempt,
+        hostedInvoiceUrl: invoice.hosted_invoice_url,
+        customerEmail: invoice.customer_email,
+      },
+    });
+  }
+}
+
 export async function verifyAndHandleStripeWebhook(request: Request): Promise<WebhookResult> {
   const webhookSecret = getStripeWebhookSecret();
   if (!webhookSecret) {
@@ -346,6 +383,9 @@ export async function verifyAndHandleStripeWebhook(request: Request): Promise<We
       event.type === "customer.subscription.deleted"
     ) {
       await processSubscriptionEvent(event);
+    }
+    if (event.type === "invoice.payment_failed" || event.type === "invoice.payment_succeeded") {
+      await processInvoiceEvent(event);
     }
     if (event.type === "checkout.session.completed") {
       const session = event.data.object as Stripe.Checkout.Session;

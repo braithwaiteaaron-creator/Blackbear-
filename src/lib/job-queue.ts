@@ -2,7 +2,7 @@ import type { Prisma } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
 
-export type QueueJobType = "quiz_session_created";
+export type QueueJobType = "quiz_session_created" | "billing_payment_failed_dunning";
 
 type QueueJobPayload = Record<string, unknown>;
 
@@ -72,6 +72,16 @@ export async function processPendingJobs(limit: number) {
       });
 
       if (job.jobType === "quiz_session_created") {
+        await prisma.jobQueue.update({
+          where: { id: job.id },
+          data: {
+            status: "completed",
+            lastError: null,
+          },
+        });
+        processed += 1;
+      } else if (job.jobType === "billing_payment_failed_dunning") {
+        // Placeholder dunning execution. Future step wires email provider + retry cadence.
         await prisma.jobQueue.update({
           where: { id: job.id },
           data: {

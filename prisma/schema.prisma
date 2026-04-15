@@ -47,6 +47,7 @@ enum JobStatus {
 
 enum JobType {
   quiz_session_created
+  billing_dunning_notice
 }
 
 enum BillingProvider {

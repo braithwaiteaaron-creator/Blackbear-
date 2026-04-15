@@ -20,6 +20,11 @@ type CheckoutError = {
   details?: unknown;
 };
 
+type IntroOfferDecision = {
+  trialDays: number;
+  reason: "global-default" | "premium-default" | "team-default";
+};
+
 export type CheckoutResult =
   | {
       ok: true;
@@ -46,6 +51,38 @@ function resolvePlanPriceId(params: {
   return params.interval === "year"
     ? env.STRIPE_PRICE_TEAM_YEARLY ?? null
     : env.STRIPE_PRICE_TEAM_MONTHLY ?? null;
+}
+
+function parsePositiveInteger(value: string | undefined): number {
+  if (!value) {
+    return 0;
+  }
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+}
+
+function decideIntroOffer(planId: "premium" | "team"): IntroOfferDecision | null {
+  const globalTrial = parsePositiveInteger(env.BILLING_INTRO_TRIAL_DAYS_DEFAULT);
+  const premiumTrial = parsePositiveInteger(env.BILLING_INTRO_TRIAL_DAYS_PREMIUM);
+  const teamTrial = parsePositiveInteger(env.BILLING_INTRO_TRIAL_DAYS_TEAM);
+
+  if (planId === "premium") {
+    if (premiumTrial > 0) {
+      return { trialDays: premiumTrial, reason: "premium-default" };
+    }
+    if (globalTrial > 0) {
+      return { trialDays: globalTrial, reason: "global-default" };
+    }
+    return null;
+  }
+
+  if (teamTrial > 0) {
+    return { trialDays: teamTrial, reason: "team-default" };
+  }
+  if (globalTrial > 0) {
+    return { trialDays: globalTrial, reason: "global-default" };
+  }
+  return null;
 }
 
 export async function createBillingCheckoutSession(request: Request): Promise<CheckoutResult> {
@@ -120,6 +157,17 @@ export async function createBillingCheckoutSession(request: Request): Promise<Ch
     };
   }
 
+  const existingPaidSubscription = await prisma.billingSubscription.findFirst({
+    where: {
+      userId: user.id,
+      status: {
+        in: ["trialing", "active", "past_due", "unpaid", "incomplete"],
+      },
+    },
+    select: { id: true },
+  });
+
+  const introOffer = existingPaidSubscription ? null : decideIntroOffer(payload.data.planId);
   const stripe = getStripeClient();
   const checkout = await stripe.checkout.sessions.create({
     mode: "subscription",
@@ -137,7 +185,21 @@ export async function createBillingCheckoutSession(request: Request): Promise<Ch
       userEmail: user.email,
       requestedPlanId: plan.id,
       requestedInterval: payload.data.interval,
+      introOfferApplied: introOffer ? "true" : "false",
+      introOfferReason: introOffer?.reason ?? "none",
+      introOfferTrialDays: introOffer ? String(introOffer.trialDays) : "0",
     },
+    ...(introOffer
+      ? {
+          subscription_data: {
+            trial_period_days: introOffer.trialDays,
+            metadata: {
+              introOfferReason: introOffer.reason,
+              introOfferTrialDays: String(introOffer.trialDays),
+            },
+          },
+        }
+      : {}),
   });
 
   if (!checkout.url) {

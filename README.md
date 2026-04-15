@@ -95,6 +95,7 @@ npm run build
 - `POST /api/v1/billing/checkout` (legacy alias: `POST /api/billing/checkout`)
   - creates Stripe Checkout session for paid tiers (Premium + Team)
   - requires authenticated user and configured Stripe price ID
+  - supports intro/trial rules via configurable trial day settings and per-user usage limits
   - returns `checkoutUrl` for immediate client redirect
 - `POST /api/v1/billing/portal` (legacy alias: `POST /api/billing/portal`)
   - creates Stripe Billing Portal session for authenticated users
@@ -104,6 +105,7 @@ npm run build
   - verifies Stripe webhook signatures using `STRIPE_WEBHOOK_SECRET`
   - persists webhook events for replay protection and observability
   - syncs subscription rows and user subscription tiers from subscription lifecycle events
+  - handles invoice payment failures/success to drive dunning state updates
   - stores processing status and error details for failed event handling
 - Legacy `/api/quiz-sessions*` routes include deprecation headers:
   - `Deprecation: true`
@@ -151,6 +153,9 @@ Set environment variables (see `.env.example`):
 - `STRIPE_PRICE_ENTERPRISE_MONTHLY` / `STRIPE_PRICE_ENTERPRISE_YEARLY` (optional if enterprise is fully sales-led)
 - `STRIPE_CHECKOUT_SUCCESS_URL` / `STRIPE_CHECKOUT_CANCEL_URL` (optional; defaults to `NEXTAUTH_URL`)
 - `STRIPE_BILLING_PORTAL_RETURN_URL` (optional; defaults to `/dashboard` under `NEXTAUTH_URL`)
+- `STRIPE_INTRO_TRIAL_DAYS` (optional; defaults to `14`)
+- `STRIPE_INTRO_TRIAL_ENABLED` (optional; defaults to `true`)
+- `STRIPE_INTRO_TRIAL_MAX_USES_PER_USER` (optional; defaults to `1`)
 
 ### Authorization behavior
 

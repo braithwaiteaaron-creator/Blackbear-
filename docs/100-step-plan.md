@@ -72,8 +72,8 @@ Status legend:
 - [x] **55.** Integrate self-serve billing portal.
 - [x] **56.** Verify and secure billing webhooks.
 - [x] **57.** Sync subscription state into application DB.
-- [ ] **58.** Implement intro pricing/trial rules.
-- [ ] **59.** Add failed payment handling and dunning path.
+- [x] **58.** Implement intro pricing/trial rules.
+- [x] **59.** Add failed payment handling and dunning path.
 - [ ] **60.** Build finance export/reporting views.
 
 ## Phase 7 — Certifications and Badge Operations (61–70)
