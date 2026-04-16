@@ -3,10 +3,10 @@ import { getServerSession } from "next-auth";
 import { setApiVersionHeader } from "@/app/api/v1/route-config";
 import { API_ERROR_CODES, apiError, apiSuccess } from "@/lib/api";
 import { authConfig } from "@/lib/auth";
+import { listCertificationsForUser } from "@/lib/certification-service";
 import {
-  issueCertificationForLatestSession,
-  listCertificationsForUser,
-} from "@/lib/certification-service";
+  issueCertificationFromCompletedPurchase,
+} from "@/lib/certification-purchase";
 
 export async function GET() {
   const session = await getServerSession(authConfig);
@@ -36,33 +36,34 @@ export async function POST() {
     );
   }
 
-  const issued = await issueCertificationForLatestSession({
+  const purchaseIssuanceResult = await issueCertificationFromCompletedPurchase({
     userEmail: email,
     userName: session.user?.name,
   });
-  if ("error" in issued) {
+  if (purchaseIssuanceResult.ok) {
     return setApiVersionHeader(
-      apiError(
-        issued.error.code,
-        issued.error.message,
-        issued.error.status,
-        issued.error.details
+      apiSuccess(
+        {
+          certification: purchaseIssuanceResult.data.certification,
+          sourceSessionId: purchaseIssuanceResult.data.sourceSessionId,
+        },
+        purchaseIssuanceResult.data.created ? 201 : 200,
+        {
+          created: purchaseIssuanceResult.data.created,
+          purchaseId: purchaseIssuanceResult.data.purchaseId,
+          providerSync: purchaseIssuanceResult.data.providerSync,
+          verificationUrl: `/api/v1/certifications/verify/${purchaseIssuanceResult.data.certification.verificationCode}`,
+        }
       )
     );
   }
 
   return setApiVersionHeader(
-    apiSuccess(
-      {
-        certification: issued.certification,
-        sourceSessionId: issued.sourceSessionId,
-      },
-      issued.created ? 201 : 200,
-      {
-        created: issued.created,
-        verificationUrl: `/api/v1/certifications/verify/${issued.certification.verificationCode}`,
-        providerSync: issued.providerSync,
-      }
+    apiError(
+      purchaseIssuanceResult.error.code,
+      purchaseIssuanceResult.error.message,
+      purchaseIssuanceResult.error.status,
+      purchaseIssuanceResult.error.details
     )
   );
 }

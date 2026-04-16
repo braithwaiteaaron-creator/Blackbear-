@@ -2,6 +2,7 @@ import Stripe from "stripe";
 import type { BillingSubscriptionStatus, Prisma, SubscriptionTier } from "@prisma/client";
 
 import { API_ERROR_CODES, type ApiErrorCode } from "@/lib/api";
+import { markCertificationPurchaseCompletedFromCheckoutSession } from "@/lib/certification-purchase";
 import { env } from "@/lib/env";
 import { getStripeClient, getStripeWebhookSecret } from "@/lib/billing/stripe";
 import { enqueueJob } from "@/lib/job-queue";
@@ -403,6 +404,9 @@ export async function verifyAndHandleStripeWebhook(request: Request): Promise<We
           const subscription = await getStripeClient().subscriptions.retrieve(subscriptionId);
           await processSubscriptionObject(subscription);
         }
+      }
+      if (session.mode === "payment") {
+        await markCertificationPurchaseCompletedFromCheckoutSession(session);
       }
     }
 

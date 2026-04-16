@@ -2,7 +2,17 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 
+import { resolveCertificationTierForPurchaseFlow } from "@/lib/certification-purchase";
 import type { CredentialProviderSync, UserCertification } from "@/lib/types";
+
+type CertificationPurchase = {
+  id: string;
+  certificationTier: string;
+  status: string;
+  amountCents: number;
+  currency: string;
+  completedAt: string | null;
+};
 
 type CertificationsResponse = {
   ok: boolean;
@@ -25,6 +35,20 @@ type IssueCertificationResponse = {
     providerSync?: CredentialProviderSync;
   };
   error?: {
+    code?: string;
+    message?: string;
+    details?: {
+      requiredCertificationTier?: "foundation" | "developing" | "advanced" | "expert";
+    };
+  };
+};
+
+type PurchasesResponse = {
+  ok: boolean;
+  data: {
+    purchases: CertificationPurchase[];
+  };
+  error?: {
     message?: string;
   };
 };
@@ -42,8 +66,10 @@ function formatDate(value: string): string {
 
 export function CertificationsPanel() {
   const [items, setItems] = useState<UserCertification[]>([]);
+  const [purchases, setPurchases] = useState<CertificationPurchase[]>([]);
   const [loadState, setLoadState] = useState<"loading" | "ready" | "error">("loading");
   const [issueState, setIssueState] = useState<"idle" | "issuing">("idle");
+  const [checkoutState, setCheckoutState] = useState<"idle" | "redirecting">("idle");
   const [message, setMessage] = useState<string | null>(null);
 
   const loadCertifications = useCallback(async () => {
@@ -59,7 +85,20 @@ export function CertificationsPanel() {
       if (!response.ok || !payload.ok) {
         throw new Error(payload.error?.message ?? "Unable to load certifications.");
       }
+
+      const purchasesResponse = await fetch("/api/certifications/purchases/me", {
+        method: "GET",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        cache: "no-store",
+      });
+      const purchasesPayload = (await purchasesResponse.json()) as PurchasesResponse;
+      if (!purchasesResponse.ok || !purchasesPayload.ok) {
+        throw new Error(purchasesPayload.error?.message ?? "Unable to load certification purchases.");
+      }
+
       setItems(payload.data.certifications);
+      setPurchases(purchasesPayload.data.purchases);
       setLoadState("ready");
       setMessage(null);
     } catch (error) {
@@ -85,6 +124,35 @@ export function CertificationsPanel() {
       });
       const payload = (await response.json()) as IssueCertificationResponse;
       if (!response.ok || !payload.ok) {
+        if (response.status === 402 || payload.error?.code === "PAYMENT_REQUIRED") {
+          const requiredTier = resolveCertificationTierForPurchaseFlow(
+            payload.error?.details?.requiredCertificationTier
+          );
+          const checkoutResponse = await fetch("/api/certifications/checkout", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({ certificationTier: requiredTier }),
+          });
+          const checkoutPayload = (await checkoutResponse.json()) as {
+            ok: boolean;
+            data?: { checkoutUrl?: string };
+            error?: { message?: string };
+          };
+          if (
+            checkoutResponse.ok &&
+            checkoutPayload.ok &&
+            checkoutPayload.data?.checkoutUrl
+          ) {
+            setCheckoutState("redirecting");
+            window.location.assign(checkoutPayload.data.checkoutUrl);
+            return;
+          }
+          throw new Error(
+            checkoutPayload.error?.message ??
+              "Certification purchase is required before issuance."
+          );
+        }
         throw new Error(payload.error?.message ?? "Unable to issue certification.");
       }
       setItems((current) => {
@@ -111,6 +179,7 @@ export function CertificationsPanel() {
   }, []);
 
   const hasCertifications = useMemo(() => items.length > 0, [items.length]);
+  const hasPurchases = useMemo(() => purchases.length > 0, [purchases.length]);
 
   return (
     <section className="space-y-4 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -127,10 +196,14 @@ export function CertificationsPanel() {
         <button
           type="button"
           onClick={handleIssue}
-          disabled={issueState === "issuing"}
+          disabled={issueState === "issuing" || checkoutState === "redirecting"}
           className="inline-flex items-center rounded-lg bg-blue-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-600 disabled:cursor-not-allowed disabled:bg-blue-400"
         >
-          {issueState === "issuing" ? "Issuing..." : "Issue certificate from latest score"}
+          {checkoutState === "redirecting"
+            ? "Redirecting to checkout..."
+            : issueState === "issuing"
+              ? "Issuing..."
+              : "Issue certificate from latest score"}
         </button>
       </header>
 
@@ -163,6 +236,30 @@ export function CertificationsPanel() {
         <p className="text-sm text-slate-700">
           No issued certificates yet. Complete a quiz session, then issue your first certificate.
         </p>
+      ) : null}
+
+      {loadState === "ready" && hasPurchases ? (
+        <section className="rounded-xl border border-slate-200 bg-white p-4">
+          <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-600">
+            Certification purchases
+          </h3>
+          <ul className="mt-3 space-y-2 text-sm text-slate-700">
+            {purchases.slice(0, 3).map((purchase) => (
+              <li key={purchase.id} className="rounded-lg border border-slate-100 bg-slate-50 p-3">
+                <p className="font-semibold text-slate-900">
+                  {purchase.certificationTier.toUpperCase()} •{" "}
+                  {(purchase.amountCents / 100).toFixed(2)} {purchase.currency.toUpperCase()}
+                </p>
+                <p className="text-xs text-slate-600">
+                  Status: {purchase.status}
+                  {purchase.completedAt
+                    ? ` • Completed ${new Date(purchase.completedAt).toLocaleString()}`
+                    : ""}
+                </p>
+              </li>
+            ))}
+          </ul>
+        </section>
       ) : null}
 
       {loadState === "ready" && hasCertifications ? (

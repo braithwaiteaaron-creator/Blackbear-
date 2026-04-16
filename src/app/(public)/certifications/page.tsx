@@ -42,7 +42,9 @@ export default function CertificationsPage() {
           score in the dashboard.
         </p>
         <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-slate-700">
+          <li>Checkout uses Stripe one-time payments per certification tier.</li>
           <li>Eligibility derives from your most recent persisted quiz session.</li>
+          <li>Issuance is gated by completed certification purchases for the derived tier.</li>
           <li>Issued certificates include tier, score, dates, and a verification code.</li>
           <li>Generated PDFs are stored under a stable certificate URL for download.</li>
         </ul>

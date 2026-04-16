@@ -71,6 +71,13 @@ enum BillingWebhookStatus {
   failed
 }
 
+enum CertificationPurchaseStatus {
+  pending
+  completed
+  failed
+  canceled
+}
+
 model User {
   id               String           @id @default(uuid()) @db.Uuid
   email            String           @unique
@@ -84,6 +91,7 @@ model User {
 
   quizSessions         QuizSession[]
   certifications       Certification[]
+  certificationPurchases CertificationPurchase[]
   organizations        Organization[]        @relation("OrganizationAdmin")
   billingSubscriptions BillingSubscription[]
 
@@ -137,6 +145,29 @@ model Certification {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("certifications")
+}
+
+model CertificationPurchase {
+  id                    String                      @id @default(uuid()) @db.Uuid
+  userId                String                      @map("user_id") @db.Uuid
+  certificationTier     CertificationTier           @map("certification_tier")
+  provider              BillingProvider
+  providerCheckoutId    String                      @unique @map("provider_checkout_id")
+  providerPaymentIntent String?                     @map("provider_payment_intent")
+  providerCustomerId    String?                     @map("provider_customer_id")
+  amountCents           Int                         @map("amount_cents")
+  currency              String                      @default("usd")
+  status                CertificationPurchaseStatus @default(pending)
+  metadata              Json?
+  completedAt           DateTime?                   @map("completed_at")
+  createdAt             DateTime                    @default(now()) @map("created_at")
+  updatedAt             DateTime                    @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, certificationTier, status], map: "cert_purchases_user_tier_status_idx")
+  @@index([provider, providerCheckoutId], map: "cert_purchases_provider_checkout_idx")
+  @@map("certification_purchases")
 }
 
 model Organization {

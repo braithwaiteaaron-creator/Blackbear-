@@ -42,6 +42,10 @@ const envSchema = z.object({
   CREDLY_ORGANIZATION_ID: z.string().min(1).optional(),
   BADGR_API_TOKEN: z.string().min(1).optional(),
   BADGR_ISSUER_ID: z.string().min(1).optional(),
+  STRIPE_CERT_PRICE_FOUNDATION: z.string().min(1).optional(),
+  STRIPE_CERT_PRICE_DEVELOPING: z.string().min(1).optional(),
+  STRIPE_CERT_PRICE_ADVANCED: z.string().min(1).optional(),
+  STRIPE_CERT_PRICE_EXPERT: z.string().min(1).optional(),
   CERTIFICATION_RENEWAL_SCHEDULER_ENABLED: z
     .string()
     .optional()
