@@ -1,5 +1,10 @@
 import { PageShell } from "@/components/page-shell";
 import { InfoGrid } from "@/components/info-grid";
+import Link from "next/link";
+import {
+  CERTIFICATION_TERMS_PATH,
+  CERTIFICATION_TERMS_VERSION,
+} from "@/lib/certification-terms";
 
 const certificationOffers = [
   {
@@ -45,6 +50,17 @@ export default function CertificationsPage() {
           <li>Checkout uses Stripe one-time payments per certification tier.</li>
           <li>Eligibility derives from your most recent persisted quiz session.</li>
           <li>Issuance is gated by completed certification purchases for the derived tier.</li>
+          <li>
+            Checkout requires acceptance of certification terms version{" "}
+            {CERTIFICATION_TERMS_VERSION} (see{" "}
+            <Link
+              href={CERTIFICATION_TERMS_PATH}
+              className="font-semibold text-blue-700 hover:underline"
+            >
+              certification terms
+            </Link>
+            ).
+          </li>
           <li>Issued certificates include tier, score, dates, and a verification code.</li>
           <li>Generated PDFs are stored under a stable certificate URL for download.</li>
         </ul>

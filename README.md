@@ -127,6 +127,7 @@ npm run build
 - `POST /api/v1/certifications/checkout` (legacy alias: `POST /api/certifications/checkout`)
   - creates Stripe one-time Checkout session for a certification purchase
   - accepts optional `certificationTier` (`foundation|developing|advanced|expert`, default `advanced`)
+  - requires `acceptCertificationTerms: true` and `certificationTermsVersion` matching the current legal version
   - persists pending purchase records and returns `checkoutUrl` for client redirect
 - `POST /api/v1/certifications/issue` (legacy alias: `POST /api/certifications/issue`)
   - explicitly issues certificate from latest completed purchase
@@ -216,6 +217,10 @@ Set environment variables (see `.env.example`):
 - `CREDLY_API_TOKEN` / `CREDLY_ORGANIZATION_ID` (optional; used when `CREDENTIAL_PROVIDER=credly`)
 - `BADGR_API_TOKEN` / `BADGR_ISSUER_ID` (optional; used when `CREDENTIAL_PROVIDER=badgr`)
 - `STRIPE_CERT_PRICE_FOUNDATION` / `STRIPE_CERT_PRICE_DEVELOPING` / `STRIPE_CERT_PRICE_ADVANCED` / `STRIPE_CERT_PRICE_EXPERT` (reserved for future Stripe product/price mapping)
+- `CERTIFICATION_TERMS_VERSION` (optional server override for legal terms version, default `2026-04-15`)
+- `CERTIFICATION_TERMS_EFFECTIVE_DATE` (optional server override for legal terms effective date; defaults to terms version)
+- `NEXT_PUBLIC_CERTIFICATION_TERMS_VERSION` (optional client-visible override, should match server version)
+- `NEXT_PUBLIC_CERTIFICATION_TERMS_EFFECTIVE_DATE` (optional client-visible override for display text)
 - `CERTIFICATION_RENEWAL_SCHEDULER_ENABLED` (optional; set `false` to disable renewal scheduling)
 - `CERTIFICATION_RENEWAL_LOOKAHEAD_DAYS` (optional; default `30`)
 - `CERTIFICATION_RENEWAL_SCHEDULED_BY` (optional; default `system-renewal-scheduler`)
@@ -231,6 +236,8 @@ Certification artifacts:
 - Admin revoke/reissue actions append metadata history to certification records and surface in admin certification controls on `/admin/users`.
 - Abuse/fraud protections now log certification risk events (`checkout_without_assessment`, `checkout_tier_mismatch`, `checkout_pending_flood`, `issuance_without_assessment`, `issuance_tier_mismatch`, `revoked_credential_verification`) and expose unresolved events in admin controls.
 - Purchase and issuance flows enforce guardrails against tier mismatch, repeated pending checkouts, and issuance without a valid assessment context.
+- Certification checkout now records auditable terms acceptance metadata (`certificationTermsVersion`, acceptance timestamp) in Stripe metadata and persisted purchase metadata.
+- Public certification legal terms are published at `/certifications/terms`; dashboard checkout requires explicit acceptance of the current version before redirecting to Stripe.
 
 ### Authorization behavior
 

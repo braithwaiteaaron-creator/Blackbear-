@@ -86,7 +86,7 @@ Status legend:
 - [x] **67.** Ship certification purchase + issuance flow.
 - [x] **68.** Add admin revoke/reissue controls.
 - [x] **69.** Add abuse/fraud checks for certification misuse.
-- [ ] **70.** Finalize legal terms for certification program.
+- [x] **70.** Finalize legal terms for certification program.
 
 ## Phase 8 — Enterprise Productization (71–80)
 - [ ] **71.** Build organization creation and member provisioning workflow.

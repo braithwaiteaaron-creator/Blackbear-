@@ -2,6 +2,10 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 
+import {
+  CERTIFICATION_TERMS_PATH,
+  CERTIFICATION_TERMS_VERSION,
+} from "@/lib/certification-terms";
 import type { CredentialProviderSync, UserCertification } from "@/lib/types";
 
 const DEFAULT_CERTIFICATION_PURCHASE_TIER = "advanced";
@@ -82,6 +86,7 @@ export function CertificationsPanel() {
   const [loadState, setLoadState] = useState<"loading" | "ready" | "error">("loading");
   const [issueState, setIssueState] = useState<"idle" | "issuing">("idle");
   const [checkoutState, setCheckoutState] = useState<"idle" | "redirecting">("idle");
+  const [termsAccepted, setTermsAccepted] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
   const loadCertifications = useCallback(async () => {
@@ -137,6 +142,9 @@ export function CertificationsPanel() {
       const payload = (await response.json()) as IssueCertificationResponse;
       if (!response.ok || !payload.ok) {
         if (response.status === 402 || payload.error?.code === "PAYMENT_REQUIRED") {
+          if (!termsAccepted) {
+            throw new Error("Accept the certification terms before checkout.");
+          }
           const requiredTier = resolveCertificationTierForPurchaseFlow(
             payload.error?.details?.requiredCertificationTier
           );
@@ -144,7 +152,11 @@ export function CertificationsPanel() {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             credentials: "include",
-            body: JSON.stringify({ certificationTier: requiredTier }),
+            body: JSON.stringify({
+              certificationTier: requiredTier,
+              acceptCertificationTerms: true,
+              certificationTermsVersion: CERTIFICATION_TERMS_VERSION,
+            }),
           });
           const checkoutPayload = (await checkoutResponse.json()) as {
             ok: boolean;
@@ -188,7 +200,7 @@ export function CertificationsPanel() {
     } finally {
       setIssueState("idle");
     }
-  }, []);
+  }, [termsAccepted]);
 
   const hasCertifications = useMemo(() => items.length > 0, [items.length]);
   const hasPurchases = useMemo(() => purchases.length > 0, [purchases.length]);
@@ -218,6 +230,28 @@ export function CertificationsPanel() {
               : "Issue certificate from latest score"}
         </button>
       </header>
+      <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+        <label className="flex items-start gap-2 text-sm text-slate-700">
+          <input
+            type="checkbox"
+            checked={termsAccepted}
+            onChange={(event) => setTermsAccepted(event.target.checked)}
+            className="mt-0.5 h-4 w-4 rounded border-slate-300 text-blue-700 focus:ring-blue-500"
+          />
+          <span>
+            I agree to the certification program terms (version {CERTIFICATION_TERMS_VERSION}).{" "}
+            <a
+              href={CERTIFICATION_TERMS_PATH}
+              target="_blank"
+              rel="noreferrer"
+              className="font-semibold text-blue-700 hover:underline"
+            >
+              Review terms
+            </a>
+            .
+          </span>
+        </label>
+      </div>
 
       {message ? (
         <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">

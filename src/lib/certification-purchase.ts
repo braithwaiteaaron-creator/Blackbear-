@@ -7,6 +7,10 @@ import { API_ERROR_CODES, type ApiErrorCode } from "@/lib/api";
 import { authConfig } from "@/lib/auth";
 import { getStripeClient, hasStripeSecretKey } from "@/lib/billing/stripe";
 import { issueCertificationFromTier } from "@/lib/certification-issuance";
+import {
+  CERTIFICATION_TERMS_PATH,
+  CERTIFICATION_TERMS_VERSION,
+} from "@/lib/certification-terms";
 import { env } from "@/lib/env";
 import { prisma } from "@/lib/prisma";
 import {
@@ -17,6 +21,8 @@ import type { UserCertification } from "@/lib/types";
 
 const purchaseCheckoutSchema = z.object({
   certificationTier: z.enum(["foundation", "developing", "advanced", "expert"]).optional(),
+  acceptCertificationTerms: z.literal(true),
+  certificationTermsVersion: z.string().min(1),
 });
 
 const CERTIFICATION_PRICE_CENTS: Record<CertificationTier, number> = {
@@ -168,6 +174,21 @@ export async function createCertificationCheckoutSession(
       },
     };
   }
+  if (payload.data.certificationTermsVersion !== CERTIFICATION_TERMS_VERSION) {
+    return {
+      ok: false,
+      error: {
+        code: API_ERROR_CODES.VALIDATION_ERROR,
+        message: "Certification terms must be accepted using the current terms version.",
+        status: 400,
+        details: {
+          expectedVersion: CERTIFICATION_TERMS_VERSION,
+          acceptedVersion: payload.data.certificationTermsVersion,
+          termsPath: CERTIFICATION_TERMS_PATH,
+        },
+      },
+    };
+  }
 
   const session = await getServerSession(authConfig);
   const email = session?.user?.email;
@@ -242,6 +263,7 @@ export async function createCertificationCheckoutSession(
     };
   }
   const stripe = getStripeClient();
+  const certificationTermsAcceptedAt = new Date().toISOString();
 
   const checkout = await stripe.checkout.sessions.create({
     mode: "payment",
@@ -266,6 +288,8 @@ export async function createCertificationCheckoutSession(
       userEmail: user.email,
       certificationTier,
       amountCents: String(amountCents),
+      certificationTermsVersion: CERTIFICATION_TERMS_VERSION,
+      certificationTermsAcceptedAt,
     },
   });
 

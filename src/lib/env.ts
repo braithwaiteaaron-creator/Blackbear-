@@ -46,6 +46,8 @@ const envSchema = z.object({
   STRIPE_CERT_PRICE_DEVELOPING: z.string().min(1).optional(),
   STRIPE_CERT_PRICE_ADVANCED: z.string().min(1).optional(),
   STRIPE_CERT_PRICE_EXPERT: z.string().min(1).optional(),
+  CERTIFICATION_TERMS_VERSION: z.string().min(1).optional(),
+  CERTIFICATION_TERMS_EFFECTIVE_DATE: z.string().min(1).optional(),
   CERTIFICATION_RENEWAL_SCHEDULER_ENABLED: z
     .string()
     .optional()
