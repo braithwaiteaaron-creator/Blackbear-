@@ -325,8 +325,9 @@ export async function getCertificationVerificationRecord(input: {
     };
   }
 
-  const certification = await prisma.certification.findUnique({
+  const certification = await prisma.certification.findFirst({
     where: { credlyBadgeId: normalizedCode },
+    orderBy: { issuedAt: "desc" },
     select: {
       id: true,
       certificationTier: true,
