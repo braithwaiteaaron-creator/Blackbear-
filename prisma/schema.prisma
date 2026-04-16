@@ -141,6 +141,8 @@ model Certification {
   issuedAt          DateTime          @default(now()) @map("issued_at")
   expiresAt         DateTime?         @map("expires_at")
   shareCount        Int               @default(0) @map("share_count")
+  revokedAt         DateTime?         @map("revoked_at")
+  revocationReason  String?           @map("revocation_reason")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 

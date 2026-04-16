@@ -5,7 +5,7 @@ import type { CertificationTier } from "@prisma/client";
 
 import { type ApiErrorCode } from "@/lib/api";
 import { prisma } from "@/lib/prisma";
-import type { UserCertification } from "@/lib/types";
+import type { CredentialProviderSync, UserCertification } from "@/lib/types";
 import { syncIssuedCredential } from "@/lib/credential-provider";
 
 type IssuanceError = {
@@ -19,14 +19,7 @@ export type IssuanceResult = {
   certification: UserCertification;
   created: boolean;
   sourceSessionId: string | null;
-  providerSync: {
-    provider: "mock" | "credly" | "badgr";
-    status: "synced" | "skipped" | "failed";
-    syncedAt: string;
-    externalCredentialId: string | null;
-    externalUrl: string | null;
-    message: string;
-  } | null;
+  providerSync: CredentialProviderSync | null;
 };
 
 function toUserCertification(input: {

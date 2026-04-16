@@ -1,5 +1,6 @@
 import { DashboardGrid } from "@/components/dashboard-grid";
 import { PageShell } from "@/components/page-shell";
+import { AdminCertificationControls } from "@/components/admin-certification-controls";
 
 const USER_CARDS = [
   {
@@ -27,6 +28,9 @@ export default function AdminUsersPage() {
         description="Admin tooling for lifecycle management and support workflows."
         items={USER_CARDS}
       />
+      <div className="mt-6">
+        <AdminCertificationControls />
+      </div>
     </PageShell>
   );
 }

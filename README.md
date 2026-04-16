@@ -133,6 +133,14 @@ npm run build
   - returns `purchaseId` plus issued credential metadata
 - `GET /api/v1/certifications/purchases/me` (legacy alias: `GET /api/certifications/purchases/me`)
   - lists current user's certification purchase history (status, tier, amount, completion timestamp)
+- `GET /api/v1/admin/certifications` (legacy alias: `GET /api/admin/certifications`)
+  - admin-only listing endpoint for issued certifications with status (`active|revoked|expired`)
+  - supports `limit` query parameter for operational pagination
+- `PATCH /api/v1/admin/certifications/{certificationId}` (legacy alias: `PATCH /api/admin/certifications/{certificationId}`)
+  - admin-only revoke control that marks a certification revoked, records revocation reason, and expires active credentials immediately
+- `POST /api/v1/admin/certifications/reissue` (legacy alias: `POST /api/admin/certifications/reissue`)
+  - admin-only reissue control that revokes current active certs for the selected tier and generates a replacement credential
+  - returns provider sync metadata for downstream badge provider visibility
 - `GET /api/v1/certifications/verify/{verificationCode}` (legacy alias: `GET /api/certifications/verify/{verificationCode}`)
   - public verification endpoint for credential metadata lookup by verification code
   - returns credential status (`active|expired`), holder display name, issuer metadata, tier, issue/expiry dates, and certificate URL
@@ -215,6 +223,7 @@ Certification artifacts:
 - `/badges` includes an interactive verification form and credential result display for public checks.
 - Certificate issuance now runs through a provider abstraction (`mock`, `credly`, `badgr`) and returns provider sync metadata in issuance responses.
 - Renewal scheduler scans certificates expiring in the configured lookahead window and enqueues `certification_renewal_notice` jobs.
+- Admin revoke/reissue actions append metadata history to certification records and surface in admin certification controls on `/admin/users`.
 
 ### Authorization behavior
 
