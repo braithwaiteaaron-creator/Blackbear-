@@ -32,25 +32,6 @@ type ApiErrorPayload = {
   };
 };
 
-type ReissueResponse = {
-  ok: boolean;
-  data?: {
-    certification: {
-      verificationCode: string;
-    };
-    sourceSessionId: string | null;
-  };
-  meta?: {
-    providerSync?: {
-      provider: "mock" | "credly" | "badgr";
-      status: "synced" | "skipped" | "failed";
-    } | null;
-  };
-  error?: {
-    message?: string;
-  };
-};
-
 const CERTIFICATION_TIERS: Array<AdminCertificationRecord["tier"]> = [
   "foundation",
   "developing",
