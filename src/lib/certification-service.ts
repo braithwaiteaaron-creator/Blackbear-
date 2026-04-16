@@ -321,7 +321,7 @@ export async function issueCertificationForLatestSession(input: {
     ? providerSyncResult.data
     : {
         provider: "mock" as CredentialProviderName,
-        status: "failed",
+        status: "failed" as const,
         syncedAt: new Date().toISOString(),
         externalCredentialId: null,
         externalUrl: null,

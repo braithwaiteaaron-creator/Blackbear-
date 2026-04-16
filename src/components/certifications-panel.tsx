@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import type { UserCertification } from "@/lib/types";
+import type { CredentialProviderSync, UserCertification } from "@/lib/types";
 
 type CertificationsResponse = {
   ok: boolean;
