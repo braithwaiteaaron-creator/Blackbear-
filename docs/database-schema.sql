@@ -28,7 +28,7 @@ CREATE TABLE quiz_sessions (
   advanced_score INTEGER NOT NULL CHECK (advanced_score BETWEEN 0 AND 5),
   time_to_complete INTEGER NOT NULL CHECK (time_to_complete >= 0),
   device_type device_type NOT NULL,
-  traffic_source TEXT,
+  traffic_source TEXT NOT NULL,
   completed_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -47,10 +47,13 @@ CREATE TABLE certifications (
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   certification_tier certification_tier NOT NULL,
   badge_url TEXT NOT NULL,
-  credly_badge_id TEXT,
+  credly_badge_id TEXT NOT NULL,
   issued_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   expires_at TIMESTAMPTZ,
-  share_count INTEGER NOT NULL DEFAULT 0
+  share_count INTEGER NOT NULL DEFAULT 0,
+  revoked_at TIMESTAMPTZ,
+  revocation_reason TEXT,
+  metadata JSONB
 );
 
 CREATE TABLE organizations (
