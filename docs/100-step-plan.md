@@ -83,7 +83,7 @@ Status legend:
 - [x] **64.** Integrate external credential provider (Credly/Badgr).
 - [x] **65.** Add badge sharing links with referral attribution.
 - [x] **66.** Add expiration + renewal scheduler.
-- [ ] **67.** Ship certification purchase + issuance flow.
+- [x] **67.** Ship certification purchase + issuance flow.
 - [ ] **68.** Add admin revoke/reissue controls.
 - [ ] **69.** Add abuse/fraud checks for certification misuse.
 - [ ] **70.** Finalize legal terms for certification program.

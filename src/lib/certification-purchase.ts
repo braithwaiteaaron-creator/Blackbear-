@@ -1,5 +1,5 @@
 import { getServerSession } from "next-auth";
-import type { CertificationTier } from "@prisma/client";
+import type { CertificationTier, Prisma } from "@prisma/client";
 import Stripe from "stripe";
 import { z } from "zod";
 
@@ -23,6 +23,17 @@ const CERTIFICATION_PRICE_CENTS: Record<CertificationTier, number> = {
 };
 
 export const CERTIFICATION_PURCHASE_DEFAULT_TIER: CertificationTier = "advanced";
+
+export function resolveCertificationTierForPurchaseFlow(
+  value: string | null | undefined
+): CertificationTier {
+  return value === "foundation" ||
+    value === "developing" ||
+    value === "advanced" ||
+    value === "expert"
+    ? value
+    : CERTIFICATION_PURCHASE_DEFAULT_TIER;
+}
 
 export function getPriceForCertificationTier(
   tier: CertificationTier
@@ -101,11 +112,19 @@ export type PurchaseProviderSync = {
   message: string;
 };
 
-function toInputJson(value: unknown): Record<string, unknown> {
-  if (!value || typeof value !== "object") {
+function toInputJson(value: unknown): Prisma.InputJsonValue {
+  if (value === undefined || value === null) {
     return {};
   }
-  return value as Record<string, unknown>;
+  if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
+    return value;
+  }
+  if (Array.isArray(value)) {
+    return value.map((entry) => toInputJson(entry)) as Prisma.InputJsonValue;
+  }
+  return Object.fromEntries(
+    Object.entries(value).map(([key, entry]) => [key, toInputJson(entry)])
+  ) as Prisma.InputJsonValue;
 }
 
 function isCertificationTier(value: string): value is CertificationTier {
@@ -351,11 +370,12 @@ export async function getCompletedCertificationPurchaseForUserTier(input: {
   userId: string;
   certificationTier: CertificationTier;
 }): Promise<{ id: string; completedAt: Date } | null> {
-  return prisma.certificationPurchase.findFirst({
+  const purchase = await prisma.certificationPurchase.findFirst({
     where: {
       userId: input.userId,
       certificationTier: input.certificationTier,
       status: "completed",
+      completedAt: { not: null },
     },
     orderBy: { completedAt: "desc" },
     select: {
@@ -363,6 +383,13 @@ export async function getCompletedCertificationPurchaseForUserTier(input: {
       completedAt: true,
     },
   });
+  if (!purchase?.completedAt) {
+    return null;
+  }
+  return {
+    id: purchase.id,
+    completedAt: purchase.completedAt,
+  };
 }
 
 export async function listCertificationPurchasesForUser(
@@ -419,10 +446,11 @@ export async function getLatestEligibleCertificationPurchaseForUser(input: {
   certificationTier: CertificationTier;
   completedAt: Date;
 } | null> {
-  return prisma.certificationPurchase.findFirst({
+  const purchase = await prisma.certificationPurchase.findFirst({
     where: {
       userId: input.userId,
       status: "completed",
+      completedAt: { not: null },
     },
     orderBy: { completedAt: "desc" },
     select: {
@@ -431,6 +459,14 @@ export async function getLatestEligibleCertificationPurchaseForUser(input: {
       completedAt: true,
     },
   });
+  if (!purchase?.completedAt) {
+    return null;
+  }
+  return {
+    id: purchase.id,
+    certificationTier: purchase.certificationTier,
+    completedAt: purchase.completedAt,
+  };
 }
 
 export async function issueCertificationFromCompletedPurchase(input: {

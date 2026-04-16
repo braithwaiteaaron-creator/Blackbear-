@@ -2,8 +2,20 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { resolveCertificationTierForPurchaseFlow } from "@/lib/certification-purchase";
 import type { CredentialProviderSync, UserCertification } from "@/lib/types";
+
+const DEFAULT_CERTIFICATION_PURCHASE_TIER = "advanced";
+
+function resolveCertificationTierForPurchaseFlow(
+  value: string | undefined
+): "foundation" | "developing" | "advanced" | "expert" {
+  return value === "foundation" ||
+    value === "developing" ||
+    value === "advanced" ||
+    value === "expert"
+    ? value
+    : DEFAULT_CERTIFICATION_PURCHASE_TIER;
+}
 
 type CertificationPurchase = {
   id: string;

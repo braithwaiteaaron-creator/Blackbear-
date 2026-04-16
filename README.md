@@ -119,11 +119,20 @@ npm run build
   - returns current user's issued certifications (newest first)
   - includes tier, issue/expiry dates, verification code, and downloadable certificate URL
 - `POST /api/v1/certifications/me` (legacy alias: `POST /api/certifications/me`)
-  - issues a certificate from the user's latest persisted quiz session
-  - derives certification tier from latest score badge mapping
+  - issues a certificate from the most recent completed certification purchase
+  - returns `402 PAYMENT_REQUIRED` with `requiredCertificationTier` when no completed purchase exists
   - generates and stores a downloadable PDF under `/public/certificates`
-  - returns existing active certificate for the same tier if already issued
+  - returns existing active certificate for the purchased tier if already issued
   - includes provider sync metadata in response meta (`providerSync`) for mock/Credly/Badgr integration state
+- `POST /api/v1/certifications/checkout` (legacy alias: `POST /api/certifications/checkout`)
+  - creates Stripe one-time Checkout session for a certification purchase
+  - accepts optional `certificationTier` (`foundation|developing|advanced|expert`, default `advanced`)
+  - persists pending purchase records and returns `checkoutUrl` for client redirect
+- `POST /api/v1/certifications/issue` (legacy alias: `POST /api/certifications/issue`)
+  - explicitly issues certificate from latest completed purchase
+  - returns `purchaseId` plus issued credential metadata
+- `GET /api/v1/certifications/purchases/me` (legacy alias: `GET /api/certifications/purchases/me`)
+  - lists current user's certification purchase history (status, tier, amount, completion timestamp)
 - `GET /api/v1/certifications/verify/{verificationCode}` (legacy alias: `GET /api/certifications/verify/{verificationCode}`)
   - public verification endpoint for credential metadata lookup by verification code
   - returns credential status (`active|expired`), holder display name, issuer metadata, tier, issue/expiry dates, and certificate URL
@@ -193,6 +202,7 @@ Set environment variables (see `.env.example`):
 - `CREDENTIAL_PROVIDER` (optional; `mock|credly|badgr`, defaults to `mock`)
 - `CREDLY_API_TOKEN` / `CREDLY_ORGANIZATION_ID` (optional; used when `CREDENTIAL_PROVIDER=credly`)
 - `BADGR_API_TOKEN` / `BADGR_ISSUER_ID` (optional; used when `CREDENTIAL_PROVIDER=badgr`)
+- `STRIPE_CERT_PRICE_FOUNDATION` / `STRIPE_CERT_PRICE_DEVELOPING` / `STRIPE_CERT_PRICE_ADVANCED` / `STRIPE_CERT_PRICE_EXPERT` (reserved for future Stripe product/price mapping)
 - `CERTIFICATION_RENEWAL_SCHEDULER_ENABLED` (optional; set `false` to disable renewal scheduling)
 - `CERTIFICATION_RENEWAL_LOOKAHEAD_DAYS` (optional; default `30`)
 - `CERTIFICATION_RENEWAL_SCHEDULED_BY` (optional; default `system-renewal-scheduler`)
