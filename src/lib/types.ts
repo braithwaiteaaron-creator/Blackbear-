@@ -148,6 +148,17 @@ export type BadgeRule = {
 };
 
 export type CertificationTierId = "foundation" | "developing" | "advanced" | "expert";
+export type CredentialProviderName = "mock" | "credly" | "badgr";
+export type CredentialProviderSyncStatus = "synced" | "skipped" | "failed";
+
+export type CredentialProviderSync = {
+  provider: CredentialProviderName;
+  status: CredentialProviderSyncStatus;
+  syncedAt: string;
+  externalCredentialId: string | null;
+  externalUrl: string | null;
+  message: string;
+};
 
 export type UserCertification = {
   id: string;

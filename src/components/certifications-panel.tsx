@@ -22,6 +22,7 @@ type IssueCertificationResponse = {
   };
   meta?: {
     created?: boolean;
+    providerSync?: CredentialProviderSync;
   };
   error?: {
     message?: string;
@@ -93,7 +94,11 @@ export function CertificationsPanel() {
       const created = payload.meta?.created !== false;
       setMessage(
         created
-          ? `Certification issued from session ${payload.data.sourceSessionId.slice(0, 8)}.`
+          ? `Certification issued from session ${payload.data.sourceSessionId.slice(0, 8)}.${
+              payload.meta?.providerSync
+                ? ` Provider: ${payload.meta.providerSync.provider} (${payload.meta.providerSync.status}).`
+                : ""
+            }`
           : "Active certification already exists for your current proficiency tier."
       );
     } catch (error) {
@@ -114,6 +119,9 @@ export function CertificationsPanel() {
           <h2 className="text-xl font-semibold text-slate-900">Certificate generation pipeline</h2>
           <p className="mt-1 text-sm text-slate-600">
             Issue a PDF certificate from your latest quiz result and keep downloadable records.
+          </p>
+          <p className="mt-1 text-xs text-slate-500">
+            Provider integrations support mock, Credly, and Badgr modes.
           </p>
         </div>
         <button

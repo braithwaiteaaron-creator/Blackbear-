@@ -123,6 +123,7 @@ npm run build
   - derives certification tier from latest score badge mapping
   - generates and stores a downloadable PDF under `/public/certificates`
   - returns existing active certificate for the same tier if already issued
+  - includes provider sync metadata in response meta (`providerSync`) for mock/Credly/Badgr integration state
 - `GET /api/v1/certifications/verify/{verificationCode}` (legacy alias: `GET /api/certifications/verify/{verificationCode}`)
   - public verification endpoint for credential metadata lookup by verification code
   - returns credential status (`active|expired`), holder display name, issuer metadata, tier, issue/expiry dates, and certificate URL
@@ -182,6 +183,9 @@ Set environment variables (see `.env.example`):
 - `BILLING_INTRO_TRIAL_DAYS_TEAM` (optional; overrides Team trial duration)
 - `BILLING_INTRO_ELIGIBLE_PLANS` (optional; comma-separated, defaults to `premium,team`)
 - `BILLING_DUNNING_ENABLED` (optional; set `false` to disable dunning queue behavior)
+- `CREDENTIAL_PROVIDER` (optional; `mock|credly|badgr`, defaults to `mock`)
+- `CREDLY_API_TOKEN` / `CREDLY_ORGANIZATION_ID` (optional; used when `CREDENTIAL_PROVIDER=credly`)
+- `BADGR_API_TOKEN` / `BADGR_ISSUER_ID` (optional; used when `CREDENTIAL_PROVIDER=badgr`)
 
 Certification artifacts:
 
@@ -189,6 +193,7 @@ Certification artifacts:
 - Each generated certificate includes a verification code saved in the `certifications` table.
 - Verification metadata is publicly queryable via `/api/v1/certifications/verify/{verificationCode}`.
 - `/badges` includes an interactive verification form and credential result display for public checks.
+- Certificate issuance now runs through a provider abstraction (`mock`, `credly`, `badgr`) and returns provider sync metadata in issuance responses.
 
 ### Authorization behavior
 

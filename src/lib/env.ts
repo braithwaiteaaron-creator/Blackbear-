@@ -37,6 +37,11 @@ const envSchema = z.object({
     .optional()
     .transform((value) => value !== "false"),
   STRIPE_ENTERPRISE_CONTACT_URL: z.string().url().optional(),
+  CREDENTIAL_PROVIDER: z.enum(["mock", "credly", "badgr"]).optional(),
+  CREDLY_API_TOKEN: z.string().min(1).optional(),
+  CREDLY_ORGANIZATION_ID: z.string().min(1).optional(),
+  BADGR_API_TOKEN: z.string().min(1).optional(),
+  BADGR_ISSUER_ID: z.string().min(1).optional(),
 });
 
 export const env = envSchema.parse(process.env);
@@ -78,4 +83,8 @@ export function hasJobWorkerKey(): boolean {
 
 export function hasStripeConfig(): boolean {
   return Boolean(env.STRIPE_SECRET_KEY);
+}
+
+export function getCredentialProvider(): "mock" | "credly" | "badgr" {
+  return env.CREDENTIAL_PROVIDER ?? "mock";
 }

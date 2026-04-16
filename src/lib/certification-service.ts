@@ -10,8 +10,11 @@ import { getBadgeTier } from "@/lib/scoring";
 import type {
   BadgeTier,
   CertificationVerificationRecord,
+  CredentialProviderSync,
+  CredentialProviderName,
   UserCertification,
 } from "@/lib/types";
+import { syncIssuedCredential } from "@/lib/credential-provider";
 
 type ServiceError = {
   code: ApiErrorCode;
@@ -24,6 +27,7 @@ type CertificateIssueResult = {
   certification: UserCertification;
   created: boolean;
   sourceSessionId: string;
+  providerSync: CredentialProviderSync | null;
 };
 
 const CERTIFICATE_VALIDITY_DAYS = 365;
@@ -267,6 +271,7 @@ export async function issueCertificationForLatestSession(input: {
       certification: toUserCertification(existingActive),
       created: false,
       sourceSessionId: latestSession.id,
+      providerSync: null,
     };
   }
 
@@ -304,10 +309,30 @@ export async function issueCertificationForLatestSession(input: {
     },
   });
 
+  const providerSyncResult = await syncIssuedCredential({
+    verificationCode,
+    tier: certificationTier,
+    holderName: fullName,
+    issuedAt,
+    expiresAt,
+    certificateUrl,
+  });
+  const providerSync = providerSyncResult.ok
+    ? providerSyncResult.data
+    : {
+        provider: "mock" as CredentialProviderName,
+        status: "failed",
+        syncedAt: new Date().toISOString(),
+        externalCredentialId: null,
+        externalUrl: null,
+        message: providerSyncResult.error.message,
+      };
+
   return {
     certification: toUserCertification(created),
     created: true,
     sourceSessionId: latestSession.id,
+    providerSync,
   };
 }
 

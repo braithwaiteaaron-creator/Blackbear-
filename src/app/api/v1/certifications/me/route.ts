@@ -61,6 +61,7 @@ export async function POST() {
       {
         created: issued.created,
         verificationUrl: `/api/v1/certifications/verify/${issued.certification.verificationCode}`,
+        providerSync: issued.providerSync,
       }
     )
   );
