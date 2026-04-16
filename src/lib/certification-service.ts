@@ -1,6 +1,7 @@
 import type { CertificationTier } from "@prisma/client";
 
 import { API_ERROR_CODES, type ApiErrorCode } from "@/lib/api";
+import { markRevokedCredentialVerificationAttempt } from "@/lib/certification-risk";
 import { prisma } from "@/lib/prisma";
 import type {
   CertificationVerificationRecord,
@@ -84,6 +85,8 @@ export async function listCertificationsForUser(
 
 export async function getCertificationVerificationRecord(input: {
   verificationCode: string;
+  ipAddress?: string | null;
+  userAgent?: string | null;
 }): Promise<CertificationVerificationRecord | { error: ServiceError }> {
   const normalizedCode = normalizeVerificationCode(input.verificationCode);
   if (!normalizedCode || !VERIFICATION_CODE_PATTERN.test(normalizedCode)) {
@@ -106,8 +109,10 @@ export async function getCertificationVerificationRecord(input: {
       credlyBadgeId: true,
       issuedAt: true,
       expiresAt: true,
+      revokedAt: true,
       user: {
         select: {
+          id: true,
           name: true,
           email: true,
         },
@@ -125,14 +130,25 @@ export async function getCertificationVerificationRecord(input: {
   }
 
   const now = Date.now();
-  const isActive = certification.expiresAt ? certification.expiresAt.getTime() > now : true;
+  const isRevoked = Boolean(certification.revokedAt);
+  const isActive =
+    !isRevoked && (certification.expiresAt ? certification.expiresAt.getTime() > now : true);
+  if (isRevoked) {
+    await markRevokedCredentialVerificationAttempt({
+      userId: certification.user.id,
+      certificationId: certification.id,
+      verificationCode: certification.credlyBadgeId,
+      ipAddress: input.ipAddress,
+      userAgent: input.userAgent,
+    });
+  }
   const appUrl = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
 
   return {
     verificationCode: certification.credlyBadgeId,
     credentialId: certification.id,
     tier: certification.certificationTier,
-    status: isActive ? "active" : "expired",
+    status: isRevoked ? "revoked" : isActive ? "active" : "expired",
     issuedAt: certification.issuedAt.toISOString(),
     expiresAt: certification.expiresAt?.toISOString() ?? null,
     holder: {

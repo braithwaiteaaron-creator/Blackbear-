@@ -3,12 +3,14 @@ import { apiError, apiSuccess } from "@/lib/api";
 import { getCertificationVerificationRecord } from "@/lib/certification-service";
 
 export async function GET(
-  _request: Request,
+  request: Request,
   context: { params: Promise<{ verificationCode: string }> }
 ) {
   const params = await context.params;
   const result = await getCertificationVerificationRecord({
     verificationCode: params.verificationCode,
+    ipAddress: request.headers.get("x-forwarded-for"),
+    userAgent: request.headers.get("user-agent"),
   });
   if ("error" in result) {
     return setApiVersionHeader(

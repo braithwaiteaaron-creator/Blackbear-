@@ -32,6 +32,52 @@ type ApiErrorPayload = {
   };
 };
 
+type ResolveRiskResponse = {
+  ok: boolean;
+  data?: {
+    riskEvent: {
+      id: string;
+      resolvedAt: string;
+      resolutionNote: string | null;
+    };
+  };
+  error?: {
+    message?: string;
+  };
+};
+
+type CertificationRiskEvent = {
+  id: string;
+  userId: string | null;
+  userEmail: string | null;
+  userName: string | null;
+  certificationId: string | null;
+  eventType:
+    | "checkout_without_assessment"
+    | "checkout_tier_mismatch"
+    | "checkout_pending_flood"
+    | "issuance_without_assessment"
+    | "issuance_tier_mismatch"
+    | "revoked_credential_verification";
+  severity: "low" | "medium" | "high";
+  details: unknown;
+  ipAddress: string | null;
+  userAgent: string | null;
+  detectedAt: string;
+  resolvedAt: string | null;
+  resolutionNote: string | null;
+};
+
+type RiskEventsResponse = {
+  ok: boolean;
+  data?: {
+    riskEvents: CertificationRiskEvent[];
+  };
+  error?: {
+    message?: string;
+  };
+};
+
 const CERTIFICATION_TIERS: Array<AdminCertificationRecord["tier"]> = [
   "foundation",
   "developing",
@@ -45,6 +91,7 @@ function toTierLabel(value: AdminCertificationRecord["tier"]): string {
 
 export function AdminCertificationControls() {
   const [certifications, setCertifications] = useState<AdminCertificationRecord[]>([]);
+  const [riskEvents, setRiskEvents] = useState<CertificationRiskEvent[]>([]);
   const [loadState, setLoadState] = useState<"loading" | "ready" | "error">("loading");
   const [message, setMessage] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -53,6 +100,7 @@ export function AdminCertificationControls() {
   const [reissueEmail, setReissueEmail] = useState("");
   const [reissueTier, setReissueTier] = useState<AdminCertificationRecord["tier"]>("advanced");
   const [searchQuery, setSearchQuery] = useState("");
+  const [resolvingRiskId, setResolvingRiskId] = useState<string | null>(null);
 
   const loadCertifications = useCallback(async () => {
     setLoadState((prev) => (prev === "loading" ? "loading" : "ready"));
@@ -67,7 +115,17 @@ export function AdminCertificationControls() {
       if (!response.ok || !payload.ok || !payload.data) {
         throw new Error(payload.error?.message ?? "Unable to load certifications.");
       }
+      const riskResponse = await fetch("/api/admin/certifications/risk-events?limit=100&unresolvedOnly=true", {
+        method: "GET",
+        credentials: "include",
+        cache: "no-store",
+      });
+      const riskPayload = (await riskResponse.json()) as RiskEventsResponse;
+      if (!riskResponse.ok || !riskPayload.ok || !riskPayload.data) {
+        throw new Error(riskPayload.error?.message ?? "Unable to load certification risk events.");
+      }
       setCertifications(payload.data.certifications);
+      setRiskEvents(riskPayload.data.riskEvents);
       setLoadState("ready");
     } catch (error) {
       setLoadState("error");
@@ -87,7 +145,7 @@ export function AdminCertificationControls() {
       setMessage(null);
       try {
         const response = await fetch(`/api/admin/certifications/${certificationId}`, {
-          method: "POST",
+          method: "PATCH",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
           body: JSON.stringify({ reason: "Revoked by admin control panel" }),
@@ -137,6 +195,36 @@ export function AdminCertificationControls() {
       setReissuing(false);
     }
   }, [loadCertifications, reissueEmail, reissueTier]);
+
+  const handleResolveRisk = useCallback(
+    async (eventId: string) => {
+      setResolvingRiskId(eventId);
+      setMessage(null);
+      try {
+        const response = await fetch(`/api/admin/certifications/risk-events/${eventId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({
+            resolutionNote: "Reviewed and acknowledged by admin",
+          }),
+        });
+        const payload = (await response.json()) as ResolveRiskResponse | ApiErrorPayload;
+        if (!response.ok || !payload.ok) {
+          throw new Error(
+            payload.error?.message ?? "Unable to resolve risk event."
+          );
+        }
+        setMessage("Risk event marked as resolved.");
+        await loadCertifications();
+      } catch (error) {
+        setMessage(error instanceof Error ? error.message : "Unable to resolve risk event.");
+      } finally {
+        setResolvingRiskId(null);
+      }
+    },
+    [loadCertifications]
+  );
 
   const filteredCertifications = useMemo(() => {
     const needle = searchQuery.trim().toLowerCase();
@@ -219,6 +307,42 @@ export function AdminCertificationControls() {
           placeholder="Filter by user email, name, or verification code"
           className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none ring-blue-500 focus:ring-2"
         />
+      </section>
+
+      <section className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+        <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-600">
+          Open abuse risk events
+        </h3>
+        {riskEvents.length === 0 ? (
+          <p className="mt-2 text-sm text-slate-700">No unresolved risk events detected.</p>
+        ) : (
+          <ul className="mt-3 space-y-2">
+            {riskEvents.slice(0, 8).map((riskEvent) => (
+              <li key={riskEvent.id} className="rounded-lg border border-slate-200 bg-white p-3 text-sm">
+                <p className="font-semibold text-slate-900">
+                  {riskEvent.eventType} • {riskEvent.severity.toUpperCase()}
+                </p>
+                <p className="mt-1 text-slate-700">
+                  User: {riskEvent.userEmail ?? "unknown"} • Detected{" "}
+                  {new Date(riskEvent.detectedAt).toLocaleString()}
+                </p>
+                {riskEvent.certificationId ? (
+                  <p className="mt-1 text-xs text-slate-500">Certification ID: {riskEvent.certificationId}</p>
+                ) : null}
+                <div className="mt-2">
+                  <button
+                    type="button"
+                    onClick={() => void handleResolveRisk(riskEvent.id)}
+                    disabled={resolvingRiskId === riskEvent.id}
+                    className="inline-flex items-center rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:text-slate-400"
+                  >
+                    {resolvingRiskId === riskEvent.id ? "Resolving..." : "Mark resolved"}
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
 
       {message ? (

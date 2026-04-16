@@ -5,7 +5,7 @@ import { API_ERROR_CODES, apiError, apiSuccess } from "@/lib/api";
 import { authConfig } from "@/lib/auth";
 import { issueCertificationFromCompletedPurchase } from "@/lib/certification-purchase";
 
-export async function POST() {
+export async function POST(request: Request) {
   const session = await getServerSession(authConfig);
   const email = session?.user?.email;
   if (!email) {
@@ -17,6 +17,8 @@ export async function POST() {
   const result = await issueCertificationFromCompletedPurchase({
     userEmail: email,
     userName: session.user?.name,
+    ipAddress: request.headers.get("x-forwarded-for"),
+    userAgent: request.headers.get("user-agent"),
   });
   if (!result.ok) {
     return setApiVersionHeader(

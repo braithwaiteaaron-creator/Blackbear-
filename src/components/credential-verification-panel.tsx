@@ -118,7 +118,17 @@ export function CredentialVerificationPanel() {
             </p>
             <p>
               <span className="font-semibold text-slate-900">Status:</span>{" "}
-              <span className="capitalize">{credential.status}</span>
+              <span
+                className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ${
+                  credential.status === "active"
+                    ? "bg-emerald-100 text-emerald-800"
+                    : credential.status === "revoked"
+                      ? "bg-rose-100 text-rose-800"
+                      : "bg-amber-100 text-amber-800"
+                }`}
+              >
+                {credential.status}
+              </span>
             </p>
             <p>
               <span className="font-semibold text-slate-900">Holder:</span>{" "}

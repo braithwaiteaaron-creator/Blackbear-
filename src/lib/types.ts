@@ -174,7 +174,7 @@ export type CertificationVerificationRecord = {
   verificationCode: string;
   credentialId: string;
   tier: CertificationTierId;
-  status: "active" | "expired";
+  status: "active" | "expired" | "revoked";
   issuedAt: string;
   expiresAt: string | null;
   holder: {

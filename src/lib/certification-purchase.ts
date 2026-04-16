@@ -9,6 +9,10 @@ import { getStripeClient, hasStripeSecretKey } from "@/lib/billing/stripe";
 import { issueCertificationFromTier } from "@/lib/certification-issuance";
 import { env } from "@/lib/env";
 import { prisma } from "@/lib/prisma";
+import {
+  enforceCertificationCheckoutAbuseRules,
+  enforceCertificationIssuanceAbuseRules,
+} from "@/lib/certification-risk";
 import type { UserCertification } from "@/lib/types";
 
 const purchaseCheckoutSchema = z.object({
@@ -216,6 +220,27 @@ export async function createCertificationCheckoutSession(
     };
   }
   const appUrl = env.NEXTAUTH_URL ?? "http://localhost:3000";
+  const latestSession = await prisma.quizSession.findFirst({
+    where: { userId: user.id },
+    orderBy: { completedAt: "desc" },
+    select: { totalScore: true },
+  });
+  const abuseCheck = await enforceCertificationCheckoutAbuseRules({
+    userId: user.id,
+    requestedTier: certificationTier,
+    latestScore: latestSession?.totalScore ?? null,
+    context: {
+      source: "checkout",
+      ipAddress: request.headers.get("x-forwarded-for"),
+      userAgent: request.headers.get("user-agent"),
+    },
+  });
+  if (!abuseCheck.ok) {
+    return {
+      ok: false,
+      error: abuseCheck.error,
+    };
+  }
   const stripe = getStripeClient();
 
   const checkout = await stripe.checkout.sessions.create({
@@ -472,6 +497,8 @@ export async function getLatestEligibleCertificationPurchaseForUser(input: {
 export async function issueCertificationFromCompletedPurchase(input: {
   userEmail: string;
   userName?: string | null;
+  ipAddress?: string | null;
+  userAgent?: string | null;
 }): Promise<
   | {
       ok: true;
@@ -533,6 +560,24 @@ export async function issueCertificationFromCompletedPurchase(input: {
     };
   }
 
+  const latestSession = user.quizSessions[0] ?? null;
+  const issuanceAbuseCheck = await enforceCertificationIssuanceAbuseRules({
+    userId: user.id,
+    purchaseTier: purchase.certificationTier,
+    latestScore: latestSession?.totalScore ?? null,
+    context: {
+      source: "issuance",
+      ipAddress: input.ipAddress ?? null,
+      userAgent: input.userAgent ?? null,
+    },
+  });
+  if (!issuanceAbuseCheck.ok) {
+    return {
+      ok: false,
+      error: issuanceAbuseCheck.error,
+    };
+  }
+
   const existingActive = await prisma.certification.findFirst({
     where: {
       userId: user.id,
@@ -556,7 +601,7 @@ export async function issueCertificationFromCompletedPurchase(input: {
         certification: toUserCertification(existingActive),
         created: false,
         purchaseId: purchase.id,
-        sourceSessionId: user.quizSessions[0]?.id ?? null,
+        sourceSessionId: latestSession?.id ?? null,
         providerSync: null,
       },
     };
@@ -567,8 +612,8 @@ export async function issueCertificationFromCompletedPurchase(input: {
     userEmail: input.userEmail,
     userName: input.userName ?? user.name,
     certificationTier: purchase.certificationTier,
-    sourceSessionId: user.quizSessions[0]?.id ?? null,
-    sourceScore: user.quizSessions[0]?.totalScore ?? null,
+    sourceSessionId: latestSession?.id ?? null,
+    sourceScore: latestSession?.totalScore ?? null,
   });
   if ("error" in issuance) {
     return {

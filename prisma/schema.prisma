@@ -78,6 +78,21 @@ enum CertificationPurchaseStatus {
   canceled
 }
 
+enum CertificationRiskSeverity {
+  low
+  medium
+  high
+}
+
+enum CertificationRiskEventType {
+  checkout_without_assessment
+  checkout_tier_mismatch
+  checkout_pending_flood
+  issuance_without_assessment
+  issuance_tier_mismatch
+  revoked_credential_verification
+}
+
 model User {
   id               String           @id @default(uuid()) @db.Uuid
   email            String           @unique
@@ -92,6 +107,7 @@ model User {
   quizSessions         QuizSession[]
   certifications       Certification[]
   certificationPurchases CertificationPurchase[]
+  certificationRiskEvents CertificationRiskEvent[]
   organizations        Organization[]        @relation("OrganizationAdmin")
   billingSubscriptions BillingSubscription[]
 
@@ -143,8 +159,10 @@ model Certification {
   shareCount        Int               @default(0) @map("share_count")
   revokedAt         DateTime?         @map("revoked_at")
   revocationReason  String?           @map("revocation_reason")
+  metadata          Json?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  riskEvents CertificationRiskEvent[]
 
   @@map("certifications")
 }
@@ -170,6 +188,30 @@ model CertificationPurchase {
   @@index([userId, certificationTier, status], map: "cert_purchases_user_tier_status_idx")
   @@index([provider, providerCheckoutId], map: "cert_purchases_provider_checkout_idx")
   @@map("certification_purchases")
+}
+
+model CertificationRiskEvent {
+  id              String                     @id @default(uuid()) @db.Uuid
+  userId          String?                    @map("user_id") @db.Uuid
+  certificationId String?                    @map("certification_id") @db.Uuid
+  eventType       CertificationRiskEventType @map("event_type")
+  severity        CertificationRiskSeverity
+  details         Json?
+  ipAddress       String?                    @map("ip_address")
+  userAgent       String?                    @map("user_agent")
+  detectedAt      DateTime                   @default(now()) @map("detected_at")
+  resolvedAt      DateTime?                  @map("resolved_at")
+  resolutionNote  String?                    @map("resolution_note")
+  createdAt       DateTime                   @default(now()) @map("created_at")
+  updatedAt       DateTime                   @updatedAt @map("updated_at")
+
+  user          User?          @relation(fields: [userId], references: [id], onDelete: SetNull)
+  certification Certification? @relation(fields: [certificationId], references: [id], onDelete: SetNull)
+
+  @@index([eventType, detectedAt], map: "cert_risk_event_type_detected_at_idx")
+  @@index([userId, detectedAt], map: "cert_risk_user_detected_at_idx")
+  @@index([resolvedAt, detectedAt], map: "cert_risk_resolved_detected_at_idx")
+  @@map("certification_risk_events")
 }
 
 model Organization {

@@ -2,6 +2,7 @@ import type { CertificationTier, Prisma } from "@prisma/client";
 
 import { API_ERROR_CODES, type ApiErrorCode } from "@/lib/api";
 import { issueCertificationFromTier } from "@/lib/certification-issuance";
+import { logCertificationRiskEvent } from "@/lib/certification-risk";
 import { prisma } from "@/lib/prisma";
 import type { CredentialProviderSync, UserCertification } from "@/lib/types";
 
@@ -151,6 +152,16 @@ export async function revokeCertificationById(
           ? certification.metadata
           : {}),
         adminActions: [
+          ...(Array.isArray(
+            certification.metadata &&
+              typeof certification.metadata === "object" &&
+              certification.metadata !== null &&
+              "adminActions" in certification.metadata
+              ? certification.metadata.adminActions
+              : undefined
+          )
+            ? (certification.metadata as { adminActions: unknown[] }).adminActions
+            : []),
           {
             type: "revoked",
             at: now.toISOString(),
@@ -174,6 +185,17 @@ export async function revokeCertificationById(
           name: true,
         },
       },
+    },
+  });
+  await logCertificationRiskEvent({
+    userId: updated.userId,
+    certificationId: updated.id,
+    eventType: "revoked_credential_verification",
+    severity: "low",
+    details: {
+      source: "admin-revoke",
+      reason: input.reason?.trim() || "Revoked by admin",
+      verificationCode: updated.credlyBadgeId,
     },
   });
 
@@ -244,14 +266,16 @@ export async function reissueCertificationForUser(
       expiresAt: now,
       revocationReason: input.reason?.trim() || "Superseded by admin reissue",
       metadata: toInputJson({
-        action: "reissued",
-        replacedBy: "admin",
-        reason: input.reason?.trim() || "Superseded by admin reissue",
-        occurredAt: now.toISOString(),
+        adminActions: [
+          {
+            type: "reissued",
+            at: now.toISOString(),
+            reason: input.reason?.trim() || "Superseded by admin reissue",
+          },
+        ],
       }),
     },
   });
-
   const sourceSession = user.quizSessions[0] ?? null;
   const issued = await issueCertificationFromTier({
     userId: user.id,

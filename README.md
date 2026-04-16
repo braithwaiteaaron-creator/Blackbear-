@@ -141,9 +141,14 @@ npm run build
 - `POST /api/v1/admin/certifications/reissue` (legacy alias: `POST /api/admin/certifications/reissue`)
   - admin-only reissue control that revokes current active certs for the selected tier and generates a replacement credential
   - returns provider sync metadata for downstream badge provider visibility
+- `GET /api/v1/admin/certifications/risk-events` (legacy alias: `GET /api/admin/certifications/risk-events`)
+  - admin-only abuse/fraud signal stream for certification misuse checks
+  - supports `limit` and `unresolvedOnly` filters
+- `PATCH /api/v1/admin/certifications/risk-events/{eventId}` (legacy alias: `PATCH /api/admin/certifications/risk-events/{eventId}`)
+  - admin-only resolution endpoint to mark a risk event reviewed with a resolution note
 - `GET /api/v1/certifications/verify/{verificationCode}` (legacy alias: `GET /api/certifications/verify/{verificationCode}`)
   - public verification endpoint for credential metadata lookup by verification code
-  - returns credential status (`active|expired`), holder display name, issuer metadata, tier, issue/expiry dates, and certificate URL
+  - returns credential status (`active|revoked|expired`), holder display name, issuer metadata, tier, issue/expiry dates, and certificate URL
   - validates code format and returns standard API errors for invalid/missing credentials
 - `/badges` now includes an interactive verification workflow:
   - accepts a verification code input
@@ -224,6 +229,8 @@ Certification artifacts:
 - Certificate issuance now runs through a provider abstraction (`mock`, `credly`, `badgr`) and returns provider sync metadata in issuance responses.
 - Renewal scheduler scans certificates expiring in the configured lookahead window and enqueues `certification_renewal_notice` jobs.
 - Admin revoke/reissue actions append metadata history to certification records and surface in admin certification controls on `/admin/users`.
+- Abuse/fraud protections now log certification risk events (`checkout_without_assessment`, `checkout_tier_mismatch`, `checkout_pending_flood`, `issuance_without_assessment`, `issuance_tier_mismatch`, `revoked_credential_verification`) and expose unresolved events in admin controls.
+- Purchase and issuance flows enforce guardrails against tier mismatch, repeated pending checkouts, and issuance without a valid assessment context.
 
 ### Authorization behavior
 

@@ -7,6 +7,6 @@ export async function GET() {
 }
 
 export async function POST() {
-  const response = await postV1CertificationsMe();
+  const response = await postV1CertificationsMe(new Request("http://localhost/api/certifications/me"));
   return setDeprecationHeaders(response, "/api/v1/certifications/me");
 }

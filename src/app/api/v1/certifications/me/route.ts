@@ -27,7 +27,7 @@ export async function GET() {
   return setApiVersionHeader(apiSuccess({ certifications: result }));
 }
 
-export async function POST() {
+export async function POST(request: Request) {
   const session = await getServerSession(authConfig);
   const email = session?.user?.email;
   if (!email) {
@@ -39,6 +39,8 @@ export async function POST() {
   const purchaseIssuanceResult = await issueCertificationFromCompletedPurchase({
     userEmail: email,
     userName: session.user?.name,
+    ipAddress: request.headers.get("x-forwarded-for"),
+    userAgent: request.headers.get("user-agent"),
   });
   if (purchaseIssuanceResult.ok) {
     return setApiVersionHeader(
