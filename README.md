@@ -127,6 +127,10 @@ npm run build
   - public verification endpoint for credential metadata lookup by verification code
   - returns credential status (`active|expired`), holder display name, issuer metadata, tier, issue/expiry dates, and certificate URL
   - validates code format and returns standard API errors for invalid/missing credentials
+- `/badges` now includes an interactive verification workflow:
+  - accepts a verification code input
+  - fetches and renders verification result states (success/invalid/not found)
+  - links directly to certificate artifact and issuer URL
 - Legacy `/api/quiz-sessions*` routes include deprecation headers:
   - `Deprecation: true`
   - `Sunset: <date>`
@@ -184,6 +188,7 @@ Certification artifacts:
 - Generated certificate PDFs are written to `public/certificates/`.
 - Each generated certificate includes a verification code saved in the `certifications` table.
 - Verification metadata is publicly queryable via `/api/v1/certifications/verify/{verificationCode}`.
+- `/badges` includes an interactive verification form and credential result display for public checks.
 
 ### Authorization behavior
 

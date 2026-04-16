@@ -1,5 +1,6 @@
 import { InfoGrid } from "@/components/info-grid";
 import { PageShell } from "@/components/page-shell";
+import { CredentialVerificationPanel } from "@/components/credential-verification-panel";
 
 const BADGES = [
   {
@@ -48,6 +49,7 @@ export default function BadgesPage() {
           URL for independent verification workflows.
         </p>
       </section>
+      <CredentialVerificationPanel />
     </PageShell>
   );
 }
