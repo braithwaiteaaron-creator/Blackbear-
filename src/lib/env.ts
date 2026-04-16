@@ -42,6 +42,12 @@ const envSchema = z.object({
   CREDLY_ORGANIZATION_ID: z.string().min(1).optional(),
   BADGR_API_TOKEN: z.string().min(1).optional(),
   BADGR_ISSUER_ID: z.string().min(1).optional(),
+  CERTIFICATION_RENEWAL_SCHEDULER_ENABLED: z
+    .string()
+    .optional()
+    .transform((value) => value !== "false"),
+  CERTIFICATION_RENEWAL_LOOKAHEAD_DAYS: z.coerce.number().int().min(1).max(365).optional(),
+  CERTIFICATION_RENEWAL_SCHEDULED_BY: z.string().min(1).optional(),
 });
 
 export const env = envSchema.parse(process.env);
@@ -87,4 +93,8 @@ export function hasStripeConfig(): boolean {
 
 export function getCredentialProvider(): "mock" | "credly" | "badgr" {
   return env.CREDENTIAL_PROVIDER ?? "mock";
+}
+
+export function isCertificationRenewalSchedulerEnabled(): boolean {
+  return env.CERTIFICATION_RENEWAL_SCHEDULER_ENABLED !== false;
 }

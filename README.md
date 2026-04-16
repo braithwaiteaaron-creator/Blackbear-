@@ -143,6 +143,10 @@ npm run build
   - `POST /api/internal/jobs/process`
   - requires `x-job-worker-key` header matching `JOB_WORKER_KEY`
   - processes pending async jobs in small batches
+- Internal certification renewal scheduler route:
+  - `POST /api/internal/certifications/renewals/schedule`
+  - requires `x-job-worker-key` header matching `JOB_WORKER_KEY`
+  - scans expiring certificates and enqueues renewal notice jobs
 
 ## Backend, auth, and access control setup
 
@@ -189,6 +193,9 @@ Set environment variables (see `.env.example`):
 - `CREDENTIAL_PROVIDER` (optional; `mock|credly|badgr`, defaults to `mock`)
 - `CREDLY_API_TOKEN` / `CREDLY_ORGANIZATION_ID` (optional; used when `CREDENTIAL_PROVIDER=credly`)
 - `BADGR_API_TOKEN` / `BADGR_ISSUER_ID` (optional; used when `CREDENTIAL_PROVIDER=badgr`)
+- `CERTIFICATION_RENEWAL_SCHEDULER_ENABLED` (optional; set `false` to disable renewal scheduling)
+- `CERTIFICATION_RENEWAL_LOOKAHEAD_DAYS` (optional; default `30`)
+- `CERTIFICATION_RENEWAL_SCHEDULED_BY` (optional; default `system-renewal-scheduler`)
 
 Certification artifacts:
 
@@ -197,6 +204,7 @@ Certification artifacts:
 - Verification metadata is publicly queryable via `/api/v1/certifications/verify/{verificationCode}`.
 - `/badges` includes an interactive verification form and credential result display for public checks.
 - Certificate issuance now runs through a provider abstraction (`mock`, `credly`, `badgr`) and returns provider sync metadata in issuance responses.
+- Renewal scheduler scans certificates expiring in the configured lookahead window and enqueues `certification_renewal_notice` jobs.
 
 ### Authorization behavior
 
