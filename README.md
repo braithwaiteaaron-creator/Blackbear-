@@ -132,6 +132,9 @@ npm run build
   - accepts a verification code input
   - fetches and renders verification result states (success/invalid/not found)
   - links directly to certificate artifact and issuer URL
+- Badge sharing now includes referral attribution links:
+  - results and dashboard badge surfaces include one-click share actions for LinkedIn/X plus copy-link
+  - share URLs include UTM and referral context (`utm_source=badge_share`, `utm_medium=social`, `utm_campaign=badge_attribution`, `ref=...`, optional `session=...`)
 - Legacy `/api/quiz-sessions*` routes include deprecation headers:
   - `Deprecation: true`
   - `Sunset: <date>`

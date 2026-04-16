@@ -76,7 +76,7 @@ export type PersistedQuizSessionSummary = {
   intermediateScore: number;
   advancedScore: number;
   completedAt: string;
-  badge: string;
+  badge: BadgeTier;
 };
 
 export type PersistQuizSessionResult = {
@@ -187,4 +187,9 @@ export type CertificationVerificationRecord = {
   artifact: {
     certificateUrl: string;
   };
+};
+
+export type BadgeShareData = {
+  badgeTier: BadgeTier;
+  sessionId?: string | null;
 };

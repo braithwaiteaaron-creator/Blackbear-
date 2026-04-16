@@ -8,6 +8,7 @@ import { useQuizStore } from "@/lib/store";
 import { getBadgeAward, getTierFeedback } from "@/lib/scoring";
 import { detectDeviceType } from "@/lib/device";
 import { buildQuizSessionPayload, persistQuizSession } from "@/lib/quiz-persistence";
+import { BadgeShareActions } from "@/components/badge-share-actions";
 import type { PersistQuizSessionResult } from "@/lib/types";
 
 export function ResultsSummary() {
@@ -83,6 +84,13 @@ export function ResultsSummary() {
         <p className="mt-2 text-sm text-slate-300">
           Share on LinkedIn, X, or copy your public badge link.
         </p>
+        <div className="mt-3">
+          <BadgeShareActions
+            badgeTier={badge.tier}
+            sessionId={persistedResult?.sessionId ?? null}
+            source="results"
+          />
+        </div>
         <p className="mt-2 text-xs text-slate-400">
           {saveState === "saving" ? "Saving your assessment..." : null}
           {saveState === "saved" && persistedResult

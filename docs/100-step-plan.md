@@ -81,7 +81,7 @@ Status legend:
 - [x] **62.** Implement credential metadata + verification endpoint.
 - [x] **63.** Build public badge verification page behavior.
 - [x] **64.** Integrate external credential provider (Credly/Badgr).
-- [ ] **65.** Add badge sharing links with referral attribution.
+- [x] **65.** Add badge sharing links with referral attribution.
 - [ ] **66.** Add expiration + renewal scheduler.
 - [ ] **67.** Ship certification purchase + issuance flow.
 - [ ] **68.** Add admin revoke/reissue controls.

@@ -5,9 +5,13 @@ import type { PersistedQuizSessionSummary } from "@/lib/types";
 
 type SavedSessionsListProps = {
   fallbackItems?: Array<{ title: string; body: string }>;
+  onLoaded?: (sessions: PersistedQuizSessionSummary[]) => void;
 };
 
-export function SavedSessionsList({ fallbackItems = [] }: SavedSessionsListProps) {
+export function SavedSessionsList({
+  fallbackItems = [],
+  onLoaded,
+}: SavedSessionsListProps) {
   const [sessions, setSessions] = useState<PersistedQuizSessionSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -40,7 +44,9 @@ export function SavedSessionsList({ fallbackItems = [] }: SavedSessionsListProps
         };
 
         if (!ignore) {
-          setSessions(payload.data?.sessions ?? []);
+          const loadedSessions = payload.data?.sessions ?? [];
+          setSessions(loadedSessions);
+          onLoaded?.(loadedSessions);
           setError(null);
         }
       } catch (unknownError) {
@@ -63,7 +69,7 @@ export function SavedSessionsList({ fallbackItems = [] }: SavedSessionsListProps
     return () => {
       ignore = true;
     };
-  }, []);
+  }, [onLoaded]);
 
   if (loading) {
     return (
@@ -112,7 +118,7 @@ export function SavedSessionsList({ fallbackItems = [] }: SavedSessionsListProps
           className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm"
         >
           <h3 className="text-base font-semibold text-slate-900">
-            {session.totalScore}/15 • {session.badge}
+            {session.totalScore}/15 • {session.badge.toUpperCase()}
           </h3>
           <p className="mt-2 text-sm text-slate-700">
             Beginner: {session.beginnerScore}/5 • Intermediate: {session.intermediateScore}
