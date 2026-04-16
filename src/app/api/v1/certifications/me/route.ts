@@ -58,7 +58,10 @@ export async function POST() {
         sourceSessionId: issued.sourceSessionId,
       },
       issued.created ? 201 : 200,
-      { created: issued.created }
+      {
+        created: issued.created,
+        verificationUrl: `/api/v1/certifications/verify/${issued.certification.verificationCode}`,
+      }
     )
   );
 }

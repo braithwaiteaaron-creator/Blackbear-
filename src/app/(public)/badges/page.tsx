@@ -35,6 +35,19 @@ export default function BadgesPage() {
         subtitle="Badges map to total score across all 15 questions."
         items={BADGES}
       />
+      <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <h2 className="text-xl font-semibold text-slate-900">Credential verification endpoint</h2>
+        <p className="mt-2 text-sm text-slate-700">
+          Issued certifications expose public credential metadata at:
+        </p>
+        <code className="mt-3 block rounded-lg bg-slate-900 px-3 py-2 text-xs text-slate-100">
+          /api/v1/certifications/verify/&lt;verificationCode&gt;
+        </code>
+        <p className="mt-3 text-sm text-slate-700">
+          This endpoint returns issuer, tier, status, issued/expiry dates, and certificate artifact
+          URL for independent verification workflows.
+        </p>
+      </section>
     </PageShell>
   );
 }

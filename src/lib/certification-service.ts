@@ -7,7 +7,11 @@ import { randomUUID } from "node:crypto";
 import { API_ERROR_CODES, type ApiErrorCode } from "@/lib/api";
 import { prisma } from "@/lib/prisma";
 import { getBadgeTier } from "@/lib/scoring";
-import type { BadgeTier, UserCertification } from "@/lib/types";
+import type {
+  BadgeTier,
+  CertificationVerificationRecord,
+  UserCertification,
+} from "@/lib/types";
 
 type ServiceError = {
   code: ApiErrorCode;
@@ -23,6 +27,19 @@ type CertificateIssueResult = {
 };
 
 const CERTIFICATE_VALIDITY_DAYS = 365;
+const VERIFICATION_CODE_PATTERN = /^CERT-[A-Z]+-[A-Z0-9]+-[A-Z0-9]+$/;
+
+function toPublicName(name: string | null | undefined, email: string): string {
+  const normalizedName = name?.trim();
+  if (normalizedName) {
+    return normalizedName.slice(0, 120);
+  }
+  const localPart = email.split("@")[0] ?? "learner";
+  if (localPart.length <= 2) {
+    return `${localPart}***`;
+  }
+  return `${localPart.slice(0, 2)}***`;
+}
 
 function toCertificationTier(badgeTier: BadgeTier): CertificationTier {
   return badgeTier;
@@ -128,6 +145,10 @@ function buildSimplePdf(lines: string[]): Buffer {
 function buildVerificationCode(tier: CertificationTier): string {
   const random = randomUUID().replaceAll("-", "").slice(0, 10).toUpperCase();
   return `CERT-${tier.toUpperCase()}-${Date.now().toString(36).toUpperCase()}-${random}`;
+}
+
+function normalizeVerificationCode(value: string): string {
+  return value.trim().toUpperCase();
 }
 
 async function writeCertificatePdf(input: {
@@ -287,5 +308,70 @@ export async function issueCertificationForLatestSession(input: {
     certification: toUserCertification(created),
     created: true,
     sourceSessionId: latestSession.id,
+  };
+}
+
+export async function getCertificationVerificationRecord(input: {
+  verificationCode: string;
+}): Promise<CertificationVerificationRecord | { error: ServiceError }> {
+  const normalizedCode = normalizeVerificationCode(input.verificationCode);
+  if (!normalizedCode || !VERIFICATION_CODE_PATTERN.test(normalizedCode)) {
+    return {
+      error: {
+        code: API_ERROR_CODES.VALIDATION_ERROR,
+        message: "Invalid verification code format.",
+        status: 400,
+      },
+    };
+  }
+
+  const certification = await prisma.certification.findUnique({
+    where: { credlyBadgeId: normalizedCode },
+    select: {
+      id: true,
+      certificationTier: true,
+      badgeUrl: true,
+      credlyBadgeId: true,
+      issuedAt: true,
+      expiresAt: true,
+      user: {
+        select: {
+          name: true,
+          email: true,
+        },
+      },
+    },
+  });
+  if (!certification) {
+    return {
+      error: {
+        code: API_ERROR_CODES.NOT_FOUND,
+        message: "Credential not found for verification code.",
+        status: 404,
+      },
+    };
+  }
+
+  const now = Date.now();
+  const isActive = certification.expiresAt ? certification.expiresAt.getTime() > now : true;
+  const appUrl = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
+
+  return {
+    verificationCode: certification.credlyBadgeId,
+    credentialId: certification.id,
+    tier: certification.certificationTier,
+    status: isActive ? "active" : "expired",
+    issuedAt: certification.issuedAt.toISOString(),
+    expiresAt: certification.expiresAt?.toISOString() ?? null,
+    holder: {
+      name: toPublicName(certification.user.name, certification.user.email),
+    },
+    issuer: {
+      name: "GitHub Mastery Ecosystem",
+      url: appUrl,
+    },
+    artifact: {
+      certificateUrl: certification.badgeUrl,
+    },
   };
 }

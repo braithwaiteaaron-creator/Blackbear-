@@ -158,3 +158,22 @@ export type UserCertification = {
   verificationCode: string;
   isActive: boolean;
 };
+
+export type CertificationVerificationRecord = {
+  verificationCode: string;
+  credentialId: string;
+  tier: CertificationTierId;
+  status: "active" | "expired";
+  issuedAt: string;
+  expiresAt: string | null;
+  holder: {
+    name: string;
+  };
+  issuer: {
+    name: string;
+    url: string;
+  };
+  artifact: {
+    certificateUrl: string;
+  };
+};

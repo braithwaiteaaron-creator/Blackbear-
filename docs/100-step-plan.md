@@ -78,7 +78,7 @@ Status legend:
 
 ## Phase 7 — Certifications and Badge Operations (61–70)
 - [x] **61.** Build certificate generation pipeline (PDF).
-- [ ] **62.** Implement credential metadata + verification endpoint.
+- [x] **62.** Implement credential metadata + verification endpoint.
 - [ ] **63.** Build public badge verification page behavior.
 - [ ] **64.** Integrate external credential provider (Credly/Badgr).
 - [ ] **65.** Add badge sharing links with referral attribution.

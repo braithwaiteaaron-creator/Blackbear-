@@ -123,6 +123,10 @@ npm run build
   - derives certification tier from latest score badge mapping
   - generates and stores a downloadable PDF under `/public/certificates`
   - returns existing active certificate for the same tier if already issued
+- `GET /api/v1/certifications/verify/{verificationCode}` (legacy alias: `GET /api/certifications/verify/{verificationCode}`)
+  - public verification endpoint for credential metadata lookup by verification code
+  - returns credential status (`active|expired`), holder display name, issuer metadata, tier, issue/expiry dates, and certificate URL
+  - validates code format and returns standard API errors for invalid/missing credentials
 - Legacy `/api/quiz-sessions*` routes include deprecation headers:
   - `Deprecation: true`
   - `Sunset: <date>`
@@ -179,6 +183,7 @@ Certification artifacts:
 
 - Generated certificate PDFs are written to `public/certificates/`.
 - Each generated certificate includes a verification code saved in the `certifications` table.
+- Verification metadata is publicly queryable via `/api/v1/certifications/verify/{verificationCode}`.
 
 ### Authorization behavior
 
