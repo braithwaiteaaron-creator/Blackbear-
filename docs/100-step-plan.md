@@ -90,7 +90,7 @@ Status legend:
 
 ## Phase 8 — Enterprise Productization (71–80)
 - [x] **71.** Build organization creation and member provisioning workflow.
-- [ ] **72.** Define SSO/SAML implementation plan.
+- [x] **72.** Define SSO/SAML implementation plan.
 - [ ] **73.** Define SCIM provisioning implementation plan.
 - [ ] **74.** Replace org dashboard placeholders with live metrics.
 - [ ] **75.** Implement capability-gap report generation engine.

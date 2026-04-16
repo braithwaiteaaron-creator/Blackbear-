@@ -182,6 +182,13 @@ npm run build
   - requires `x-job-worker-key` header matching `JOB_WORKER_KEY`
   - scans expiring certificates and enqueues renewal notice jobs
 
+## Enterprise identity planning artifacts
+
+- SSO/SAML implementation plan: `docs/sso-saml-implementation-plan.md`
+  - covers IdP metadata model, tenant configuration surfaces, SAML authn flow, claim mapping, security controls, and rollout strategy
+  - defines migration approach from current NextAuth social login toward enterprise SSO without breaking existing users
+  - includes API/interface contracts and validation checklist for production readiness
+
 ## Backend, auth, and access control setup
 
 This project includes:
