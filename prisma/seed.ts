@@ -131,6 +131,114 @@ async function main() {
       },
     },
   });
+
+  const organization = await prisma.organization.upsert({
+    where: { domain: "seed.example.com" },
+    update: {
+      name: "Seed Org",
+      subscriptionType: "enterprise",
+      seatCount: 25,
+      adminUserId: user.id,
+    },
+    create: {
+      name: "Seed Org",
+      domain: "seed.example.com",
+      subscriptionType: "enterprise",
+      seatCount: 25,
+      adminUserId: user.id,
+    },
+  });
+
+  await prisma.organizationMember.upsert({
+    where: {
+      organizationId_email: {
+        organizationId: organization.id,
+        email: user.email,
+      },
+    },
+    update: {
+      userId: user.id,
+      role: "admin",
+      status: "active",
+      acceptedAt: new Date(),
+    },
+    create: {
+      organizationId: organization.id,
+      userId: user.id,
+      email: user.email,
+      role: "admin",
+      status: "active",
+      invitedByUserId: user.id,
+      acceptedAt: new Date(),
+    },
+  });
+
+  const seedMember = await prisma.user.upsert({
+    where: { email: "seed.member@example.com" },
+    update: {
+      name: "Seed Member",
+      role: "user",
+      organization: "Seed Org",
+      subscriptionTier: "enterprise",
+    },
+    create: {
+      email: "seed.member@example.com",
+      name: "Seed Member",
+      role: "user",
+      organization: "Seed Org",
+      subscriptionTier: "enterprise",
+    },
+  });
+
+  await prisma.organizationMember.upsert({
+    where: {
+      organizationId_email: {
+        organizationId: organization.id,
+        email: seedMember.email,
+      },
+    },
+    update: {
+      userId: seedMember.id,
+      role: "member",
+      status: "active",
+      invitedByUserId: user.id,
+      acceptedAt: new Date(),
+    },
+    create: {
+      organizationId: organization.id,
+      userId: seedMember.id,
+      email: seedMember.email,
+      role: "member",
+      status: "active",
+      invitedByUserId: user.id,
+      acceptedAt: new Date(),
+    },
+  });
+
+  await prisma.organizationMember.upsert({
+    where: {
+      organizationId_email: {
+        organizationId: organization.id,
+        email: "invited.dev@example.com",
+      },
+    },
+    update: {
+      userId: null,
+      role: "member",
+      status: "invited",
+      invitedByUserId: user.id,
+      acceptedAt: null,
+    },
+    create: {
+      organizationId: organization.id,
+      userId: null,
+      email: "invited.dev@example.com",
+      role: "member",
+      status: "invited",
+      invitedByUserId: user.id,
+      acceptedAt: null,
+    },
+  });
 }
 
 main()

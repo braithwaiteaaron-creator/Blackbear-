@@ -89,7 +89,7 @@ Status legend:
 - [x] **70.** Finalize legal terms for certification program.
 
 ## Phase 8 — Enterprise Productization (71–80)
-- [ ] **71.** Build organization creation and member provisioning workflow.
+- [x] **71.** Build organization creation and member provisioning workflow.
 - [ ] **72.** Define SSO/SAML implementation plan.
 - [ ] **73.** Define SCIM provisioning implementation plan.
 - [ ] **74.** Replace org dashboard placeholders with live metrics.

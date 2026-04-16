@@ -38,6 +38,17 @@ enum OrganizationSubscriptionType {
   enterprise
 }
 
+enum OrganizationMemberRole {
+  admin
+  member
+}
+
+enum OrganizationMemberStatus {
+  invited
+  active
+  suspended
+}
+
 enum JobStatus {
   pending
   processing
@@ -109,6 +120,8 @@ model User {
   certificationPurchases CertificationPurchase[]
   certificationRiskEvents CertificationRiskEvent[]
   organizations        Organization[]        @relation("OrganizationAdmin")
+  organizationMemberships OrganizationMember[] @relation("OrganizationMemberUser")
+  organizationInvitationsSent OrganizationMember[] @relation("OrganizationMemberInvitedBy")
   billingSubscriptions BillingSubscription[]
 
   @@map("users")
@@ -224,9 +237,34 @@ model Organization {
   createdAt        DateTime                     @default(now()) @map("created_at")
 
   adminUser   User                     @relation("OrganizationAdmin", fields: [adminUserId], references: [id], onDelete: Restrict)
+  members     OrganizationMember[]
   assessments OrganizationAssessment[]
 
+  @@unique([domain], map: "organizations_domain_key")
   @@map("organizations")
+}
+
+model OrganizationMember {
+  id              String                   @id @default(uuid()) @db.Uuid
+  organizationId  String                   @map("organization_id") @db.Uuid
+  userId          String?                  @map("user_id") @db.Uuid
+  email           String
+  role            OrganizationMemberRole   @default(member)
+  status          OrganizationMemberStatus @default(invited)
+  invitedByUserId String?                  @map("invited_by_user_id") @db.Uuid
+  invitedAt       DateTime                 @default(now()) @map("invited_at")
+  acceptedAt      DateTime?                @map("accepted_at")
+  createdAt       DateTime                 @default(now()) @map("created_at")
+  updatedAt       DateTime                 @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User?        @relation("OrganizationMemberUser", fields: [userId], references: [id], onDelete: SetNull)
+  invitedBy    User?        @relation("OrganizationMemberInvitedBy", fields: [invitedByUserId], references: [id], onDelete: SetNull)
+
+  @@unique([organizationId, email], map: "org_members_org_id_email_key")
+  @@index([organizationId, status], map: "org_members_org_id_status_idx")
+  @@index([organizationId, role], map: "org_members_org_id_role_idx")
+  @@map("organization_members")
 }
 
 model OrganizationAssessment {

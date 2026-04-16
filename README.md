@@ -147,6 +147,17 @@ npm run build
   - supports `limit` and `unresolvedOnly` filters
 - `PATCH /api/v1/admin/certifications/risk-events/{eventId}` (legacy alias: `PATCH /api/admin/certifications/risk-events/{eventId}`)
   - admin-only resolution endpoint to mark a risk event reviewed with a resolution note
+- `GET /api/v1/org/organizations` (legacy alias: `GET /api/org/organizations`)
+  - org-admin/admin endpoint to load the caller's managed organization context (organization, members, seat usage)
+- `POST /api/v1/org/organizations` (legacy alias: `POST /api/org/organizations`)
+  - creates an organization for org-admin/admin users with team/enterprise subscription
+  - accepts `name`, `domain`, `subscriptionType`, `seatCount`, and optional initial member list
+  - auto-provisions caller as active admin membership and updates caller role/tier context
+- `GET /api/v1/org/members` (legacy alias: `GET /api/org/members`)
+  - org-admin/admin endpoint to list organization members with optional `status` and `limit` filters
+- `POST /api/v1/org/members` (legacy alias: `POST /api/org/members`)
+  - provisions a member invite or active membership by email/role for the caller's managed organization
+  - enforces seat capacity guardrails and tracks invitation metadata
 - `GET /api/v1/certifications/verify/{verificationCode}` (legacy alias: `GET /api/certifications/verify/{verificationCode}`)
   - public verification endpoint for credential metadata lookup by verification code
   - returns credential status (`active|revoked|expired`), holder display name, issuer metadata, tier, issue/expiry dates, and certificate URL
@@ -238,6 +249,7 @@ Certification artifacts:
 - Purchase and issuance flows enforce guardrails against tier mismatch, repeated pending checkouts, and issuance without a valid assessment context.
 - Certification checkout now records auditable terms acceptance metadata (`certificationTermsVersion`, acceptance timestamp) in Stripe metadata and persisted purchase metadata.
 - Public certification legal terms are published at `/certifications/terms`; dashboard checkout requires explicit acceptance of the current version before redirecting to Stripe.
+- Organization provisioning now supports create-and-invite workflows with seat-aware membership controls exposed in `/org/members`.
 
 ### Authorization behavior
 

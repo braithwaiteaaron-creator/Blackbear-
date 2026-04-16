@@ -1,26 +1,14 @@
-import { DashboardGrid } from "@/components/dashboard-grid";
+import { PageShell } from "@/components/page-shell";
 
-const cards = [
-  {
-    title: "Member directory",
-    body: "Searchable roster with role, proficiency tier, and certification status for each member.",
-  },
-  {
-    title: "Invitations",
-    body: "Invite developers by email, assign team roles, and track pending invitation states.",
-  },
-  {
-    title: "Access governance",
-    body: "Manage least-privilege access to organization reports and benchmark dashboards.",
-  },
-];
+import { OrgMembersControls } from "@/components/org-members-controls";
 
 export default function OrgMembersPage() {
   return (
-    <DashboardGrid
+    <PageShell
       title="Organization members"
-      description="Manage team membership, invitations, and role-based access."
-      items={cards}
-    />
+      description="Create your organization and provision members with seat-aware controls."
+    >
+      <OrgMembersControls />
+    </PageShell>
   );
 }
