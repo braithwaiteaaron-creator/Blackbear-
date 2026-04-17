@@ -1,0 +1,343 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum SubscriptionTier {
+  free
+  premium
+  team
+  enterprise
+}
+
+enum TierCompleted {
+  beginner
+  intermediate
+  advanced
+  full
+}
+
+enum DeviceType {
+  mobile
+  tablet
+  desktop
+}
+
+enum CertificationTier {
+  foundation
+  developing
+  advanced
+  expert
+}
+
+enum OrganizationSubscriptionType {
+  team
+  enterprise
+}
+
+enum OrganizationMemberRole {
+  admin
+  member
+}
+
+enum OrganizationMemberStatus {
+  invited
+  active
+  suspended
+}
+
+enum JobStatus {
+  pending
+  processing
+  completed
+  failed
+}
+
+enum JobType {
+  quiz_session_created
+  billing_dunning_notice
+  certification_renewal_notice
+}
+
+enum BillingProvider {
+  stripe
+}
+
+enum BillingSubscriptionStatus {
+  trialing
+  active
+  past_due
+  canceled
+  unpaid
+  incomplete
+  incomplete_expired
+}
+
+enum BillingWebhookStatus {
+  received
+  processed
+  failed
+}
+
+enum CertificationPurchaseStatus {
+  pending
+  completed
+  failed
+  canceled
+}
+
+enum CertificationRiskSeverity {
+  low
+  medium
+  high
+}
+
+enum CertificationRiskEventType {
+  checkout_without_assessment
+  checkout_tier_mismatch
+  checkout_pending_flood
+  issuance_without_assessment
+  issuance_tier_mismatch
+  revoked_credential_verification
+}
+
+model User {
+  id               String           @id @default(uuid()) @db.Uuid
+  email            String           @unique
+  name             String
+  organization     String?
+  role             String?
+  linkedinUrl      String?          @map("linkedin_url")
+  subscriptionTier SubscriptionTier @default(free) @map("subscription_tier")
+  createdAt        DateTime         @default(now()) @map("created_at")
+  updatedAt        DateTime         @updatedAt @map("updated_at")
+
+  quizSessions         QuizSession[]
+  certifications       Certification[]
+  certificationPurchases CertificationPurchase[]
+  certificationRiskEvents CertificationRiskEvent[]
+  organizations        Organization[]        @relation("OrganizationAdmin")
+  organizationMemberships OrganizationMember[] @relation("OrganizationMemberUser")
+  organizationInvitationsSent OrganizationMember[] @relation("OrganizationMemberInvitedBy")
+  billingSubscriptions BillingSubscription[]
+
+  @@map("users")
+}
+
+model QuizSession {
+  id                String        @id @default(uuid()) @db.Uuid
+  userId            String        @map("user_id") @db.Uuid
+  tierCompleted     TierCompleted @map("tier_completed")
+  totalScore        Int           @map("total_score")
+  beginnerScore     Int           @map("beginner_score")
+  intermediateScore Int           @map("intermediate_score")
+  advancedScore     Int           @map("advanced_score")
+  timeToComplete    Int           @map("time_to_complete")
+  deviceType        DeviceType    @map("device_type")
+  trafficSource     String        @map("traffic_source")
+  idempotencyKey    String?       @unique @map("idempotency_key")
+  completedAt       DateTime      @default(now()) @map("completed_at")
+
+  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  questionResponses QuestionResponse[]
+
+  @@map("quiz_sessions")
+}
+
+model QuestionResponse {
+  id             String   @id @default(uuid()) @db.Uuid
+  sessionId      String   @map("session_id") @db.Uuid
+  questionId     Int      @map("question_id")
+  selectedAnswer String   @map("selected_answer")
+  isCorrect      Boolean  @map("is_correct")
+  timeOnQuestion Int      @map("time_on_question")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  session QuizSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@map("question_responses")
+}
+
+model Certification {
+  id                String            @id @default(uuid()) @db.Uuid
+  userId            String            @map("user_id") @db.Uuid
+  certificationTier CertificationTier @map("certification_tier")
+  badgeUrl          String            @map("badge_url")
+  credlyBadgeId     String            @map("credly_badge_id")
+  issuedAt          DateTime          @default(now()) @map("issued_at")
+  expiresAt         DateTime?         @map("expires_at")
+  shareCount        Int               @default(0) @map("share_count")
+  revokedAt         DateTime?         @map("revoked_at")
+  revocationReason  String?           @map("revocation_reason")
+  metadata          Json?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  riskEvents CertificationRiskEvent[]
+
+  @@map("certifications")
+}
+
+model CertificationPurchase {
+  id                    String                      @id @default(uuid()) @db.Uuid
+  userId                String                      @map("user_id") @db.Uuid
+  certificationTier     CertificationTier           @map("certification_tier")
+  provider              BillingProvider
+  providerCheckoutId    String                      @unique @map("provider_checkout_id")
+  providerPaymentIntent String?                     @map("provider_payment_intent")
+  providerCustomerId    String?                     @map("provider_customer_id")
+  amountCents           Int                         @map("amount_cents")
+  currency              String                      @default("usd")
+  status                CertificationPurchaseStatus @default(pending)
+  metadata              Json?
+  completedAt           DateTime?                   @map("completed_at")
+  createdAt             DateTime                    @default(now()) @map("created_at")
+  updatedAt             DateTime                    @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, certificationTier, status], map: "cert_purchases_user_tier_status_idx")
+  @@index([provider, providerCheckoutId], map: "cert_purchases_provider_checkout_idx")
+  @@map("certification_purchases")
+}
+
+model CertificationRiskEvent {
+  id              String                     @id @default(uuid()) @db.Uuid
+  userId          String?                    @map("user_id") @db.Uuid
+  certificationId String?                    @map("certification_id") @db.Uuid
+  eventType       CertificationRiskEventType @map("event_type")
+  severity        CertificationRiskSeverity
+  details         Json?
+  ipAddress       String?                    @map("ip_address")
+  userAgent       String?                    @map("user_agent")
+  detectedAt      DateTime                   @default(now()) @map("detected_at")
+  resolvedAt      DateTime?                  @map("resolved_at")
+  resolutionNote  String?                    @map("resolution_note")
+  createdAt       DateTime                   @default(now()) @map("created_at")
+  updatedAt       DateTime                   @updatedAt @map("updated_at")
+
+  user          User?          @relation(fields: [userId], references: [id], onDelete: SetNull)
+  certification Certification? @relation(fields: [certificationId], references: [id], onDelete: SetNull)
+
+  @@index([eventType, detectedAt], map: "cert_risk_event_type_detected_at_idx")
+  @@index([userId, detectedAt], map: "cert_risk_user_detected_at_idx")
+  @@index([resolvedAt, detectedAt], map: "cert_risk_resolved_detected_at_idx")
+  @@map("certification_risk_events")
+}
+
+model Organization {
+  id               String                       @id @default(uuid()) @db.Uuid
+  name             String
+  domain           String
+  subscriptionType OrganizationSubscriptionType @map("subscription_type")
+  seatCount        Int                          @map("seat_count")
+  adminUserId      String                       @map("admin_user_id") @db.Uuid
+  createdAt        DateTime                     @default(now()) @map("created_at")
+
+  adminUser   User                     @relation("OrganizationAdmin", fields: [adminUserId], references: [id], onDelete: Restrict)
+  members     OrganizationMember[]
+  assessments OrganizationAssessment[]
+
+  @@unique([domain], map: "organizations_domain_key")
+  @@map("organizations")
+}
+
+model OrganizationMember {
+  id              String                   @id @default(uuid()) @db.Uuid
+  organizationId  String                   @map("organization_id") @db.Uuid
+  userId          String?                  @map("user_id") @db.Uuid
+  email           String
+  role            OrganizationMemberRole   @default(member)
+  status          OrganizationMemberStatus @default(invited)
+  invitedByUserId String?                  @map("invited_by_user_id") @db.Uuid
+  invitedAt       DateTime                 @default(now()) @map("invited_at")
+  acceptedAt      DateTime?                @map("accepted_at")
+  createdAt       DateTime                 @default(now()) @map("created_at")
+  updatedAt       DateTime                 @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User?        @relation("OrganizationMemberUser", fields: [userId], references: [id], onDelete: SetNull)
+  invitedBy    User?        @relation("OrganizationMemberInvitedBy", fields: [invitedByUserId], references: [id], onDelete: SetNull)
+
+  @@unique([organizationId, email], map: "org_members_org_id_email_key")
+  @@index([organizationId, status], map: "org_members_org_id_status_idx")
+  @@index([organizationId, role], map: "org_members_org_id_role_idx")
+  @@map("organization_members")
+}
+
+model OrganizationAssessment {
+  id                String   @id @default(uuid()) @db.Uuid
+  organizationId    String   @map("organization_id") @db.Uuid
+  totalParticipants Int      @map("total_participants")
+  averageScore      Decimal  @map("average_score") @db.Decimal(5, 2)
+  beginnerAvg       Decimal  @map("beginner_avg") @db.Decimal(5, 2)
+  intermediateAvg   Decimal  @map("intermediate_avg") @db.Decimal(5, 2)
+  advancedAvg       Decimal  @map("advanced_avg") @db.Decimal(5, 2)
+  topKnowledgeGaps  Json     @map("top_knowledge_gaps")
+  reportUrl         String   @map("report_url")
+  generatedAt       DateTime @default(now()) @map("generated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@map("organization_assessments")
+}
+
+model JobQueue {
+  id             String    @id @default(uuid()) @db.Uuid
+  jobType        JobType   @map("job_type")
+  status         JobStatus @default(pending)
+  payload        Json
+  idempotencyKey String?   @unique @map("idempotency_key")
+  attempts       Int       @default(0)
+  maxAttempts    Int       @default(5) @map("max_attempts")
+  lastError      String?   @map("last_error")
+  availableAt    DateTime  @default(now()) @map("available_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  @@index([status, availableAt], map: "job_queue_status_available_at_idx")
+  @@map("job_queue")
+}
+
+model BillingSubscription {
+  id                     String                    @id @default(uuid()) @db.Uuid
+  userId                 String                    @map("user_id") @db.Uuid
+  provider               BillingProvider
+  providerCustomerId     String                    @map("provider_customer_id")
+  providerSubscriptionId String                    @unique @map("provider_subscription_id")
+  planCode               String                    @map("plan_code")
+  status                 BillingSubscriptionStatus
+  currentPeriodStart     DateTime                  @map("current_period_start")
+  currentPeriodEnd       DateTime                  @map("current_period_end")
+  cancelAtPeriodEnd      Boolean                   @default(false) @map("cancel_at_period_end")
+  metadata               Json?
+  createdAt              DateTime                  @default(now()) @map("created_at")
+  updatedAt              DateTime                  @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId], map: "billing_subscriptions_user_id_idx")
+  @@index([provider, providerCustomerId], map: "billing_subscriptions_provider_customer_idx")
+  @@map("billing_subscriptions")
+}
+
+model BillingWebhookEvent {
+  id                 String               @id @default(uuid()) @db.Uuid
+  provider           BillingProvider
+  providerEventId    String               @unique @map("provider_event_id")
+  eventType          String               @map("event_type")
+  status             BillingWebhookStatus @default(received)
+  payload            Json
+  receivedAt         DateTime             @default(now()) @map("received_at")
+  processedAt        DateTime?            @map("processed_at")
+  errorMessage       String?              @map("error_message")
+  processingAttempts Int                  @default(0) @map("processing_attempts")
+  createdAt          DateTime             @default(now()) @map("created_at")
+  updatedAt          DateTime             @updatedAt @map("updated_at")
+
+  @@index([provider, eventType], map: "billing_webhook_events_provider_event_type_idx")
+  @@index([status, receivedAt], map: "billing_webhook_events_status_received_at_idx")
+  @@map("billing_webhook_events")
+}

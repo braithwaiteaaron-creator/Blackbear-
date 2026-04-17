@@ -1,0 +1,106 @@
+import { z } from "zod";
+
+const envSchema = z.object({
+  DATABASE_URL: z.string().min(1).optional(),
+  NEXTAUTH_URL: z.string().url().optional(),
+  NEXTAUTH_SECRET: z.string().min(1).optional(),
+  AUTH_GITHUB_ID: z.string().min(1).optional(),
+  AUTH_GITHUB_SECRET: z.string().min(1).optional(),
+  AUTH_GOOGLE_ID: z.string().min(1).optional(),
+  AUTH_GOOGLE_SECRET: z.string().min(1).optional(),
+  DEFAULT_USER_ROLE: z.enum(["user", "org_admin", "admin"]).optional(),
+  DEFAULT_SUBSCRIPTION_TIER: z
+    .enum(["free", "premium", "team", "enterprise"])
+    .optional(),
+  ADMIN_EMAILS: z.string().optional(),
+  ORG_ADMIN_EMAILS: z.string().optional(),
+  TEAM_TIER_EMAILS: z.string().optional(),
+  ENTERPRISE_TIER_EMAILS: z.string().optional(),
+  JOB_WORKER_KEY: z.string().min(1).optional(),
+  STRIPE_SECRET_KEY: z.string().min(1).optional(),
+  STRIPE_WEBHOOK_SECRET: z.string().min(1).optional(),
+  STRIPE_PRICE_PREMIUM_MONTHLY: z.string().min(1).optional(),
+  STRIPE_PRICE_PREMIUM_YEARLY: z.string().min(1).optional(),
+  STRIPE_PRICE_TEAM_MONTHLY: z.string().min(1).optional(),
+  STRIPE_PRICE_TEAM_YEARLY: z.string().min(1).optional(),
+  STRIPE_PRICE_ENTERPRISE_MONTHLY: z.string().min(1).optional(),
+  STRIPE_CHECKOUT_SUCCESS_URL: z.string().url().optional(),
+  STRIPE_CHECKOUT_CANCEL_URL: z.string().url().optional(),
+  STRIPE_BILLING_PORTAL_RETURN_URL: z.string().url().optional(),
+  STRIPE_WEBHOOK_TOLERANCE_SECONDS: z.coerce.number().int().min(0).optional(),
+  BILLING_INTRO_TRIAL_DAYS_DEFAULT: z.coerce.number().int().min(0).max(365).optional(),
+  BILLING_INTRO_TRIAL_DAYS_PREMIUM: z.coerce.number().int().min(0).max(365).optional(),
+  BILLING_INTRO_TRIAL_DAYS_TEAM: z.coerce.number().int().min(0).max(365).optional(),
+  BILLING_INTRO_ELIGIBLE_PLANS: z.string().optional(),
+  BILLING_DUNNING_ENABLED: z
+    .string()
+    .optional()
+    .transform((value) => value !== "false"),
+  STRIPE_ENTERPRISE_CONTACT_URL: z.string().url().optional(),
+  CREDENTIAL_PROVIDER: z.enum(["mock", "credly", "badgr"]).optional(),
+  CREDLY_API_TOKEN: z.string().min(1).optional(),
+  CREDLY_ORGANIZATION_ID: z.string().min(1).optional(),
+  BADGR_API_TOKEN: z.string().min(1).optional(),
+  BADGR_ISSUER_ID: z.string().min(1).optional(),
+  STRIPE_CERT_PRICE_FOUNDATION: z.string().min(1).optional(),
+  STRIPE_CERT_PRICE_DEVELOPING: z.string().min(1).optional(),
+  STRIPE_CERT_PRICE_ADVANCED: z.string().min(1).optional(),
+  STRIPE_CERT_PRICE_EXPERT: z.string().min(1).optional(),
+  CERTIFICATION_TERMS_VERSION: z.string().min(1).optional(),
+  CERTIFICATION_TERMS_EFFECTIVE_DATE: z.string().min(1).optional(),
+  CERTIFICATION_RENEWAL_SCHEDULER_ENABLED: z
+    .string()
+    .optional()
+    .transform((value) => value !== "false"),
+  CERTIFICATION_RENEWAL_LOOKAHEAD_DAYS: z.coerce.number().int().min(1).max(365).optional(),
+  CERTIFICATION_RENEWAL_SCHEDULED_BY: z.string().min(1).optional(),
+});
+
+export const env = envSchema.parse(process.env);
+
+export function hasDatabaseConfig(): boolean {
+  return Boolean(env.DATABASE_URL);
+}
+
+export function hasGitHubOAuthConfig(): boolean {
+  return Boolean(env.AUTH_GITHUB_ID && env.AUTH_GITHUB_SECRET);
+}
+
+export function hasGoogleOAuthConfig(): boolean {
+  return Boolean(env.AUTH_GOOGLE_ID && env.AUTH_GOOGLE_SECRET);
+}
+
+function parseCsvEmails(value: string | undefined): string[] {
+  if (!value) {
+    return [];
+  }
+  return value
+    .split(",")
+    .map((item) => item.trim().toLowerCase())
+    .filter(Boolean);
+}
+
+export const accessEnv = {
+  defaultRole: env.DEFAULT_USER_ROLE ?? "user",
+  defaultSubscriptionTier: env.DEFAULT_SUBSCRIPTION_TIER ?? "free",
+  adminEmails: parseCsvEmails(env.ADMIN_EMAILS),
+  orgAdminEmails: parseCsvEmails(env.ORG_ADMIN_EMAILS),
+  teamTierEmails: parseCsvEmails(env.TEAM_TIER_EMAILS),
+  enterpriseTierEmails: parseCsvEmails(env.ENTERPRISE_TIER_EMAILS),
+};
+
+export function hasJobWorkerKey(): boolean {
+  return Boolean(env.JOB_WORKER_KEY);
+}
+
+export function hasStripeConfig(): boolean {
+  return Boolean(env.STRIPE_SECRET_KEY);
+}
+
+export function getCredentialProvider(): "mock" | "credly" | "badgr" {
+  return env.CREDENTIAL_PROVIDER ?? "mock";
+}
+
+export function isCertificationRenewalSchedulerEnabled(): boolean {
+  return env.CERTIFICATION_RENEWAL_SCHEDULER_ENABLED !== false;
+}
