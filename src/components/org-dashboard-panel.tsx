@@ -98,7 +98,7 @@ export function OrgDashboardPanel() {
     }
     const clamped = Math.max(0, Math.min(100, payload.seatUsage.utilizationPercent));
     return `${clamped.toFixed(1)}%`;
-  }, [payload?.seatUsage.utilizationPercent]);
+  }, [payload?.seatUsage]);
 
   return (
     <section className="space-y-4 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
