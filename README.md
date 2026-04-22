@@ -77,6 +77,13 @@ npm run typecheck
 npm run build
 ```
 
+## PR preview deployment setup
+
+- Preview deployment guide: `docs/pr-preview-deployment-setup.md`
+  - includes Vercel project setup for automatic preview deployments on every PR
+  - documents required repository/environment variables for stable previews
+  - includes CI checks and troubleshooting notes for missing preview URLs
+
 ## API behavior (current)
 
 - `POST /api/v1/quiz-sessions` (legacy alias: `POST /api/quiz-sessions`)
