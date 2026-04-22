@@ -158,6 +158,10 @@ npm run build
 - `POST /api/v1/org/members` (legacy alias: `POST /api/org/members`)
   - provisions a member invite or active membership by email/role for the caller's managed organization
   - enforces seat capacity guardrails and tracks invitation metadata
+- `GET /api/v1/org/dashboard` (legacy alias: `GET /api/org/dashboard`)
+  - org-admin/admin dashboard metrics endpoint with live organization aggregates
+  - returns organization profile, seat utilization, member status counts, and assessment snapshot metrics
+  - includes latest top knowledge gaps and latest report URL when assessments exist
 - `GET /api/v1/certifications/verify/{verificationCode}` (legacy alias: `GET /api/certifications/verify/{verificationCode}`)
   - public verification endpoint for credential metadata lookup by verification code
   - returns credential status (`active|revoked|expired`), holder display name, issuer metadata, tier, issue/expiry dates, and certificate URL
@@ -257,6 +261,7 @@ Certification artifacts:
 - Certification checkout now records auditable terms acceptance metadata (`certificationTermsVersion`, acceptance timestamp) in Stripe metadata and persisted purchase metadata.
 - Public certification legal terms are published at `/certifications/terms`; dashboard checkout requires explicit acceptance of the current version before redirecting to Stripe.
 - Organization provisioning now supports create-and-invite workflows with seat-aware membership controls exposed in `/org/members`.
+- `/org/dashboard` now renders live organization metrics from API data (seat utilization, member mix, latest assessment averages, and top knowledge gaps) instead of placeholder cards.
 
 ### Authorization behavior
 

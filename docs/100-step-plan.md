@@ -92,7 +92,7 @@ Status legend:
 - [x] **71.** Build organization creation and member provisioning workflow.
 - [x] **72.** Define SSO/SAML implementation plan.
 - [ ] **73.** Define SCIM provisioning implementation plan.
-- [ ] **74.** Replace org dashboard placeholders with live metrics.
+- [x] **74.** Replace org dashboard placeholders with live metrics.
 - [ ] **75.** Implement capability-gap report generation engine.
 - [ ] **76.** Add CSV/PDF export for enterprise reports.
 - [x] **77.** Finalize org-level role permission matrix.
