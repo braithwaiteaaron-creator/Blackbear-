@@ -5,21 +5,24 @@ export async function GET() {
   try {
     const supabase = await createClient()
     
-    const [jobsRes, quotesRes, customersRes] = await Promise.all([
-      supabase.from('jobs').select('*').order('created_at', { ascending: false }).limit(10),
-      supabase.from('quotes').select('*').order('created_at', { ascending: false }).limit(10),
-      supabase.from('customers').select('*').limit(50),
+    // Get all jobs for accurate stats, recent ones for display
+    const [allJobsRes, jobsRes, quotesRes, customersRes] = await Promise.all([
+      supabase.from('jobs').select('status, paid, actual_amount, estimated_amount'),
+      supabase.from('jobs').select('*').order('created_at', { ascending: false }).limit(20),
+      supabase.from('quotes').select('*').order('created_at', { ascending: false }).limit(20),
+      supabase.from('customers').select('*').limit(100),
     ])
 
+    const allJobs = allJobsRes.data || []
     const jobs = jobsRes.data || []
     const quotes = quotesRes.data || []
     const customers = customersRes.data || []
 
-    // Calculate stats
-    const activeJobs = jobs.filter(j => j.status === 'in_progress' || j.status === 'scheduled').length
+    // Calculate stats from ALL jobs, not just recent ones
+    const activeJobs = allJobs.filter(j => j.status === 'in_progress' || j.status === 'scheduled').length
     const pendingQuotes = quotes.filter(q => q.status === 'pending' || q.status === 'sent').length
-    const completedJobs = jobs.filter(j => j.status === 'completed').length
-    const revenueMTD = jobs
+    const completedJobs = allJobs.filter(j => j.status === 'completed').length
+    const revenueMTD = allJobs
       .filter(j => j.status === 'completed' && j.paid === true)
       .reduce((sum, j) => sum + (Number(j.actual_amount) || Number(j.estimated_amount) || 0), 0)
 
