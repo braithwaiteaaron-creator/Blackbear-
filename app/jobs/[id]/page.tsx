@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, CheckCircle, FileText } from 'lucide-react'
+import { ArrowLeft, CheckCircle, FileText, Package, Camera } from 'lucide-react'
 
 export default async function JobDetailPage(props: { params: Promise<{ id: string }> }) {
   const params = await props.params
@@ -142,6 +142,24 @@ export default async function JobDetailPage(props: { params: Promise<{ id: strin
               <span className="font-bold text-emerald-400">${profit.toFixed(2)}</span>
             </div>
           </div>
+        </div>
+
+        {/* Job Actions */}
+        <div className="grid grid-cols-2 gap-3">
+          <Link
+            href={`/jobs/${job.id}/materials`}
+            className="flex items-center justify-center gap-2 p-4 rounded-xl bg-card border border-border/50 hover:border-border transition-colors"
+          >
+            <Package className="size-5 text-amber-400" />
+            <span className="font-medium">Materials</span>
+          </Link>
+          <Link
+            href={`/jobs/${job.id}/photos`}
+            className="flex items-center justify-center gap-2 p-4 rounded-xl bg-card border border-border/50 hover:border-border transition-colors"
+          >
+            <Camera className="size-5 text-blue-400" />
+            <span className="font-medium">Photos</span>
+          </Link>
         </div>
 
         {/* Complete Job Form */}
