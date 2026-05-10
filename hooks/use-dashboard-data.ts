@@ -59,9 +59,12 @@ interface DashboardData {
 }
 
 const fetcher = async (url: string) => {
+  console.log('[v0] Fetching dashboard data...')
   const res = await fetch(url)
+  console.log('[v0] Dashboard API status:', res.status)
   if (!res.ok) throw new Error(`Dashboard API error: ${res.status}`)
   const json = await res.json()
+  console.log('[v0] Dashboard API response:', json)
   if (json.error) throw new Error(json.error)
   return json
 }

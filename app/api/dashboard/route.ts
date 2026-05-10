@@ -13,18 +13,33 @@ export async function GET() {
       supabase.from('customers').select('*').limit(100),
     ])
 
+    // Check for errors
+    if (allJobsRes.error) console.error('[v0] allJobsRes error:', allJobsRes.error)
+    if (jobsRes.error) console.error('[v0] jobsRes error:', jobsRes.error)
+    if (quotesRes.error) console.error('[v0] quotesRes error:', quotesRes.error)
+    if (customersRes.error) console.error('[v0] customersRes error:', customersRes.error)
+
     const allJobs = allJobsRes.data || []
     const jobs = jobsRes.data || []
     const quotes = quotesRes.data || []
     const customers = customersRes.data || []
 
+    console.log('[v0] Dashboard data counts:', {
+      allJobs: allJobs.length,
+      jobs: jobs.length,
+      quotes: quotes.length,
+      customers: customers.length
+    })
+
     // Calculate stats from ALL jobs, not just recent ones
     const activeJobs = allJobs.filter(j => j.status === 'in_progress' || j.status === 'scheduled').length
     const pendingQuotes = quotes.filter(q => q.status === 'pending' || q.status === 'sent').length
     const completedJobs = allJobs.filter(j => j.status === 'completed').length
-    const revenueMTD = allJobs
-      .filter(j => j.status === 'completed' && j.paid === true)
+    const paidJobs = allJobs.filter(j => j.status === 'completed' && j.paid === true)
+    console.log('[v0] Paid jobs for revenue:', paidJobs)
+    const revenueMTD = paidJobs
       .reduce((sum, j) => sum + (Number(j.actual_amount) || Number(j.estimated_amount) || 0), 0)
+    console.log('[v0] Revenue MTD calculated:', revenueMTD)
 
     // Attach customer info to jobs and quotes
     const jobsWithCustomer = jobs.map(job => ({
