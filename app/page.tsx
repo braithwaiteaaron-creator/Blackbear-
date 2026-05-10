@@ -20,6 +20,7 @@ import { useDashboardData } from '@/hooks/use-dashboard-data'
 import { createCustomerAction, createJobAction, createQuoteAction } from './actions'
 import { RevenueGauge } from '@/components/revenue-gauge'
 import { MarkJobDoneButton } from '@/components/mark-job-done-button'
+import { WeatherWidget } from '@/components/weather-widget'
 
 const statusConfig: Record<string, { label: string; className: string }> = {
   in_progress:  { label: 'In Progress',  className: 'bg-blue-500/15 text-blue-400 border-blue-500/30' },
@@ -183,16 +184,19 @@ export default function Dashboard() {
           ))}
         </div>
 
-        {/* ── Revenue Gauge ── */}
-        <Card className="bg-gradient-to-br from-primary/10 to-transparent border-primary/30">
-          <CardContent className="p-6">
-            <RevenueGauge
-              current={data?.stats.revenueMTD || 0}
-              target={10000}
-              label="Revenue This Month"
-            />
-          </CardContent>
-        </Card>
+        {/* ── Revenue Gauge & Weather ── */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Card className="bg-gradient-to-br from-primary/10 to-transparent border-primary/30">
+            <CardContent className="p-6">
+              <RevenueGauge
+                current={data?.stats.revenueMTD || 0}
+                target={10000}
+                label="Revenue This Month"
+              />
+            </CardContent>
+          </Card>
+          <WeatherWidget />
+        </div>
 
         {/* ── Primary Tab Bar ── */}
         <div className="flex items-center gap-1 border-b border-border/50">
