@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
   Briefcase, FileText, Users, TrendingUp, Plus,
-  Wrench, ChevronRight, TreeDeciduous, UserPlus
+  Wrench, ChevronRight, TreeDeciduous, UserPlus, DollarSign, AlertCircle
 } from 'lucide-react'
 import { RevenueGauge } from '@/components/revenue-gauge'
 
@@ -37,7 +37,9 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
   const scheduledJobs = allJobs.filter((j: any) => j.status === 'in_progress' || j.status === 'scheduled').length
   const pendingQuotesCount = quoteJobs.length + quotes.length
   const paidJobs = allJobs.filter((j: any) => j.status === 'completed' && j.paid === true)
+  const unpaidJobs = allJobs.filter((j: any) => j.status === 'completed' && j.paid !== true)
   const revenueMTD = paidJobs.reduce((sum: number, j: any) => sum + (Number(j.actual_amount) || Number(j.estimated_amount) || 0), 0)
+  const outstandingAmount = unpaidJobs.reduce((sum: number, j: any) => sum + (Number(j.actual_amount) || Number(j.estimated_amount) || 0), 0)
 
   const stats = [
     { label: 'ACTIVE JOBS', value: scheduledJobs, icon: Briefcase, color: 'text-blue-400', bg: 'bg-blue-500/10', tab: 'jobs' },
@@ -63,13 +65,22 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
             </div>
             <h1 className="text-xl font-bold">Bear Hub Pro</h1>
           </div>
-          <Link
-            href="/leads"
-            className="flex items-center gap-2 bg-primary-foreground/20 hover:bg-primary-foreground/30 px-3 py-2 rounded-lg text-sm font-medium"
-          >
-            <UserPlus className="size-4" />
-            Leads
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link
+              href="/payments"
+              className="flex items-center gap-2 bg-primary-foreground/20 hover:bg-primary-foreground/30 px-3 py-2 rounded-lg text-sm font-medium"
+            >
+              <DollarSign className="size-4" />
+              Payments
+            </Link>
+            <Link
+              href="/leads"
+              className="flex items-center gap-2 bg-primary-foreground/20 hover:bg-primary-foreground/30 px-3 py-2 rounded-lg text-sm font-medium"
+            >
+              <UserPlus className="size-4" />
+              Leads
+            </Link>
+          </div>
         </div>
       </header>
 
@@ -92,6 +103,20 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
             </Link>
           ))}
         </div>
+
+        {/* Outstanding Payment Alert */}
+        {outstandingAmount > 0 && (
+          <Link href="/payments" className="block">
+            <div className="flex items-center gap-3 p-4 rounded-xl bg-red-500/10 border border-red-500/30 hover:border-red-500/50 transition-colors">
+              <AlertCircle className="size-5 text-red-400 shrink-0" />
+              <div className="flex-1">
+                <p className="font-semibold text-red-400">${outstandingAmount.toLocaleString()} Outstanding</p>
+                <p className="text-sm text-muted-foreground">{unpaidJobs.length} completed job{unpaidJobs.length !== 1 ? 's' : ''} awaiting payment</p>
+              </div>
+              <ChevronRight className="size-4 text-red-400" />
+            </div>
+          </Link>
+        )}
 
         {/* Revenue Gauge */}
         <Card className="bg-gradient-to-br from-primary/10 to-transparent border-primary/30">
