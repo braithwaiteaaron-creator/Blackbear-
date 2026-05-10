@@ -18,6 +18,8 @@ import Link from 'next/link'
 import { SimpleAIChat } from '@/components/simple-ai-chat'
 import { useDashboardData } from '@/hooks/use-dashboard-data'
 import { createCustomerAction, createJobAction, createQuoteAction } from './actions'
+import { RevenueGauge } from '@/components/revenue-gauge'
+import { MarkJobDoneButton } from '@/components/mark-job-done-button'
 
 const statusConfig: Record<string, { label: string; className: string }> = {
   in_progress:  { label: 'In Progress',  className: 'bg-blue-500/15 text-blue-400 border-blue-500/30' },
@@ -180,6 +182,17 @@ export default function Dashboard() {
             </Card>
           ))}
         </div>
+
+        {/* ── Revenue Gauge ── */}
+        <Card className="bg-gradient-to-br from-primary/10 to-transparent border-primary/30">
+          <CardContent className="p-6">
+            <RevenueGauge
+              current={data?.stats.revenueMTD || 0}
+              target={10000}
+              label="Revenue This Month"
+            />
+          </CardContent>
+        </Card>
 
         {/* ── Primary Tab Bar ── */}
         <div className="flex items-center gap-1 border-b border-border/50">
@@ -441,9 +454,9 @@ export default function Dashboard() {
                     : job.status === 'scheduled' ? Calendar
                     : AlertCircle
                   return (
-                    <Link key={job.id} href={`/jobs/${job.id}`}>
-                      <div className="flex items-center justify-between p-4 rounded-xl bg-card border border-border/50 hover:border-border transition-colors group cursor-pointer">
-                        <div className="flex items-center gap-3 min-w-0">
+                    <div key={job.id} className="flex items-center justify-between p-4 rounded-xl bg-card border border-border/50 hover:border-border transition-colors group">
+                      <Link href={`/jobs/${job.id}`} className="flex-1 flex items-center justify-between cursor-pointer min-w-0">
+                        <div className="flex items-center gap-3 min-w-0 flex-1">
                           <div className="size-10 rounded-lg bg-blue-500/10 flex items-center justify-center shrink-0">
                             <Wrench className="size-4 text-blue-400" />
                           </div>
@@ -462,8 +475,18 @@ export default function Dashboard() {
                           <p className="text-base font-bold text-foreground min-w-[60px] text-right">${Number(job.estimated_amount).toLocaleString()}</p>
                           <ChevronRight className="size-4 text-muted-foreground group-hover:text-foreground transition-colors hidden sm:block" />
                         </div>
-                      </div>
-                    </Link>
+                      </Link>
+                      {job.status !== 'completed' && !job.paid && (
+                        <div className="ml-3 shrink-0" onClick={(e) => e.stopPropagation()}>
+                          <MarkJobDoneButton 
+                            jobId={job.id}
+                            jobNumber={job.job_number}
+                            estimatedAmount={Number(job.estimated_amount)}
+                            onSuccess={() => { mutate() }}
+                          />
+                        </div>
+                      )}
+                    </div>
                   )
                 })
               )}
