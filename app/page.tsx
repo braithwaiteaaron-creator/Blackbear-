@@ -14,10 +14,18 @@ export default async function Dashboard() {
     supabase.from('customers').select('*').limit(100),
   ])
 
+  console.log('[v0] Server Dashboard - Fetching data...')
   const allJobs = allJobsRes.data || []
   const jobs = jobsRes.data || []
   const quotes = quotesRes.data || []
   const customers = customersRes.data || []
+
+  console.log('[v0] Server data:', {
+    allJobsCount: allJobs.length,
+    jobsCount: jobs.length,
+    quotesCount: quotes.length,
+    customersCount: customers.length
+  })
 
   // Calculate stats
   const activeJobs = allJobs.filter(j => j.status === 'in_progress' || j.status === 'scheduled').length
@@ -25,6 +33,8 @@ export default async function Dashboard() {
   const completedJobs = allJobs.filter(j => j.status === 'completed').length
   const paidJobs = allJobs.filter(j => j.status === 'completed' && j.paid === true)
   const revenueMTD = paidJobs.reduce((sum, j) => sum + (Number(j.actual_amount) || Number(j.estimated_amount) || 0), 0)
+
+  console.log('[v0] Calculated stats:', { activeJobs, pendingQuotes, completedJobs, revenueMTD })
 
   const initialData = {
     jobs,
@@ -38,6 +48,8 @@ export default async function Dashboard() {
       revenueMTD,
     },
   }
+
+  console.log('[v0] Passing initialData to client:', initialData)
 
   return <DashboardClient initialData={initialData} />
 }
