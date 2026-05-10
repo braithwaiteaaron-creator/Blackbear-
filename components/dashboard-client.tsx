@@ -18,7 +18,7 @@ import { SimpleAIChat } from '@/components/simple-ai-chat'
 import { createCustomerAction, createJobAction, createQuoteAction } from '@/app/actions'
 import { RevenueGauge } from '@/components/revenue-gauge'
 import { MarkJobDoneButton } from '@/components/mark-job-done-button'
-import { useRouter } from 'next/navigation'
+
 
 interface Customer {
   id: string
@@ -85,7 +85,6 @@ const SERVICE_TYPES = [
 type Tab = 'quotes' | 'jobs' | 'customers' | 'ai'
 
 export function DashboardClient({ initialData }: { initialData: DashboardData }) {
-  const router = useRouter()
   const [data, setData] = useState(initialData)
   const [activeTab, setActiveTab] = useState<Tab>('quotes')
   const [aiTab, setAiTab] = useState<'assistant' | 'quote' | 'photo'>('assistant')
@@ -99,7 +98,7 @@ export function DashboardClient({ initialData }: { initialData: DashboardData })
   const [quoteCustomerId, setQuoteCustomerId] = useState('')
   const [quoteServiceType, setQuoteServiceType] = useState('')
 
-  const refreshData = () => router.refresh()
+  const refreshData = () => window.location.reload()
 
   async function handleAddCustomer(formData: FormData) {
     setIsSubmitting(true)
@@ -268,33 +267,43 @@ export function DashboardClient({ initialData }: { initialData: DashboardData })
             )}
 
             <div className="space-y-2">
-              {data.quotes.length === 0 ? (
-                <p className="text-center text-muted-foreground py-8">No quotes yet. Create your first quote!</p>
-              ) : (
-                data.quotes.map((quote) => {
-                  const status = statusConfig[quote.status] ?? { label: quote.status, className: 'bg-muted text-foreground' }
+              {/* Show both quotes table entries AND jobs with status 'quote' */}
+              {(() => {
+                const quoteJobs = data.jobs.filter(j => j.status === 'quote')
+                const allQuotes = [...data.quotes, ...quoteJobs]
+                if (allQuotes.length === 0) {
+                  return <p className="text-center text-muted-foreground py-8">No quotes yet. Create your first quote!</p>
+                }
+                return allQuotes.map((item) => {
+                  const isJob = 'estimated_amount' in item
+                  const amount = isJob ? (item as Job).estimated_amount : (item as Quote).amount
+                  const serviceType = item.service_type
+                  const description = item.description
+                  const address = isJob ? (item as any).address : null
+                  const customerName = item.customer?.name || address || description || 'No customer'
+                  const statusCls = 'bg-amber-500/15 text-amber-400 border-amber-500/30'
                   return (
-                    <Link key={quote.id} href={`/quotes/${quote.id}`}>
+                    <Link key={item.id} href={`/jobs/${item.id}`}>
                       <div className="flex items-center justify-between p-4 rounded-xl bg-card border border-border/50 hover:border-border transition-colors cursor-pointer">
                         <div className="flex items-center gap-3 min-w-0">
                           <div className="size-10 rounded-lg bg-amber-500/10 flex items-center justify-center shrink-0">
                             <FileText className="size-4 text-amber-400" />
                           </div>
                           <div className="min-w-0">
-                            <p className="font-semibold text-foreground truncate">{quote.customer?.name || 'No customer'}</p>
-                            <p className="text-sm text-muted-foreground truncate">{quote.service_type} - {quote.quote_number}</p>
+                            <p className="font-semibold text-foreground truncate">{customerName}</p>
+                            <p className="text-sm text-muted-foreground truncate">{serviceType}{address ? ` - ${address}` : ''}</p>
                           </div>
                         </div>
                         <div className="flex items-center gap-3 shrink-0 ml-3">
-                          <Badge variant="outline" className={`text-xs ${status.className}`}>{status.label}</Badge>
-                          <p className="text-base font-bold text-foreground">${Number(quote.amount).toLocaleString()}</p>
+                          <Badge variant="outline" className={`text-xs ${statusCls}`}>Quote</Badge>
+                          <p className="text-base font-bold text-foreground">${Number(amount).toLocaleString()}</p>
                           <ChevronRight className="size-4 text-muted-foreground hidden sm:block" />
                         </div>
                       </div>
                     </Link>
                   )
                 })
-              )}
+              })()}
             </div>
           </div>
         )}
@@ -361,10 +370,12 @@ export function DashboardClient({ initialData }: { initialData: DashboardData })
             )}
 
             <div className="space-y-2">
-              {data.jobs.length === 0 ? (
-                <p className="text-center text-muted-foreground py-8">No jobs yet. Create your first job!</p>
-              ) : (
-                data.jobs.map((job) => {
+              {(() => {
+                const activeJobs = data.jobs.filter(j => j.status !== 'quote')
+                if (activeJobs.length === 0) return (
+                  <p className="text-center text-muted-foreground py-8">No jobs yet. Create your first job!</p>
+                )
+                return activeJobs.map((job) => {
                   const status = statusConfig[job.status] ?? { label: job.status, className: 'bg-muted text-foreground' }
                   return (
                     <div key={job.id} className="flex items-center justify-between p-4 rounded-xl bg-card border border-border/50 hover:border-border transition-colors group">
@@ -400,7 +411,7 @@ export function DashboardClient({ initialData }: { initialData: DashboardData })
                     </div>
                   )
                 })
-              )}
+              })()}
             </div>
           </div>
         )}
