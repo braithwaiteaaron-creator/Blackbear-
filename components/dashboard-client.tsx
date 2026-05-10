@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -9,29 +10,23 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import {
-  Briefcase, FileText, Users, TrendingUp, Bot, Calculator,
-  Camera, TreeDeciduous, Plus, Loader2, Menu, X,
-  Wrench, CheckCircle2, Clock, AlertCircle, ChevronRight, Sparkles
+  Briefcase, FileText, Users, TrendingUp, Plus, Loader2, Menu, X,
+  Wrench, ChevronRight, TreeDeciduous
 } from 'lucide-react'
-import Link from 'next/link'
-import { SimpleAIChat } from '@/components/simple-ai-chat'
 import { createCustomerAction, createJobAction, createQuoteAction } from '@/app/actions'
-import { RevenueGauge } from '@/components/revenue-gauge'
-import { MarkJobDoneButton } from '@/components/mark-job-done-button'
-
 
 interface Customer {
   id: string
   name: string
-  email: string
-  phone: string
-  address: string
+  email: string | null
+  phone: string | null
+  address: string | null
 }
 
 interface Job {
   id: string
-  job_number: string
-  customer_id: string
+  job_number: string | null
+  customer_id: string | null
   service_type: string
   description: string
   status: string
@@ -39,18 +34,20 @@ interface Job {
   estimated_amount: number
   actual_amount: number | null
   paid: boolean
-  customer?: Customer
+  address?: string | null
+  notes?: string | null
+  customer?: Customer | null
 }
 
 interface Quote {
   id: string
-  quote_number: string
-  customer_id: string
+  quote_number: string | null
+  customer_id: string | null
   service_type: string
   description: string
-  status: string
   amount: number
-  customer?: Customer
+  status: string
+  customer?: Customer | null
 }
 
 interface DashboardData {
@@ -66,194 +63,186 @@ interface DashboardData {
   }
 }
 
-const statusConfig: Record<string, { label: string; className: string }> = {
-  in_progress:  { label: 'In Progress',  className: 'bg-blue-500/15 text-blue-400 border-blue-500/30' },
-  scheduled:    { label: 'Scheduled',    className: 'bg-amber-500/15 text-amber-400 border-amber-500/30' },
-  completed:    { label: 'Completed',    className: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' },
-  cancelled:    { label: 'Cancelled',    className: 'bg-red-500/15 text-red-400 border-red-500/30' },
-  pending:      { label: 'Pending',      className: 'bg-amber-500/15 text-amber-400 border-amber-500/30' },
-  sent:         { label: 'Sent',         className: 'bg-sky-500/15 text-sky-400 border-sky-500/30' },
-  accepted:     { label: 'Accepted',     className: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' },
-  rejected:     { label: 'Rejected',     className: 'bg-red-500/15 text-red-400 border-red-500/30' },
-}
-
-const SERVICE_TYPES = [
-  'Tree Removal', 'Tree Trimming', 'Stump Grinding', 'Emergency Service',
-  'Consultation', 'Land Clearing', 'Cabling & Bracing',
-]
-
-type Tab = 'quotes' | 'jobs' | 'customers' | 'ai'
+const SERVICE_TYPES = ['Tree Removal', 'Pruning', 'Stump Grinding', 'Emergency', 'Consultation', 'Other']
 
 export function DashboardClient({ initialData }: { initialData: DashboardData }) {
-  const [data, setData] = useState(initialData)
-  const [activeTab, setActiveTab] = useState<Tab>('quotes')
-  const [aiTab, setAiTab] = useState<'assistant' | 'quote' | 'photo'>('assistant')
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const [showAddCustomer, setShowAddCustomer] = useState(false)
-  const [showAddJob, setShowAddJob] = useState(false)
+  const [activeTab, setActiveTab] = useState<'quotes' | 'jobs' | 'customers'>('quotes')
   const [showAddQuote, setShowAddQuote] = useState(false)
+  const [showAddJob, setShowAddJob] = useState(false)
+  const [showAddCustomer, setShowAddCustomer] = useState(false)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [jobCustomerId, setJobCustomerId] = useState('')
-  const [jobServiceType, setJobServiceType] = useState('')
   const [quoteCustomerId, setQuoteCustomerId] = useState('')
   const [quoteServiceType, setQuoteServiceType] = useState('')
+  const [jobCustomerId, setJobCustomerId] = useState('')
+  const [jobServiceType, setJobServiceType] = useState('')
 
-  const refreshData = () => window.location.reload()
+  // Split jobs into quotes (status='quote') and actual jobs
+  const quoteJobs = initialData.jobs.filter(j => j.status === 'quote')
+  const activeJobs = initialData.jobs.filter(j => j.status !== 'quote')
+  const pendingQuotesCount = quoteJobs.length + initialData.quotes.length
 
-  async function handleAddCustomer(formData: FormData) {
+  const stats = [
+    { label: 'Active Jobs', value: initialData.stats.activeJobs, icon: Briefcase, color: 'text-blue-400', bg: 'bg-blue-500/10' },
+    { label: 'Pending Quotes', value: pendingQuotesCount, icon: FileText, color: 'text-amber-400', bg: 'bg-amber-500/10' },
+    { label: 'Customers', value: initialData.stats.totalCustomers, icon: Users, color: 'text-cyan-400', bg: 'bg-cyan-500/10' },
+    { label: 'Revenue MTD', value: `$${initialData.stats.revenueMTD.toLocaleString()}`, icon: TrendingUp, color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
+  ]
+
+  async function handleAddQuote(formData: FormData) {
     setIsSubmitting(true)
-    try {
-      await createCustomerAction(formData)
-      setShowAddCustomer(false)
-      refreshData()
-    } catch (e) { console.error(e) }
-    setIsSubmitting(false)
+    formData.set('customer_id', quoteCustomerId)
+    formData.set('service_type', quoteServiceType)
+    await createQuoteAction(formData)
+    window.location.reload()
   }
 
   async function handleAddJob(formData: FormData) {
     setIsSubmitting(true)
-    try {
-      formData.set('customer_id', jobCustomerId)
-      formData.set('service_type', jobServiceType)
-      await createJobAction(formData)
-      setShowAddJob(false)
-      setJobCustomerId('')
-      setJobServiceType('')
-      refreshData()
-    } catch (e) { console.error(e) }
-    setIsSubmitting(false)
+    formData.set('customer_id', jobCustomerId)
+    formData.set('service_type', jobServiceType)
+    await createJobAction(formData)
+    window.location.reload()
   }
 
-  async function handleAddQuote(formData: FormData) {
+  async function handleAddCustomer(formData: FormData) {
     setIsSubmitting(true)
-    try {
-      formData.set('customer_id', quoteCustomerId)
-      formData.set('service_type', quoteServiceType)
-      await createQuoteAction(formData)
-      setShowAddQuote(false)
-      setQuoteCustomerId('')
-      setQuoteServiceType('')
-      refreshData()
-    } catch (e) { console.error(e) }
-    setIsSubmitting(false)
+    await createCustomerAction(formData)
+    window.location.reload()
   }
-
-  const stats = [
-    { label: 'Active Jobs', value: data.stats.activeJobs, icon: Briefcase, color: 'text-blue-400', bg: 'bg-blue-500/10' },
-    { label: 'Pending Quotes', value: data.stats.pendingQuotes, icon: FileText, color: 'text-amber-400', bg: 'bg-amber-500/10' },
-    { label: 'Customers', value: data.stats.totalCustomers, icon: Users, color: 'text-sky-400', bg: 'bg-sky-500/10' },
-    { label: 'Revenue MTD', value: `$${data.stats.revenueMTD.toLocaleString()}`, icon: TrendingUp, color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
-  ]
-
-  const tabs: { id: Tab; label: string; icon: typeof Briefcase }[] = [
-    { id: 'quotes', label: 'Quotes', icon: FileText },
-    { id: 'jobs', label: 'Jobs', icon: Wrench },
-    { id: 'customers', label: 'Customers', icon: Users },
-    { id: 'ai', label: 'AI Tools', icon: Sparkles },
-  ]
 
   return (
     <div className="min-h-screen bg-background text-foreground">
       {/* Header */}
-      <header className="border-b border-border/50 bg-card/50 backdrop-blur-sm sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-3 flex items-center justify-between">
+      <header className="bg-primary text-primary-foreground sticky top-0 z-50">
+        <div className="flex items-center justify-between px-4 py-3">
           <div className="flex items-center gap-3">
-            <div className="size-9 rounded-xl bg-primary flex items-center justify-center">
-              <TreeDeciduous className="size-5 text-primary-foreground" />
+            <div className="size-9 rounded-lg bg-white/10 flex items-center justify-center">
+              <TreeDeciduous className="size-5" />
             </div>
-            <h1 className="text-lg font-bold text-foreground">Bear Hub Pro</h1>
+            <h1 className="text-lg font-bold">Bear Hub Pro</h1>
           </div>
-          <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="p-2 rounded-lg hover:bg-secondary">
+          <button type="button" onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="p-2">
             {mobileMenuOpen ? <X className="size-5" /> : <Menu className="size-5" />}
           </button>
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-6 space-y-6">
+      <main className="p-4 space-y-4 pb-24">
         {/* Stats */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 gap-3">
           {stats.map((s) => (
             <Card key={s.label} className="bg-card border-border/50">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between mb-2">
-                  <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">{s.label}</p>
+                  <p className="text-xs text-muted-foreground font-medium uppercase">{s.label}</p>
                   <div className={`size-7 rounded-md ${s.bg} flex items-center justify-center`}>
                     <s.icon className={`size-3.5 ${s.color}`} />
                   </div>
                 </div>
-                <p className="text-2xl font-bold text-foreground">{s.value}</p>
+                <p className="text-2xl font-bold">{s.value}</p>
               </CardContent>
             </Card>
           ))}
         </div>
 
-        {/* Revenue Gauge */}
+        {/* Revenue Bar */}
         <Card className="bg-gradient-to-br from-primary/10 to-transparent border-primary/30">
-          <CardContent className="p-6">
-            <RevenueGauge current={data.stats.revenueMTD} target={10000} label="Revenue This Month" />
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium">Revenue This Month</span>
+              <span className="text-lg font-bold text-primary">${initialData.stats.revenueMTD.toLocaleString()}</span>
+            </div>
+            <div className="h-2 bg-muted rounded-full overflow-hidden">
+              <div 
+                className="h-full bg-primary rounded-full transition-all" 
+                style={{ width: `${Math.min((initialData.stats.revenueMTD / 10000) * 100, 100)}%` }} 
+              />
+            </div>
+            <div className="flex justify-between text-xs text-muted-foreground mt-1">
+              <span>$0</span>
+              <span>$10,000</span>
+            </div>
           </CardContent>
         </Card>
 
         {/* Tabs */}
-        <div className="flex gap-1 border-b border-border/50 overflow-x-auto">
-          {tabs.map(({ id, label, icon: Icon }) => (
-            <button
-              key={id}
-              onClick={() => setActiveTab(id)}
-              className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
-                activeTab === id ? 'border-primary text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              <Icon className="size-4" />
-              {label}
-            </button>
-          ))}
+        <div className="flex border-b border-border">
+          <button
+            type="button"
+            onClick={() => setActiveTab('quotes')}
+            className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 ${
+              activeTab === 'quotes' ? 'border-primary text-foreground' : 'border-transparent text-muted-foreground'
+            }`}
+          >
+            <FileText className="size-4" /> Quotes
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('jobs')}
+            className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 ${
+              activeTab === 'jobs' ? 'border-primary text-foreground' : 'border-transparent text-muted-foreground'
+            }`}
+          >
+            <Wrench className="size-4" /> Jobs
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('customers')}
+            className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 ${
+              activeTab === 'customers' ? 'border-primary text-foreground' : 'border-transparent text-muted-foreground'
+            }`}
+          >
+            <Users className="size-4" /> Customers
+          </button>
         </div>
 
-        {/* Tab Content */}
+        {/* QUOTES TAB */}
         {activeTab === 'quotes' && (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-xl font-bold">Quotes</h2>
-                <p className="text-sm text-muted-foreground">{data.quotes.length} total</p>
+                <p className="text-sm text-muted-foreground">{quoteJobs.length} pending</p>
               </div>
-              <Button onClick={() => setShowAddQuote(true)} className="bg-primary hover:bg-primary/90">
-                <Plus className="size-4 mr-2" /> New Quote
+              <Button type="button" onClick={() => setShowAddQuote(true)} className="gap-2">
+                <Plus className="size-4" /> New Quote
               </Button>
             </div>
 
             {showAddQuote && (
-              <Card className="bg-card border-border">
+              <Card className="border-primary">
                 <CardContent className="p-4">
                   <form action={handleAddQuote} className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <Label>Customer</Label>
-                        <Select value={quoteCustomerId} onValueChange={setQuoteCustomerId}>
-                          <SelectTrigger className="h-11 bg-secondary"><SelectValue placeholder="Select customer" /></SelectTrigger>
-                          <SelectContent>
-                            {data.customers.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div>
-                        <Label>Service Type</Label>
-                        <Select value={quoteServiceType} onValueChange={setQuoteServiceType}>
-                          <SelectTrigger className="h-11 bg-secondary"><SelectValue placeholder="Select service" /></SelectTrigger>
-                          <SelectContent>
-                            {SERVICE_TYPES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                          </SelectContent>
-                        </Select>
-                      </div>
+                    <div>
+                      <Label>Customer</Label>
+                      <Select value={quoteCustomerId} onValueChange={setQuoteCustomerId}>
+                        <SelectTrigger><SelectValue placeholder="Select customer" /></SelectTrigger>
+                        <SelectContent>
+                          {initialData.customers.map(c => (
+                            <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label>Service Type</Label>
+                      <Select value={quoteServiceType} onValueChange={setQuoteServiceType}>
+                        <SelectTrigger><SelectValue placeholder="Select service" /></SelectTrigger>
+                        <SelectContent>
+                          {SERVICE_TYPES.map(s => (
+                            <SelectItem key={s} value={s}>{s}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                     <div>
                       <Label>Description</Label>
-                      <Textarea name="description" placeholder="Quote details..." className="bg-secondary min-h-[80px]" />
+                      <Textarea name="description" placeholder="Quote details..." />
                     </div>
                     <div>
                       <Label>Amount ($)</Label>
-                      <Input type="number" name="amount" placeholder="0.00" className="h-11 bg-secondary" required />
+                      <Input name="amount" type="number" step="0.01" placeholder="0.00" required />
                     </div>
                     <div className="flex gap-2">
                       <Button type="submit" disabled={isSubmitting} className="flex-1">
@@ -267,96 +256,80 @@ export function DashboardClient({ initialData }: { initialData: DashboardData })
             )}
 
             <div className="space-y-2">
-              {/* Show both quotes table entries AND jobs with status 'quote' */}
-              {(() => {
-                const quoteJobs = data.jobs.filter(j => j.status === 'quote')
-                const allQuotes = [...data.quotes, ...quoteJobs]
-                if (allQuotes.length === 0) {
-                  return <p className="text-center text-muted-foreground py-8">No quotes yet. Create your first quote!</p>
-                }
-                return allQuotes.map((item) => {
-                  const isJob = 'estimated_amount' in item
-                  const amount = isJob ? (item as Job).estimated_amount : (item as Quote).amount
-                  const serviceType = item.service_type
-                  const description = item.description
-                  const address = isJob ? (item as any).address : null
-                  const customerName = item.customer?.name || address || description || 'No customer'
-                  const statusCls = 'bg-amber-500/15 text-amber-400 border-amber-500/30'
-                  return (
-                    <Link key={item.id} href={`/jobs/${item.id}`}>
-                      <div className="flex items-center justify-between p-4 rounded-xl bg-card border border-border/50 hover:border-border transition-colors cursor-pointer">
-                        <div className="flex items-center gap-3 min-w-0">
-                          <div className="size-10 rounded-lg bg-amber-500/10 flex items-center justify-center shrink-0">
-                            <FileText className="size-4 text-amber-400" />
-                          </div>
-                          <div className="min-w-0">
-                            <p className="font-semibold text-foreground truncate">{customerName}</p>
-                            <p className="text-sm text-muted-foreground truncate">{serviceType}{address ? ` - ${address}` : ''}</p>
-                          </div>
+              {quoteJobs.length === 0 ? (
+                <p className="text-center text-muted-foreground py-8">No quotes yet</p>
+              ) : (
+                quoteJobs.map((job) => (
+                  <Link key={job.id} href={`/jobs/${job.id}`}>
+                    <div className="flex items-center justify-between p-4 rounded-xl bg-card border border-border/50 hover:border-border">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="size-10 rounded-lg bg-amber-500/10 flex items-center justify-center">
+                          <FileText className="size-4 text-amber-400" />
                         </div>
-                        <div className="flex items-center gap-3 shrink-0 ml-3">
-                          <Badge variant="outline" className={`text-xs ${statusCls}`}>Quote</Badge>
-                          <p className="text-base font-bold text-foreground">${Number(amount).toLocaleString()}</p>
-                          <ChevronRight className="size-4 text-muted-foreground hidden sm:block" />
+                        <div className="min-w-0">
+                          <p className="font-semibold truncate">{job.address || job.description || 'No address'}</p>
+                          <p className="text-sm text-muted-foreground truncate">{job.service_type}</p>
                         </div>
                       </div>
-                    </Link>
-                  )
-                })
-              })()}
+                      <div className="flex items-center gap-3">
+                        <Badge variant="outline" className="bg-amber-500/15 text-amber-400 border-amber-500/30">Quote</Badge>
+                        <p className="font-bold">${Number(job.estimated_amount).toLocaleString()}</p>
+                        <ChevronRight className="size-4 text-muted-foreground" />
+                      </div>
+                    </div>
+                  </Link>
+                ))
+              )}
             </div>
           </div>
         )}
 
+        {/* JOBS TAB */}
         {activeTab === 'jobs' && (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-xl font-bold">Jobs</h2>
-                <p className="text-sm text-muted-foreground">{data.jobs.length} total</p>
+                <p className="text-sm text-muted-foreground">{activeJobs.length} total</p>
               </div>
-              <Button onClick={() => setShowAddJob(true)} className="bg-primary hover:bg-primary/90">
-                <Plus className="size-4 mr-2" /> New Job
+              <Button type="button" onClick={() => setShowAddJob(true)} className="gap-2">
+                <Plus className="size-4" /> New Job
               </Button>
             </div>
 
             {showAddJob && (
-              <Card className="bg-card border-border">
+              <Card className="border-primary">
                 <CardContent className="p-4">
                   <form action={handleAddJob} className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <Label>Customer</Label>
-                        <Select value={jobCustomerId} onValueChange={setJobCustomerId}>
-                          <SelectTrigger className="h-11 bg-secondary"><SelectValue placeholder="Select customer" /></SelectTrigger>
-                          <SelectContent>
-                            {data.customers.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div>
-                        <Label>Service Type</Label>
-                        <Select value={jobServiceType} onValueChange={setJobServiceType}>
-                          <SelectTrigger className="h-11 bg-secondary"><SelectValue placeholder="Select service" /></SelectTrigger>
-                          <SelectContent>
-                            {SERVICE_TYPES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                          </SelectContent>
-                        </Select>
-                      </div>
+                    <div>
+                      <Label>Customer</Label>
+                      <Select value={jobCustomerId} onValueChange={setJobCustomerId}>
+                        <SelectTrigger><SelectValue placeholder="Select customer" /></SelectTrigger>
+                        <SelectContent>
+                          {initialData.customers.map(c => (
+                            <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label>Service Type</Label>
+                      <Select value={jobServiceType} onValueChange={setJobServiceType}>
+                        <SelectTrigger><SelectValue placeholder="Select service" /></SelectTrigger>
+                        <SelectContent>
+                          {SERVICE_TYPES.map(s => (
+                            <SelectItem key={s} value={s}>{s}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                     <div>
                       <Label>Description</Label>
-                      <Textarea name="description" placeholder="Job details..." className="bg-secondary min-h-[80px]" />
+                      <Textarea name="description" placeholder="Job details..." />
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <Label>Scheduled Date <span className="text-muted-foreground text-xs">(Optional)</span></Label>
-                        <Input type="date" name="scheduled_date" className="h-11 bg-secondary" />
-                      </div>
-                      <div>
-                        <Label>Estimated Amount ($)</Label>
-                        <Input type="number" name="estimated_amount" placeholder="0.00" className="h-11 bg-secondary" required />
-                      </div>
+                    <div>
+                      <Label>Estimated Amount ($)</Label>
+                      <Input name="estimated_amount" type="number" step="0.01" placeholder="0.00" required />
                     </div>
                     <div className="flex gap-2">
                       <Button type="submit" disabled={isSubmitting} className="flex-1">
@@ -370,85 +343,71 @@ export function DashboardClient({ initialData }: { initialData: DashboardData })
             )}
 
             <div className="space-y-2">
-              {(() => {
-                const activeJobs = data.jobs.filter(j => j.status !== 'quote')
-                if (activeJobs.length === 0) return (
-                  <p className="text-center text-muted-foreground py-8">No jobs yet. Create your first job!</p>
-                )
-                return activeJobs.map((job) => {
-                  const status = statusConfig[job.status] ?? { label: job.status, className: 'bg-muted text-foreground' }
+              {activeJobs.length === 0 ? (
+                <p className="text-center text-muted-foreground py-8">No jobs yet</p>
+              ) : (
+                activeJobs.map((job) => {
+                  const statusColor = job.status === 'completed' ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
+                    : job.status === 'in_progress' ? 'bg-blue-500/15 text-blue-400 border-blue-500/30'
+                    : 'bg-purple-500/15 text-purple-400 border-purple-500/30'
                   return (
-                    <div key={job.id} className="flex items-center justify-between p-4 rounded-xl bg-card border border-border/50 hover:border-border transition-colors group">
-                      <Link href={`/jobs/${job.id}`} className="flex-1 flex items-center justify-between cursor-pointer min-w-0">
-                        <div className="flex items-center gap-3 min-w-0 flex-1">
-                          <div className="size-10 rounded-lg bg-blue-500/10 flex items-center justify-center shrink-0">
+                    <Link key={job.id} href={`/jobs/${job.id}`}>
+                      <div className="flex items-center justify-between p-4 rounded-xl bg-card border border-border/50 hover:border-border">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="size-10 rounded-lg bg-blue-500/10 flex items-center justify-center">
                             <Wrench className="size-4 text-blue-400" />
                           </div>
                           <div className="min-w-0">
-                            <p className="font-semibold text-foreground truncate">{job.customer?.name || 'No customer'}</p>
-                            <p className="text-sm text-muted-foreground truncate">
-                              {job.service_type} - {job.job_number}
-                              {job.scheduled_date ? ` - ${new Date(job.scheduled_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : ' - No date set'}
-                            </p>
+                            <p className="font-semibold truncate">{job.address || job.customer?.name || job.description || 'No address'}</p>
+                            <p className="text-sm text-muted-foreground truncate">{job.service_type}</p>
                           </div>
                         </div>
-                        <div className="flex items-center gap-3 shrink-0 ml-3">
-                          <Badge variant="outline" className={`text-xs ${status.className}`}>{status.label}</Badge>
-                          <p className="text-base font-bold text-foreground">${Number(job.estimated_amount).toLocaleString()}</p>
-                          <ChevronRight className="size-4 text-muted-foreground hidden sm:block" />
+                        <div className="flex items-center gap-3">
+                          <Badge variant="outline" className={statusColor}>{job.status}</Badge>
+                          <p className="font-bold">${Number(job.estimated_amount).toLocaleString()}</p>
+                          <ChevronRight className="size-4 text-muted-foreground" />
                         </div>
-                      </Link>
-                      {job.status !== 'completed' && !job.paid && (
-                        <div className="ml-3 shrink-0" onClick={(e) => e.stopPropagation()}>
-                          <MarkJobDoneButton 
-                            jobId={job.id}
-                            jobNumber={job.job_number}
-                            estimatedAmount={Number(job.estimated_amount)}
-                            onSuccess={refreshData}
-                          />
-                        </div>
-                      )}
-                    </div>
+                      </div>
+                    </Link>
                   )
                 })
-              })()}
+              )}
             </div>
           </div>
         )}
 
+        {/* CUSTOMERS TAB */}
         {activeTab === 'customers' && (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-xl font-bold">Customers</h2>
-                <p className="text-sm text-muted-foreground">{data.customers.length} total</p>
+                <p className="text-sm text-muted-foreground">{initialData.customers.length} total</p>
               </div>
-              <Button onClick={() => setShowAddCustomer(true)} className="bg-primary hover:bg-primary/90">
-                <Plus className="size-4 mr-2" /> Add Customer
+              <Button type="button" onClick={() => setShowAddCustomer(true)} className="gap-2">
+                <Plus className="size-4" /> Add Customer
               </Button>
             </div>
 
             {showAddCustomer && (
-              <Card className="bg-card border-border">
+              <Card className="border-primary">
                 <CardContent className="p-4">
                   <form action={handleAddCustomer} className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <Label>Name</Label>
-                        <Input name="name" placeholder="Customer name" className="h-11 bg-secondary" required />
-                      </div>
-                      <div>
-                        <Label>Phone</Label>
-                        <Input name="phone" placeholder="Phone number" className="h-11 bg-secondary" />
-                      </div>
+                    <div>
+                      <Label>Name</Label>
+                      <Input name="name" placeholder="Customer name" required />
+                    </div>
+                    <div>
+                      <Label>Phone</Label>
+                      <Input name="phone" placeholder="Phone number" />
                     </div>
                     <div>
                       <Label>Email</Label>
-                      <Input type="email" name="email" placeholder="Email address" className="h-11 bg-secondary" />
+                      <Input name="email" type="email" placeholder="Email" />
                     </div>
                     <div>
                       <Label>Address</Label>
-                      <Input name="address" placeholder="Street address" className="h-11 bg-secondary" />
+                      <Textarea name="address" placeholder="Address" />
                     </div>
                     <div className="flex gap-2">
                       <Button type="submit" disabled={isSubmitting} className="flex-1">
@@ -462,53 +421,25 @@ export function DashboardClient({ initialData }: { initialData: DashboardData })
             )}
 
             <div className="space-y-2">
-              {data.customers.length === 0 ? (
-                <p className="text-center text-muted-foreground py-8">No customers yet. Add your first customer!</p>
+              {initialData.customers.length === 0 ? (
+                <p className="text-center text-muted-foreground py-8">No customers yet</p>
               ) : (
-                data.customers.map((customer) => (
-                  <div key={customer.id} className="flex items-center justify-between p-4 rounded-xl bg-card border border-border/50 hover:border-border transition-colors cursor-pointer">
+                initialData.customers.map((customer) => (
+                  <div key={customer.id} className="flex items-center justify-between p-4 rounded-xl bg-card border border-border/50">
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className="size-10 rounded-lg bg-sky-500/10 flex items-center justify-center shrink-0">
-                        <Users className="size-4 text-sky-400" />
+                      <div className="size-10 rounded-lg bg-cyan-500/10 flex items-center justify-center">
+                        <Users className="size-4 text-cyan-400" />
                       </div>
                       <div className="min-w-0">
-                        <p className="font-semibold text-foreground truncate">{customer.name}</p>
-                        <p className="text-sm text-muted-foreground truncate">{customer.address || customer.phone || customer.email || 'No contact info'}</p>
+                        <p className="font-semibold truncate">{customer.name}</p>
+                        <p className="text-sm text-muted-foreground truncate">{customer.phone || customer.email || 'No contact'}</p>
                       </div>
                     </div>
-                    <ChevronRight className="size-4 text-muted-foreground shrink-0" />
+                    <ChevronRight className="size-4 text-muted-foreground" />
                   </div>
                 ))
               )}
             </div>
-          </div>
-        )}
-
-        {activeTab === 'ai' && (
-          <div className="space-y-4">
-            <div className="flex gap-2 overflow-x-auto pb-2">
-              {[
-                { id: 'assistant' as const, label: 'AI Assistant', icon: Bot },
-                { id: 'quote' as const, label: 'Quote Builder', icon: Calculator },
-                { id: 'photo' as const, label: 'Photo Analysis', icon: Camera },
-              ].map(({ id, label, icon: Icon }) => (
-                <button
-                  key={id}
-                  onClick={() => setAiTab(id)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                    aiTab === id ? 'bg-primary text-primary-foreground' : 'bg-secondary text-muted-foreground hover:text-foreground'
-                  }`}
-                >
-                  <Icon className="size-4" />
-                  {label}
-                </button>
-              ))}
-            </div>
-            <Card className="bg-card border-border">
-              <CardContent className="p-4">
-                <SimpleAIChat mode={aiTab} />
-              </CardContent>
-            </Card>
           </div>
         )}
       </main>
