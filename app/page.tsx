@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
   Briefcase, FileText, Users, TrendingUp, Plus,
-  Wrench, ChevronRight, TreeDeciduous, UserPlus, DollarSign, AlertCircle
+  Wrench, ChevronRight, TreeDeciduous, UserPlus, DollarSign, AlertCircle, Calendar
 } from 'lucide-react'
 import { RevenueGauge } from '@/components/revenue-gauge'
 
@@ -66,6 +66,13 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
             <h1 className="text-xl font-bold">Bear Hub Pro</h1>
           </div>
           <div className="flex items-center gap-2">
+            <Link
+              href="/schedule"
+              className="flex items-center gap-2 bg-primary-foreground/20 hover:bg-primary-foreground/30 px-3 py-2 rounded-lg text-sm font-medium"
+            >
+              <Calendar className="size-4" />
+              Schedule
+            </Link>
             <Link
               href="/payments"
               className="flex items-center gap-2 bg-primary-foreground/20 hover:bg-primary-foreground/30 px-3 py-2 rounded-lg text-sm font-medium"
