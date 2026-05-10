@@ -83,10 +83,10 @@ export function DashboardClient({ initialData }: { initialData: DashboardData })
   const pendingQuotesCount = quoteJobs.length + initialData.quotes.length
 
   const stats = [
-    { label: 'Active Jobs', value: initialData.stats.activeJobs, icon: Briefcase, color: 'text-blue-400', bg: 'bg-blue-500/10' },
-    { label: 'Pending Quotes', value: pendingQuotesCount, icon: FileText, color: 'text-amber-400', bg: 'bg-amber-500/10' },
-    { label: 'Customers', value: initialData.stats.totalCustomers, icon: Users, color: 'text-cyan-400', bg: 'bg-cyan-500/10' },
-    { label: 'Revenue MTD', value: `$${initialData.stats.revenueMTD.toLocaleString()}`, icon: TrendingUp, color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
+    { label: 'Active Jobs', value: initialData.stats.activeJobs, icon: Briefcase, color: 'text-blue-400', bg: 'bg-blue-500/10', tab: 'jobs' as const },
+    { label: 'Pending Quotes', value: pendingQuotesCount, icon: FileText, color: 'text-amber-400', bg: 'bg-amber-500/10', tab: 'quotes' as const },
+    { label: 'Customers', value: initialData.stats.totalCustomers, icon: Users, color: 'text-cyan-400', bg: 'bg-cyan-500/10', tab: 'customers' as const },
+    { label: 'Revenue MTD', value: `$${initialData.stats.revenueMTD.toLocaleString()}`, icon: TrendingUp, color: 'text-emerald-400', bg: 'bg-emerald-500/10', tab: 'jobs' as const },
   ]
 
   async function handleAddQuote(formData: FormData) {
@@ -129,20 +129,23 @@ export function DashboardClient({ initialData }: { initialData: DashboardData })
       </header>
 
       <main className="p-4 space-y-4 pb-24">
-        {/* Stats */}
+        {/* Stats - clickable to switch tabs */}
         <div className="grid grid-cols-2 gap-3">
           {stats.map((s) => (
-            <Card key={s.label} className="bg-card border-border/50">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <p className="text-xs text-muted-foreground font-medium uppercase">{s.label}</p>
-                  <div className={`size-7 rounded-md ${s.bg} flex items-center justify-center`}>
-                    <s.icon className={`size-3.5 ${s.color}`} />
-                  </div>
+            <button
+              key={s.label}
+              type="button"
+              onClick={() => setActiveTab(s.tab)}
+              className="rounded-xl bg-card border border-border/50 p-4 text-left w-full active:scale-95 transition-transform hover:border-border"
+            >
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">{s.label}</p>
+                <div className={`size-8 rounded-lg ${s.bg} flex items-center justify-center`}>
+                  <s.icon className={`size-4 ${s.color}`} />
                 </div>
-                <p className="text-2xl font-bold">{s.value}</p>
-              </CardContent>
-            </Card>
+              </div>
+              <p className="text-3xl font-bold text-foreground">{s.value}</p>
+            </button>
           ))}
         </div>
 
@@ -166,35 +169,30 @@ export function DashboardClient({ initialData }: { initialData: DashboardData })
           </CardContent>
         </Card>
 
-        {/* Tabs */}
-        <div className="flex border-b border-border">
-          <button
-            type="button"
-            onClick={() => setActiveTab('quotes')}
-            className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 ${
-              activeTab === 'quotes' ? 'border-primary text-foreground' : 'border-transparent text-muted-foreground'
-            }`}
-          >
-            <FileText className="size-4" /> Quotes
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('jobs')}
-            className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 ${
-              activeTab === 'jobs' ? 'border-primary text-foreground' : 'border-transparent text-muted-foreground'
-            }`}
-          >
-            <Wrench className="size-4" /> Jobs
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('customers')}
-            className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 ${
-              activeTab === 'customers' ? 'border-primary text-foreground' : 'border-transparent text-muted-foreground'
-            }`}
-          >
-            <Users className="size-4" /> Customers
-          </button>
+        {/* Tabs - large touch targets */}
+        <div className="grid grid-cols-3 gap-2">
+          {([
+            { id: 'quotes', label: 'Quotes', icon: FileText, count: pendingQuotesCount },
+            { id: 'jobs', label: 'Jobs', icon: Wrench, count: activeJobs.length },
+            { id: 'customers', label: 'Customers', icon: Users, count: initialData.customers.length },
+          ] as const).map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex flex-col items-center gap-1 py-4 px-2 rounded-xl font-medium transition-all active:scale-95 ${
+                activeTab === tab.id
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-card border border-border/50 text-muted-foreground hover:border-border'
+              }`}
+            >
+              <tab.icon className="size-5" />
+              <span className="text-sm">{tab.label}</span>
+              <span className={`text-xs font-bold ${activeTab === tab.id ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}>
+                {tab.count}
+              </span>
+            </button>
+          ))}
         </div>
 
         {/* QUOTES TAB */}
