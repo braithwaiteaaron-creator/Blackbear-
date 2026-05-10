@@ -1,211 +1,197 @@
-'use client'
-
-import { useEffect, useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
-import { JobTimeTracker } from '@/components/job-time-tracker'
-import { JobNotesEditor } from '@/components/job-notes-editor'
-import { JobPhotoLibrary } from '@/components/job-photo-library'
-import { JobMaterialsLog } from '@/components/job-materials-log'
-import { Button } from '@/components/ui/button'
-import { ArrowLeft } from 'lucide-react'
+import { createClient } from '@/lib/supabase/server'
+import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import {
-  updateJobTimeAction,
-  updateJobNotesAction,
-  addJobMaterialAction,
-  removeJobMaterialAction,
-  addJobPhotoAction,
-  removeJobPhotoAction,
-} from '@/app/actions'
+import { ArrowLeft, CheckCircle, FileText } from 'lucide-react'
 
-interface JobDetailPageProps {
-  params: Promise<{ id: string }>
-}
-
-interface Job {
-  id: string
-  job_number: string
-  customer_id: string
-  description: string
-  service_type: string
-  status: string
-  estimated_amount: number
-  actual_amount?: number
-  scheduled_date?: string
-  completed_date?: string
-  time_started_at?: string
-  time_ended_at?: string
-  duration_minutes?: number
-  job_notes?: string
-  paid: boolean
-  customer?: { name: string; phone?: string; address?: string }
-}
-
-interface Material {
-  id: string
-  description: string
-  quantity: number
-  unit: string
-  cost: number
-}
-
-interface Photo {
-  id: string
-  photo_url: string
-  photo_type: 'before' | 'after' | 'general'
-  description?: string
-  created_at: string
-}
-
-export default function JobDetailPage({ params }: JobDetailPageProps) {
-  const [job, setJob] = useState<Job | null>(null)
-  const [materials, setMaterials] = useState<Material[]>([])
-  const [photos, setPhotos] = useState<Photo[]>([])
-  const [loading, setLoading] = useState(true)
-
-  const resolveParams = async () => {
-    const { id } = await params
-    loadJob(id)
-  }
-
-  const loadJob = async (jobId: string) => {
-    const supabase = await createClient()
-    
-    // Load job
-    const { data: jobData } = await supabase
-      .from('jobs')
-      .select('*, customer:customers(name, phone, address)')
-      .eq('id', jobId)
-      .single()
-
-    // Load materials
-    const { data: materialsData } = await supabase
-      .from('job_materials')
-      .select('*')
-      .eq('job_id', jobId)
-
-    // Load photos
-    const { data: photosData } = await supabase
-      .from('job_photos')
-      .select('*')
-      .eq('job_id', jobId)
-
-    setJob(jobData)
-    setMaterials(materialsData || [])
-    setPhotos(photosData || [])
-    setLoading(false)
-  }
-
-  useEffect(() => {
-    resolveParams()
-  }, [])
-
-  if (loading) {
-    return <div className="p-4">Loading...</div>
-  }
+export default async function JobDetailPage(props: { params: Promise<{ id: string }> }) {
+  const params = await props.params
+  const supabase = await createClient()
+  
+  // Fetch job with customer
+  const { data: job } = await supabase
+    .from('jobs')
+    .select('*, customer:customers(name, phone, address)')
+    .eq('id', params.id)
+    .single()
 
   if (!job) {
-    return <div className="p-4">Job not found</div>
+    return <div className="p-4 text-center">Job not found</div>
   }
 
-  const formatAmount = (amount?: number) => {
-    return amount ? `$${amount.toFixed(2)}` : '$0.00'
+  // Calculate payment buckets (45/20/15/13/7%)
+  const amount = job.actual_amount || job.estimated_amount || 0
+  const labour = amount * 0.45
+  const materials = amount * 0.20
+  const overhead = amount * 0.15
+  const tax = amount * 0.13
+  const profit = amount * 0.07
+
+  async function completeJob(formData: FormData) {
+    'use server'
+    
+    const supabase = await createClient()
+    const finalAmount = parseFloat(formData.get('final_amount') as string) || amount
+    const notes = formData.get('notes') as string
+    
+    // Update job status and amount
+    await supabase
+      .from('jobs')
+      .update({
+        status: 'completed',
+        paid: true,
+        actual_amount: finalAmount,
+        time_ended_at: new Date().toISOString(),
+      })
+      .eq('id', job.id)
+    
+    // Create payment allocation record
+    const finalLabour = finalAmount * 0.45
+    const finalMaterials = finalAmount * 0.20
+    const finalOverhead = finalAmount * 0.15
+    const finalTax = finalAmount * 0.13
+    const finalProfit = finalAmount * 0.07
+
+    await supabase.from('payment_allocations').insert({
+      job_id: job.id,
+      labour_cost: finalLabour,
+      material_cost: finalMaterials,
+      overhead_cost: finalOverhead,
+      tax_cost: finalTax,
+      profit: finalProfit,
+    }).then(() => {
+      redirect('/?tab=jobs')
+    })
   }
 
-  const formatDuration = (minutes?: number) => {
-    if (!minutes) return '-'
-    const hours = Math.floor(minutes / 60)
-    const mins = minutes % 60
-    return `${hours}h ${mins}m`
-  }
+  const isCompleted = job.status === 'completed'
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="max-w-4xl mx-auto p-4 space-y-6">
-        {/* Header */}
-        <div className="flex items-center gap-4">
-          <Link href="/">
-            <Button variant="ghost" size="sm" className="gap-2">
-              <ArrowLeft className="w-4 h-4" />
-              Back
-            </Button>
+      {/* Header */}
+      <header className="bg-primary text-primary-foreground px-4 py-4">
+        <div className="flex items-center gap-3">
+          <Link href="/?tab=jobs" className="p-2 -ml-2 hover:bg-white/10 rounded-lg">
+            <ArrowLeft className="size-5" />
           </Link>
-          <div>
-            <h1 className="text-3xl font-bold">{job.job_number}</h1>
-            <p className="text-muted-foreground">{job.service_type}</p>
+          <div className="flex-1">
+            <h1 className="text-2xl font-bold">{job.job_number}</h1>
+            <p className="text-sm text-primary-foreground/80">{job.service_type}</p>
+          </div>
+          {isCompleted && (
+            <div className="flex items-center gap-2 bg-white/10 px-3 py-1 rounded-lg">
+              <CheckCircle className="size-4" />
+              <span className="text-sm font-medium">Done</span>
+            </div>
+          )}
+        </div>
+      </header>
+
+      {/* Content */}
+      <div className="p-4 space-y-6 max-w-2xl mx-auto">
+        
+        {/* Job Details */}
+        <div className="space-y-3">
+          <h2 className="text-lg font-semibold">Job Details</h2>
+          <div className="space-y-2">
+            <div className="flex justify-between p-3 bg-card rounded-lg border border-border/50">
+              <span className="text-muted-foreground">Customer</span>
+              <span className="font-medium">{job.customer?.name}</span>
+            </div>
+            <div className="flex justify-between p-3 bg-card rounded-lg border border-border/50">
+              <span className="text-muted-foreground">Address</span>
+              <span className="font-medium text-right">{job.customer?.address || job.description}</span>
+            </div>
+            <div className="flex justify-between p-3 bg-card rounded-lg border border-border/50">
+              <span className="text-muted-foreground">Status</span>
+              <span className="font-medium capitalize">{job.status}</span>
+            </div>
+            <div className="flex justify-between p-3 bg-card rounded-lg border border-border/50">
+              <span className="text-muted-foreground">Amount</span>
+              <span className="font-bold text-emerald-400">${(job.actual_amount || job.estimated_amount).toFixed(2)}</span>
+            </div>
           </div>
         </div>
 
-        {/* Job Info */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="p-3 rounded-lg bg-secondary border border-border">
-            <p className="text-xs text-muted-foreground">Customer</p>
-            <p className="font-semibold text-sm">{job.customer?.name}</p>
-          </div>
-          <div className="p-3 rounded-lg bg-secondary border border-border">
-            <p className="text-xs text-muted-foreground">Status</p>
-            <p className="font-semibold text-sm capitalize">{job.status}</p>
-          </div>
-          <div className="p-3 rounded-lg bg-secondary border border-border">
-            <p className="text-xs text-muted-foreground">Amount</p>
-            <p className="font-semibold text-sm">{formatAmount(job.actual_amount || job.estimated_amount)}</p>
-          </div>
-          <div className="p-3 rounded-lg bg-secondary border border-border">
-            <p className="text-xs text-muted-foreground">Duration</p>
-            <p className="font-semibold text-sm">{formatDuration(job.duration_minutes)}</p>
+        {/* Payment Breakdown */}
+        <div className="space-y-3">
+          <h2 className="text-lg font-semibold">Payment Breakdown</h2>
+          <div className="bg-gradient-to-br from-primary/10 to-transparent rounded-xl border border-primary/30 p-4 space-y-3">
+            <div className="flex justify-between items-center pb-3 border-b border-border/50">
+              <span className="text-muted-foreground">Subtotal</span>
+              <span className="font-bold text-lg">${amount.toFixed(2)}</span>
+            </div>
+            
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Labour (45%)</span>
+              <span className="font-semibold text-blue-400">${labour.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Materials (20%)</span>
+              <span className="font-semibold text-amber-400">${materials.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Overhead (15%)</span>
+              <span className="font-semibold text-purple-400">${overhead.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Tax (13%)</span>
+              <span className="font-semibold text-cyan-400">${tax.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between pt-3 border-t border-border/50">
+              <span className="text-muted-foreground">Profit (7%)</span>
+              <span className="font-bold text-emerald-400">${profit.toFixed(2)}</span>
+            </div>
           </div>
         </div>
 
-        {/* Time Tracker */}
-        <JobTimeTracker
-          jobId={job.id}
-          initialStartTime={job.time_started_at}
-          initialEndTime={job.time_ended_at}
-          onTimeUpdate={(startTime, endTime) => {
-            updateJobTimeAction(job.id, startTime, endTime)
-          }}
-        />
+        {/* Complete Job Form */}
+        {!isCompleted && (
+          <form action={completeJob} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-muted-foreground mb-2">Final Amount (optional)</label>
+              <input 
+                type="number" 
+                name="final_amount" 
+                defaultValue={amount.toFixed(2)}
+                step="0.01"
+                className="w-full p-3 rounded-xl bg-card border border-border text-foreground text-lg"
+              />
+            </div>
 
-        {/* Job Notes */}
-        <JobNotesEditor
-          jobId={job.id}
-          initialNotes={job.job_notes}
-          onSave={(notes) => {
-            updateJobNotesAction(job.id, notes)
-          }}
-        />
+            <div>
+              <label className="block text-sm font-medium text-muted-foreground mb-2">Notes</label>
+              <textarea 
+                name="notes" 
+                placeholder="Job completion notes..."
+                className="w-full p-3 rounded-xl bg-card border border-border text-foreground text-base"
+                rows={3}
+              />
+            </div>
 
-        {/* Photo Library */}
-        <JobPhotoLibrary
-          jobId={job.id}
-          photos={photos}
-          onPhotoUpload={async (file, type, description) => {
-            // TODO: Upload to Vercel Blob or similar
-            const photoUrl = URL.createObjectURL(file)
-            await addJobPhotoAction(job.id, photoUrl, type, description)
-          }}
-          onPhotoDelete={async (photoId) => {
-            await removeJobPhotoAction(photoId)
-          }}
-        />
+            <button
+              type="submit"
+              className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-4 rounded-xl transition-colors"
+            >
+              Mark Job Complete & Create Invoice
+            </button>
+          </form>
+        )}
 
-        {/* Materials Log */}
-        <JobMaterialsLog
-          jobId={job.id}
-          materials={materials}
-          onAddMaterial={async (material) => {
-            await addJobMaterialAction(
-              job.id,
-              material.description,
-              material.quantity,
-              material.unit,
-              material.cost
-            )
-          }}
-          onRemoveMaterial={async (materialId) => {
-            await removeJobMaterialAction(materialId)
-          }}
-        />
+        {isCompleted && (
+          <div className="space-y-3">
+            <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30">
+              <p className="text-emerald-400 font-medium text-center">This job has been completed and paid.</p>
+            </div>
+            <Link
+              href={`/api/invoices/${job.id}`}
+              target="_blank"
+              className="w-full block text-center bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 rounded-xl transition-colors gap-2 flex items-center justify-center"
+            >
+              <FileText className="size-5" />
+              View Invoice
+            </Link>
+          </div>
+        )}
       </div>
     </div>
   )
