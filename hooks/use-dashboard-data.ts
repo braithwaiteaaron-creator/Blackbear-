@@ -51,13 +51,7 @@ interface DashboardData {
   }
 }
 
-const fetcher = (url: string) => fetch(url).then(res => {
-  console.log('[v0] Dashboard API response status:', res.status)
-  return res.json().then(data => {
-    console.log('[v0] Dashboard API data:', data)
-    return data
-  })
-})
+const fetcher = (url: string) => fetch(url).then(res => res.json())
 
 export function useDashboardData() {
   const { data, error, isLoading, mutate } = useSWR<DashboardData>(
