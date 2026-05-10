@@ -58,7 +58,8 @@ export default function Dashboard() {
   const [quoteCustomerId, setQuoteCustomerId] = useState('')
   const [quoteServiceType, setQuoteServiceType] = useState('')
 
-  const { data, isLoading, mutate } = useDashboardData()
+  const { data, isLoading, isError, mutate } = useDashboardData()
+  const loading = isLoading && !data && !isError
 
   async function handleAddCustomer(formData: FormData) {
     setIsSubmitting(true)
@@ -173,7 +174,7 @@ export default function Dashboard() {
                     <s.icon className={`size-3.5 ${s.color}`} />
                   </div>
                 </div>
-                {isLoading
+                {loading
                   ? <div className="h-7 w-14 bg-muted animate-pulse rounded" />
                   : <p className="text-2xl font-bold text-foreground">{s.value}</p>
                 }
@@ -288,7 +289,7 @@ export default function Dashboard() {
                 <div>
                   <h2 className="text-lg font-semibold text-foreground">Quotes</h2>
                   <p className="text-sm text-muted-foreground">
-                    {isLoading ? '...' : `${data?.quotes.length ?? 0} total`}
+                    {loading ? '...' : `${data?.quotes.length ?? 0} total`}
                   </p>
                 </div>
                 <Button
@@ -303,7 +304,7 @@ export default function Dashboard() {
 
             {/* Quotes List */}
             <div className="space-y-2">
-              {isLoading ? (
+              {loading ? (
                 [1,2,3].map(i => <div key={i} className="h-20 bg-muted animate-pulse rounded-xl" />)
               ) : data?.quotes.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-16 gap-3">
@@ -418,7 +419,7 @@ export default function Dashboard() {
                 <div>
                   <h2 className="text-lg font-semibold text-foreground">Jobs</h2>
                   <p className="text-sm text-muted-foreground">
-                    {isLoading ? '...' : `${data?.jobs.length ?? 0} total`}
+                    {loading ? '...' : `${data?.jobs.length ?? 0} total`}
                   </p>
                 </div>
                 <Button
@@ -433,7 +434,7 @@ export default function Dashboard() {
 
             {/* Jobs List */}
             <div className="space-y-2">
-              {isLoading ? (
+              {loading ? (
                 [1,2,3].map(i => <div key={i} className="h-20 bg-muted animate-pulse rounded-xl" />)
               ) : data?.jobs.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-16 gap-3">
@@ -551,7 +552,7 @@ export default function Dashboard() {
                 <div>
                   <h2 className="text-lg font-semibold text-foreground">Customers</h2>
                   <p className="text-sm text-muted-foreground">
-                    {isLoading ? '...' : `${data?.customers.length ?? 0} total`}
+                    {loading ? '...' : `${data?.customers.length ?? 0} total`}
                   </p>
                 </div>
                 <Button
@@ -566,7 +567,7 @@ export default function Dashboard() {
 
             {/* Customers List */}
             <div className="space-y-2">
-              {isLoading ? (
+              {loading ? (
                 [1,2,3].map(i => <div key={i} className="h-16 bg-muted animate-pulse rounded-xl" />)
               ) : data?.customers.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-16 gap-3">

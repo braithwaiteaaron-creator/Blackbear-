@@ -19,9 +19,15 @@ interface Job {
   service_type: string
   description: string
   status: 'scheduled' | 'in_progress' | 'completed' | 'cancelled'
-  scheduled_date: string
+  scheduled_date: string | null
   estimated_amount: number
+  actual_amount: number | null
   final_amount: number | null
+  paid: boolean
+  job_notes: string | null
+  time_started_at: string | null
+  time_ended_at: string | null
+  duration_minutes: number | null
   created_at: string
   customer?: Customer
 }
@@ -46,20 +52,29 @@ interface DashboardData {
   stats: {
     activeJobs: number
     pendingQuotes: number
+    completedJobs: number
     totalCustomers: number
     revenueMTD: number
   }
 }
 
-const fetcher = (url: string) => fetch(url).then(res => res.json())
+const fetcher = async (url: string) => {
+  const res = await fetch(url)
+  if (!res.ok) throw new Error(`Dashboard API error: ${res.status}`)
+  const json = await res.json()
+  if (json.error) throw new Error(json.error)
+  return json
+}
 
 export function useDashboardData() {
   const { data, error, isLoading, mutate } = useSWR<DashboardData>(
     '/api/dashboard',
     fetcher,
     {
-      refreshInterval: 30000, // Refresh every 30 seconds
+      refreshInterval: 30000,
       revalidateOnFocus: true,
+      shouldRetryOnError: true,
+      errorRetryCount: 3,
     }
   )
 
