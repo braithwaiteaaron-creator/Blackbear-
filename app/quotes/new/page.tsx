@@ -9,7 +9,6 @@ import { Button } from '@/components/ui/button'
 
 export default function NewQuotePage() {
   const router = useRouter()
-  const supabase = createClient()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -34,6 +33,7 @@ export default function NewQuotePage() {
     setError('')
 
     try {
+      const supabase = createClient()
       const { error: insertError } = await supabase
         .from('quotes')
         .insert([
