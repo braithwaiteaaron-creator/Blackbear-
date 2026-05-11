@@ -9,13 +9,14 @@ export const metadata = {
   description: 'View and manage quote',
 }
 
-export default async function QuoteDetailPage({ params }: { params: { id: string } }) {
+export default async function QuoteDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
   const supabase = await createClient()
 
   const { data: quote } = await supabase
     .from('quotes')
     .select('*, customers(id, name, phone, email, address)')
-    .eq('id', params.id)
+    .eq('id', id)
     .single()
 
   if (!quote) {
@@ -37,7 +38,7 @@ export default async function QuoteDetailPage({ params }: { params: { id: string
     await supabase
       .from('quotes')
       .update({ status: 'accepted' })
-      .eq('id', params.id)
+      .eq('id', id)
     redirect('/quotes')
   }
 
@@ -47,7 +48,7 @@ export default async function QuoteDetailPage({ params }: { params: { id: string
     await supabase
       .from('quotes')
       .update({ status: 'rejected' })
-      .eq('id', params.id)
+      .eq('id', id)
     redirect('/quotes')
   }
 
