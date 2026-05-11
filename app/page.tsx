@@ -37,9 +37,10 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
   // Calculate stats
   const scheduledJobs = allJobs.filter((j: any) => j.status === 'in_progress' || j.status === 'scheduled').length
   const pendingQuotesCount = quoteJobs.length + quotes.length
-  const paidJobs = allJobs.filter((j: any) => j.status === 'completed' && j.paid === true)
-  const unpaidJobs = allJobs.filter((j: any) => j.status === 'completed' && j.paid !== true)
-  const revenueMTD = paidJobs.reduce((sum: number, j: any) => sum + (Number(j.actual_amount) || Number(j.estimated_amount) || 0), 0)
+  const completedJobs = allJobs.filter((j: any) => j.status === 'completed')
+  const revenueMTD = completedJobs.reduce((sum: number, j: any) => sum + (Number(j.actual_amount) || Number(j.estimated_amount) || 0), 0)
+  const paidJobs = completedJobs.filter((j: any) => j.paid === true)
+  const unpaidJobs = completedJobs.filter((j: any) => j.paid !== true)
   const outstandingAmount = unpaidJobs.reduce((sum: number, j: any) => sum + (Number(j.actual_amount) || Number(j.estimated_amount) || 0), 0)
 
   const stats = [

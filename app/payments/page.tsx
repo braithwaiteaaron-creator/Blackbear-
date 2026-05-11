@@ -20,16 +20,17 @@ export default async function PaymentsPage() {
   const unpaidJobs = completedJobs.filter(j => j.paid !== true)
   const pendingJobs = allJobs.filter(j => j.status !== 'completed')
 
+  const totalCompleted = completedJobs.reduce((sum, j) => sum + (Number(j.actual_amount) || Number(j.estimated_amount) || 0), 0)
   const totalRevenue = paidJobs.reduce((sum, j) => sum + (Number(j.actual_amount) || Number(j.estimated_amount) || 0), 0)
   const totalOutstanding = unpaidJobs.reduce((sum, j) => sum + (Number(j.actual_amount) || Number(j.estimated_amount) || 0), 0)
   const totalPending = pendingJobs.reduce((sum, j) => sum + (Number(j.estimated_amount) || 0), 0)
 
-  // Payment allocation breakdown (45/20/15/13/7)
-  const labour = totalRevenue * 0.45
-  const materials = totalRevenue * 0.20
-  const overhead = totalRevenue * 0.15
-  const taxReserve = totalRevenue * 0.13
-  const profit = totalRevenue * 0.07
+  // Payment allocation breakdown (45/20/15/13/7) - based on COMPLETED jobs
+  const labour = totalCompleted * 0.45
+  const materials = totalCompleted * 0.20
+  const overhead = totalCompleted * 0.15
+  const taxReserve = totalCompleted * 0.13
+  const profit = totalCompleted * 0.07
 
   return (
     <div className="min-h-screen bg-background">
@@ -76,10 +77,10 @@ export default async function PaymentsPage() {
           <div className="p-4 rounded-xl bg-blue-500/10 border border-blue-500/30">
             <div className="flex items-center gap-2 mb-2">
               <DollarSign className="size-4 text-blue-400" />
-              <span className="text-xs text-blue-400 font-medium uppercase">Total Pipeline</span>
+              <span className="text-xs text-blue-400 font-medium uppercase">Total Completed</span>
             </div>
-            <p className="text-2xl font-bold text-blue-400">${(totalRevenue + totalOutstanding + totalPending).toLocaleString()}</p>
-            <p className="text-xs text-muted-foreground mt-1">{allJobs.length} total jobs</p>
+            <p className="text-2xl font-bold text-blue-400">${totalCompleted.toLocaleString()}</p>
+            <p className="text-xs text-muted-foreground mt-1">{completedJobs.length} completed jobs</p>
           </div>
         </div>
 
