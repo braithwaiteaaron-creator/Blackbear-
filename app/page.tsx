@@ -5,7 +5,8 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
   Briefcase, FileText, Users, TrendingUp, Plus,
-  Wrench, ChevronRight, TreeDeciduous, UserPlus, DollarSign, AlertCircle, Calendar
+  Wrench, ChevronRight, TreeDeciduous, UserPlus, DollarSign, AlertCircle, Calendar,
+  CloudSun, Star, Settings
 } from 'lucide-react'
 import { RevenueGauge } from '@/components/revenue-gauge'
 
@@ -58,40 +59,63 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="sticky top-0 z-50 bg-primary text-primary-foreground">
-        <div className="flex items-center justify-between p-4">
-          <div className="flex items-center gap-3">
-            <div className="size-10 rounded-lg bg-primary-foreground/10 flex items-center justify-center">
+        <div className="flex items-center justify-between px-4 py-3">
+          <div className="flex items-center gap-2">
+            <div className="size-9 rounded-lg bg-primary-foreground/10 flex items-center justify-center">
               <TreeDeciduous className="size-5" />
             </div>
-            <h1 className="text-xl font-bold">Bear Hub Pro</h1>
+            <h1 className="text-lg font-bold">Bear Hub Pro</h1>
           </div>
-          <div className="flex items-center gap-2">
-            <Link
-              href="/schedule"
-              className="flex items-center gap-2 bg-primary-foreground/20 hover:bg-primary-foreground/30 px-3 py-2 rounded-lg text-sm font-medium"
-            >
+          <div className="flex items-center gap-1">
+            <Link href="/schedule" className="size-9 flex items-center justify-center rounded-lg bg-primary-foreground/10 hover:bg-primary-foreground/20 transition-colors" title="Schedule">
               <Calendar className="size-4" />
-              Schedule
             </Link>
-            <Link
-              href="/payments"
-              className="flex items-center gap-2 bg-primary-foreground/20 hover:bg-primary-foreground/30 px-3 py-2 rounded-lg text-sm font-medium"
-            >
+            <Link href="/payments" className="size-9 flex items-center justify-center rounded-lg bg-primary-foreground/10 hover:bg-primary-foreground/20 transition-colors" title="Payments">
               <DollarSign className="size-4" />
-              Payments
             </Link>
-            <Link
-              href="/leads"
-              className="flex items-center gap-2 bg-primary-foreground/20 hover:bg-primary-foreground/30 px-3 py-2 rounded-lg text-sm font-medium"
-            >
+            <Link href="/leads" className="size-9 flex items-center justify-center rounded-lg bg-primary-foreground/10 hover:bg-primary-foreground/20 transition-colors" title="Leads">
               <UserPlus className="size-4" />
-              Leads
+            </Link>
+            <Link href="/weather" className="size-9 flex items-center justify-center rounded-lg bg-primary-foreground/10 hover:bg-primary-foreground/20 transition-colors" title="Weather">
+              <CloudSun className="size-4" />
+            </Link>
+            <Link href="/referrals" className="size-9 flex items-center justify-center rounded-lg bg-primary-foreground/10 hover:bg-primary-foreground/20 transition-colors" title="Referrals">
+              <Star className="size-4" />
+            </Link>
+            <Link href="/portal" className="size-9 flex items-center justify-center rounded-lg bg-primary-foreground/10 hover:bg-primary-foreground/20 transition-colors" title="Customer Portal">
+              <Users className="size-4" />
             </Link>
           </div>
         </div>
       </header>
 
-      <main className="p-4 pb-24 space-y-4">
+      {/* Fixed Bottom Nav */}
+      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border">
+        <div className="flex overflow-x-auto scrollbar-hide">
+          {[
+            { href: '/?tab=quotes', icon: FileText, label: 'Quotes' },
+            { href: '/?tab=jobs', icon: Wrench, label: 'Jobs' },
+            { href: '/?tab=customers', icon: Users, label: 'Clients' },
+            { href: '/leads', icon: UserPlus, label: 'Leads' },
+            { href: '/schedule', icon: Calendar, label: 'Schedule' },
+            { href: '/payments', icon: DollarSign, label: 'Payments' },
+            { href: '/weather', icon: CloudSun, label: 'Weather' },
+            { href: '/referrals', icon: Star, label: 'Referrals' },
+            { href: '/portal', icon: Users, label: 'Portal' },
+          ].map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className="flex flex-col items-center justify-center gap-1 min-w-[72px] py-3 px-2 text-muted-foreground hover:text-foreground transition-colors shrink-0"
+            >
+              <item.icon className="size-5" />
+              <span className="text-[10px] font-medium leading-none">{item.label}</span>
+            </Link>
+          ))}
+        </div>
+      </nav>
+
+      <main className="p-4 pb-28 space-y-4">
         {/* Stats - clickable cards using Link (no JS needed) */}
         <div className="grid grid-cols-2 gap-3">
           {stats.map((s) => (
