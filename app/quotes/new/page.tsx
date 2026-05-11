@@ -75,7 +75,7 @@ export default function NewQuotePage() {
       </header>
 
       <main className="max-w-2xl mx-auto px-4 py-8 pb-32">
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4" autoComplete="off">
           {error && (
             <div className="p-4 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400">
               {error}
@@ -83,58 +83,67 @@ export default function NewQuotePage() {
           )}
 
           <div>
-            <label className="block text-sm font-medium mb-2">Customer Name *</label>
+            <label htmlFor="customer_name" className="block text-sm font-medium mb-2">Customer Name *</label>
             <input
+              id="customer_name"
               type="text"
               name="customer_name"
               value={formData.customer_name}
               onChange={handleChange}
               required
+              autoComplete="off"
               className="w-full h-12 px-4 rounded-lg border border-border bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
               placeholder="John Smith"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-2">Email</label>
+            <label htmlFor="customer_email" className="block text-sm font-medium mb-2">Email</label>
             <input
+              id="customer_email"
               type="email"
               name="customer_email"
               value={formData.customer_email}
               onChange={handleChange}
+              autoComplete="off"
               className="w-full h-12 px-4 rounded-lg border border-border bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
               placeholder="john@example.com"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-2">Phone</label>
+            <label htmlFor="customer_phone" className="block text-sm font-medium mb-2">Phone</label>
             <input
+              id="customer_phone"
               type="tel"
               name="customer_phone"
               value={formData.customer_phone}
               onChange={handleChange}
+              autoComplete="off"
               className="w-full h-12 px-4 rounded-lg border border-border bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
               placeholder="(555) 123-4567"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-2">Property Address *</label>
+            <label htmlFor="property_address" className="block text-sm font-medium mb-2">Property Address *</label>
             <input
+              id="property_address"
               type="text"
               name="property_address"
               value={formData.property_address}
               onChange={handleChange}
               required
+              autoComplete="off"
               className="w-full h-12 px-4 rounded-lg border border-border bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
               placeholder="123 Oak Street, Toronto, ON"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-2">Service Type</label>
+            <label htmlFor="service_type" className="block text-sm font-medium mb-2">Service Type</label>
             <select
+              id="service_type"
               name="service_type"
               value={formData.service_type}
               onChange={handleChange}
@@ -150,11 +159,13 @@ export default function NewQuotePage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-2">Description</label>
+            <label htmlFor="description" className="block text-sm font-medium mb-2">Description</label>
             <textarea
+              id="description"
               name="description"
               value={formData.description}
               onChange={handleChange}
+              autoComplete="off"
               className="w-full px-4 py-3 rounded-lg border border-border bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary resize-none"
               placeholder="Work description..."
               rows={3}
@@ -162,8 +173,9 @@ export default function NewQuotePage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-2">Quote Amount ($) *</label>
+            <label htmlFor="amount" className="block text-sm font-medium mb-2">Quote Amount ($) *</label>
             <input
+              id="amount"
               type="number"
               name="amount"
               value={formData.amount}
@@ -171,6 +183,7 @@ export default function NewQuotePage() {
               required
               min="0"
               step="0.01"
+              autoComplete="off"
               className="w-full h-12 px-4 rounded-lg border border-border bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
               placeholder="5000.00"
             />
