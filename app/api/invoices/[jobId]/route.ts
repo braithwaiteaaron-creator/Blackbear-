@@ -92,8 +92,8 @@ export async function GET(req: Request, props: { params: Promise<{ jobId: string
             </thead>
             <tbody>
               <tr>
-                <td>${job.service_type} - ${job.description}</td>
-                <td class="amount-right"><strong>$${amount.toFixed(2)}</strong></td>
+                <td>${job.service_type || 'Service'}${job.description ? ' - ' + job.description : ''}</td>
+                <td class="amount-right"><strong>$${Number(amount).toFixed(2)}</strong></td>
               </tr>
             </tbody>
           </table>
@@ -102,27 +102,27 @@ export async function GET(req: Request, props: { params: Promise<{ jobId: string
             <div class="summary-items">
               <div class="summary-line">
                 <span>Labour (45%)</span>
-                <span class="amount-right">$${labour.toFixed(2)}</span>
+                <span class="amount-right">$${Number(labour).toFixed(2)}</span>
               </div>
               <div class="summary-line">
                 <span>Materials (20%)</span>
-                <span class="amount-right">$${materials.toFixed(2)}</span>
+                <span class="amount-right">$${Number(materials).toFixed(2)}</span>
               </div>
               <div class="summary-line">
                 <span>Overhead (15%)</span>
-                <span class="amount-right">$${overhead.toFixed(2)}</span>
+                <span class="amount-right">$${Number(overhead).toFixed(2)}</span>
               </div>
               <div class="summary-line">
                 <span>Tax (13%)</span>
-                <span class="amount-right">$${tax.toFixed(2)}</span>
+                <span class="amount-right">$${Number(tax).toFixed(2)}</span>
               </div>
               <div class="summary-line">
                 <span>Profit (7%)</span>
-                <span class="amount-right">$${profit.toFixed(2)}</span>
+                <span class="amount-right">$${Number(profit).toFixed(2)}</span>
               </div>
               <div class="summary-line total">
                 <span>TOTAL DUE</span>
-                <span class="amount-right">$${amount.toFixed(2)}</span>
+                <span class="amount-right">$${Number(amount).toFixed(2)}</span>
               </div>
             </div>
           </div>

@@ -31,46 +31,35 @@ export default async function JobDetailPage(props: { params: Promise<{ id: strin
     
     const supabase = await createClient()
     const finalAmount = parseFloat(formData.get('final_amount') as string) || amount
-    const notes = formData.get('notes') as string
     
-    try {
-      // Update job status and amount
-      const { error: updateError } = await supabase
-        .from('jobs')
-        .update({
-          status: 'completed',
-          paid: true,
-          actual_amount: finalAmount,
-          time_ended_at: new Date().toISOString(),
-        })
-        .eq('id', job.id)
-
-      if (updateError) throw updateError
-
-      // Create payment allocation record
-      const finalLabour = finalAmount * 0.45
-      const finalMaterials = finalAmount * 0.20
-      const finalOverhead = finalAmount * 0.15
-      const finalTax = finalAmount * 0.13
-      const finalProfit = finalAmount * 0.07
-
-      const { error: allocError } = await supabase.from('payment_allocations').insert({
-        job_id: job.id,
-        labour_cost: finalLabour,
-        material_cost: finalMaterials,
-        overhead_cost: finalOverhead,
-        tax_cost: finalTax,
-        profit: finalProfit,
+    // Update job status and amount
+    await supabase
+      .from('jobs')
+      .update({
+        status: 'completed',
+        paid: true,
+        actual_amount: finalAmount,
+        time_ended_at: new Date().toISOString(),
       })
+      .eq('id', job.id)
 
-      if (allocError) throw allocError
+    // Create payment allocation record
+    const finalLabour = finalAmount * 0.45
+    const finalMaterials = finalAmount * 0.20
+    const finalOverhead = finalAmount * 0.15
+    const finalTax = finalAmount * 0.13
+    const finalProfit = finalAmount * 0.07
 
-      // Redirect after success
-      redirect('/?tab=jobs')
-    } catch (error) {
-      console.error('Error completing job:', error)
-      throw error
-    }
+    await supabase.from('payment_allocations').insert({
+      job_id: job.id,
+      labour_cost: finalLabour,
+      material_cost: finalMaterials,
+      overhead_cost: finalOverhead,
+      tax_cost: finalTax,
+      profit: finalProfit,
+    })
+
+    redirect('/?tab=jobs')
   }
 
   const isCompleted = job.status === 'completed'
