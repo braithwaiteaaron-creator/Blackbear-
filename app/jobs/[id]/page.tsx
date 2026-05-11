@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, CheckCircle, FileText, Package, Camera } from 'lucide-react'
+import { ArrowLeft, CheckCircle, FileText, Package, Camera, Edit2 } from 'lucide-react'
 
 export default async function JobDetailPage(props: { params: Promise<{ id: string }> }) {
   const params = await props.params
@@ -26,11 +26,22 @@ export default async function JobDetailPage(props: { params: Promise<{ id: strin
   const tax = amount * 0.13
   const profit = amount * 0.07
 
-  async function completeJob(formData: FormData) {
+  async function updateJobAmount(formData: FormData) {
     'use server'
     
     const supabase = await createClient()
-    const finalAmount = parseFloat(formData.get('final_amount') as string) || amount
+    const newAmount = parseFloat(formData.get('job_amount') as string)
+    
+    // Update job amount
+    await supabase
+      .from('jobs')
+      .update({
+        actual_amount: newAmount,
+      })
+      .eq('id', job.id)
+
+    redirect(`/jobs/${job.id}`)
+  }
     
     // Update job status and amount
     await supabase
@@ -142,6 +153,32 @@ export default async function JobDetailPage(props: { params: Promise<{ id: strin
             </div>
           </div>
         </div>
+
+        {/* Edit Amount Section */}
+        {!isCompleted && (
+          <form action={updateJobAmount} className="space-y-3">
+            <h3 className="font-semibold flex items-center gap-2">
+              <Edit2 className="size-4" />
+              Update Job Amount
+            </h3>
+            <div className="flex gap-2">
+              <input 
+                type="number" 
+                name="job_amount" 
+                defaultValue={amount.toFixed(2)}
+                step="0.01"
+                placeholder="Enter new amount"
+                className="flex-1 p-3 rounded-lg bg-card border border-border text-foreground font-medium"
+              />
+              <button
+                type="submit"
+                className="px-4 py-3 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-lg transition-colors"
+              >
+                Save Amount
+              </button>
+            </div>
+          </form>
+        )}
 
         {/* Job Actions */}
         <div className="grid grid-cols-2 gap-3">
