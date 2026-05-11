@@ -143,17 +143,19 @@ export async function POST(request: NextRequest) {
     const result = await sendSMS(targetPhone, message)
 
     // Log the notification
-    await supabase.from('sms_log').insert({
-      job_id: jobId,
-      customer_id: customerId,
-      phone: targetPhone,
-      message,
-      type,
-      status: result.success ? 'sent' : 'failed',
-      error: result.success ? null : result.error,
-    }).catch(() => {
+    try {
+      await supabase.from('sms_log').insert({
+        job_id: jobId,
+        customer_id: customerId,
+        phone: targetPhone,
+        message,
+        type,
+        status: result.success ? 'sent' : 'failed',
+        error: result.success ? null : result.error,
+      })
+    } catch {
       // Table might not exist yet - that's ok
-    })
+    }
 
     return NextResponse.json(result)
   } catch (error) {
