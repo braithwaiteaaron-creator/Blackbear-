@@ -1,0 +1,206 @@
+'use client'
+
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import Link from 'next/link'
+import { createClient } from '@/lib/supabase/client'
+import { ArrowLeft, Plus } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+
+export default function NewQuotePage() {
+  const router = useRouter()
+  const supabase = createClient()
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+
+  const [formData, setFormData] = useState({
+    customer_name: '',
+    customer_email: '',
+    customer_phone: '',
+    property_address: '',
+    service_type: '',
+    description: '',
+    amount: '',
+  })
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const { name, value } = e.target
+    setFormData(prev => ({ ...prev, [name]: value }))
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setLoading(true)
+    setError('')
+
+    try {
+      const { error: insertError } = await supabase
+        .from('quotes')
+        .insert([
+          {
+            customer_name: formData.customer_name,
+            customer_email: formData.customer_email,
+            customer_phone: formData.customer_phone,
+            property_address: formData.property_address,
+            service_type: formData.service_type,
+            description: formData.description,
+            amount: parseFloat(formData.amount),
+            status: 'pending',
+          }
+        ])
+
+      if (insertError) {
+        setError(insertError.message)
+        return
+      }
+
+      router.push('/quotes')
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="min-h-screen bg-background">
+      <header className="sticky top-0 z-40 bg-primary text-primary-foreground border-b border-border">
+        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center gap-3">
+          <Link href="/quotes" className="text-primary-foreground/70 hover:text-primary-foreground">
+            <ArrowLeft className="size-5" />
+          </Link>
+          <h1 className="text-2xl font-bold">New Quote</h1>
+        </div>
+      </header>
+
+      <main className="max-w-2xl mx-auto px-4 py-8 pb-32">
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {error && (
+            <div className="p-4 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400">
+              {error}
+            </div>
+          )}
+
+          <div>
+            <label className="block text-sm font-medium mb-2">Customer Name *</label>
+            <input
+              type="text"
+              name="customer_name"
+              value={formData.customer_name}
+              onChange={handleChange}
+              required
+              className="w-full h-12 px-4 rounded-lg border border-border bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+              placeholder="John Smith"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-2">Email</label>
+            <input
+              type="email"
+              name="customer_email"
+              value={formData.customer_email}
+              onChange={handleChange}
+              className="w-full h-12 px-4 rounded-lg border border-border bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+              placeholder="john@example.com"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-2">Phone</label>
+            <input
+              type="tel"
+              name="customer_phone"
+              value={formData.customer_phone}
+              onChange={handleChange}
+              className="w-full h-12 px-4 rounded-lg border border-border bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+              placeholder="(555) 123-4567"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-2">Property Address *</label>
+            <input
+              type="text"
+              name="property_address"
+              value={formData.property_address}
+              onChange={handleChange}
+              required
+              className="w-full h-12 px-4 rounded-lg border border-border bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+              placeholder="123 Oak Street, Toronto, ON"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-2">Service Type</label>
+            <select
+              name="service_type"
+              value={formData.service_type}
+              onChange={handleChange}
+              className="w-full h-12 px-4 rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+            >
+              <option value="">Select a service</option>
+              <option value="tree_removal">Tree Removal</option>
+              <option value="pruning">Pruning</option>
+              <option value="stump_grinding">Stump Grinding</option>
+              <option value="landscaping">Landscaping</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-2">Description</label>
+            <textarea
+              name="description"
+              value={formData.description}
+              onChange={handleChange}
+              className="w-full px-4 py-3 rounded-lg border border-border bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+              placeholder="Work description..."
+              rows={3}
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-2">Quote Amount ($) *</label>
+            <input
+              type="number"
+              name="amount"
+              value={formData.amount}
+              onChange={handleChange}
+              required
+              min="0"
+              step="0.01"
+              className="w-full h-12 px-4 rounded-lg border border-border bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+              placeholder="5000.00"
+            />
+          </div>
+
+          <div className="flex gap-3 pt-4">
+            <Link href="/quotes" className="flex-1">
+              <Button type="button" variant="outline" className="w-full">
+                Cancel
+              </Button>
+            </Link>
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex-1 h-12 rounded-lg bg-primary text-primary-foreground font-medium hover:bg-primary/90 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              {loading ? (
+                <>
+                  <div className="size-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+                  Creating...
+                </>
+              ) : (
+                <>
+                  <Plus className="size-4" />
+                  Create Quote
+                </>
+              )}
+            </button>
+          </div>
+        </form>
+      </main>
+    </div>
+  )
+}

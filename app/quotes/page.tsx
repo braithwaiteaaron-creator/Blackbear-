@@ -1,7 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
-import { ArrowLeft, FileText, DollarSign, CheckCircle, Clock, X } from 'lucide-react'
+import { ArrowLeft, FileText, DollarSign, CheckCircle, Clock, X, Plus } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
 
 export const metadata = {
   title: 'Quotes - Bear Hub Pro',
@@ -30,6 +31,11 @@ export default async function QuotesPage() {
             </Link>
             <h1 className="text-2xl font-bold">Quotes</h1>
           </div>
+          <Link href="/quotes/new">
+            <Button size="sm" className="gap-1">
+              <Plus className="size-4" /> New Quote
+            </Button>
+          </Link>
         </div>
       </header>
 
