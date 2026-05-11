@@ -129,7 +129,19 @@ export default function SignupPage() {
                 autoComplete="new-password"
                 className="w-full h-12 pl-10 pr-12 rounded-lg border border-border bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
               />
-              <div className="absolute right-3 cursor-pointer" onClick={() => setShowPassword(!showPassword)}>
+              <div 
+                className="absolute right-3 cursor-pointer select-none" 
+                onClick={() => setShowPassword(!showPassword)}
+                onTouchEnd={() => setShowPassword(!showPassword)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault()
+                    setShowPassword(!showPassword)
+                  }
+                }}
+              >
                 {showPassword ? <EyeOff className="size-5 text-muted-foreground hover:text-foreground" /> : <Eye className="size-5 text-muted-foreground hover:text-foreground" />}
               </div>
             </div>
