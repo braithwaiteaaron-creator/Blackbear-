@@ -71,8 +71,8 @@ export default function LoginPage() {
 
           <div className="space-y-2">
             <label className="text-sm font-medium">Password</label>
-            <div className="relative">
-              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 size-5 text-muted-foreground pointer-events-none" />
+            <div className="relative flex items-center">
+              <Lock className="absolute left-3 size-5 text-muted-foreground pointer-events-none" />
               <input
                 type={showPassword ? 'text' : 'password'}
                 value={password}
@@ -82,17 +82,9 @@ export default function LoginPage() {
                 autoComplete="current-password"
                 className="w-full h-12 pl-10 pr-12 rounded-lg border border-border bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
               />
-              <button
-                type="button"
-                tabIndex={-1}
-                onMouseDown={(e) => {
-                  e.preventDefault()
-                  setShowPassword(!showPassword)
-                }}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors p-1"
-              >
-                {showPassword ? <EyeOff className="size-5" /> : <Eye className="size-5" />}
-              </button>
+              <div className="absolute right-3 cursor-pointer" onClick={() => setShowPassword(!showPassword)}>
+                {showPassword ? <EyeOff className="size-5 text-muted-foreground hover:text-foreground" /> : <Eye className="size-5 text-muted-foreground hover:text-foreground" />}
+              </div>
             </div>
           </div>
 
