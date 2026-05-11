@@ -42,6 +42,12 @@ export default async function JobDetailPage(props: { params: Promise<{ id: strin
 
     redirect(`/jobs/${job.id}`)
   }
+
+  async function completeJob(formData: FormData) {
+    'use server'
+    
+    const supabase = await createClient()
+    const finalAmount = parseFloat(formData.get('final_amount') as string) || amount
     
     // Update job status and amount
     await supabase
