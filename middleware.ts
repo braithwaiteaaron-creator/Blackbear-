@@ -42,12 +42,13 @@ export async function middleware(request: NextRequest) {
     return supabaseResponse
   }
 
+  // AUTH TEMPORARILY DISABLED FOR TESTING
   // If not logged in and trying to access protected route
-  if (!user && !isPublicRoute) {
-    const url = request.nextUrl.clone()
-    url.pathname = '/login'
-    return NextResponse.redirect(url)
-  }
+  // if (!user && !isPublicRoute) {
+  //   const url = request.nextUrl.clone()
+  //   url.pathname = '/login'
+  //   return NextResponse.redirect(url)
+  // }
 
   // If logged in and trying to access login/signup, redirect to dashboard
   if (user && (pathname === '/login' || pathname === '/signup')) {
