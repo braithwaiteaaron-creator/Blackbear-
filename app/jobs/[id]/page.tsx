@@ -33,7 +33,12 @@ export default function JobDetailPage() {
   const [notes, setNotes] = useState('')
 
   useEffect(() => {
-    if (!id) return
+    if (!id) {
+      console.log("[v0] No id yet, skipping fetch")
+      return
+    }
+    console.log("[v0] Fetching job:", id)
+    setLoading(true)
     const supabase = createClient()
     supabase
       .from('jobs')
@@ -41,14 +46,22 @@ export default function JobDetailPage() {
       .eq('id', id)
       .single()
       .then(({ data, error: err }) => {
+        console.log("[v0] Fetch result:", { data, error: err })
         if (err) {
+          console.error("[v0] Error fetching job:", err)
           setError(err.message)
         } else if (data) {
+          console.log("[v0] Job loaded:", data)
           setJob(data)
           const amt = (data.actual_amount || data.estimated_amount || 0).toFixed(2)
           setNewAmount(amt)
           setFinalAmount(amt)
         }
+        setLoading(false)
+      })
+      .catch(err => {
+        console.error("[v0] Fetch exception:", err)
+        setError(err.message || 'Failed to load job')
         setLoading(false)
       })
   }, [id])
