@@ -1,89 +1,91 @@
-import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
+'use client'
+
+import { useEffect, useState } from 'react'
+import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, CheckCircle, FileText, Package, Camera, Edit2 } from 'lucide-react'
 
-export default async function JobDetailPage(props: { params: Promise<{ id: string }> }) {
-  const params = await props.params
-  const supabase = await createClient()
-  
-  // Fetch job with customer
-  const { data: job } = await supabase
-    .from('jobs')
-    .select('*, customer:customers(name, phone, address)')
-    .eq('id', params.id)
-    .single()
+interface Job {
+  id: string
+  job_number: string
+  service_type: string
+  status: string
+  actual_amount: number
+  estimated_amount: number
+  description: string
+  notes: string
+  customer: { name: string; phone: string; address: string } | null
+}
 
-  if (!job) {
-    return <div className="p-4 text-center">Job not found</div>
+export default function JobDetailPage() {
+  const { id } = useParams<{ id: string }>()
+  const router = useRouter()
+  const [job, setJob] = useState<Job | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [completing, setCompleting] = useState(false)
+  const [newAmount, setNewAmount] = useState('')
+  const [finalAmount, setFinalAmount] = useState('')
+  const [notes, setNotes] = useState('')
+
+  useEffect(() => {
+    async function fetchJob() {
+      const res = await fetch(`/api/jobs/${id}/detail`)
+      if (res.ok) {
+        const data = await res.json()
+        setJob(data)
+        const amt = (data.actual_amount || data.estimated_amount || 0).toFixed(2)
+        setNewAmount(amt)
+        setFinalAmount(amt)
+      }
+      setLoading(false)
+    }
+    fetchJob()
+  }, [id])
+
+  async function handleSaveAmount() {
+    setSaving(true)
+    const res = await fetch(`/api/jobs/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ actual_amount: parseFloat(newAmount) }),
+    })
+    if (res.ok) {
+      const updated = { ...job!, actual_amount: parseFloat(newAmount) }
+      setJob(updated)
+      const amt = parseFloat(newAmount).toFixed(2)
+      setFinalAmount(amt)
+    }
+    setSaving(false)
   }
 
-  // Calculate payment buckets (45/20/15/13/7%)
+  async function handleComplete() {
+    setCompleting(true)
+    const res = await fetch(`/api/jobs/${id}/complete`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ final_amount: parseFloat(finalAmount), notes }),
+    })
+    if (res.ok) {
+      router.push('/?tab=jobs')
+    } else {
+      setCompleting(false)
+    }
+  }
+
+  if (loading) return <div className="min-h-screen bg-background flex items-center justify-center"><p className="text-muted-foreground">Loading...</p></div>
+  if (!job) return <div className="min-h-screen bg-background flex items-center justify-center"><p className="text-muted-foreground">Job not found</p></div>
+
   const amount = job.actual_amount || job.estimated_amount || 0
   const labour = amount * 0.45
   const materials = amount * 0.20
   const overhead = amount * 0.15
   const tax = amount * 0.13
   const profit = amount * 0.07
-
-  async function updateJobAmount(formData: FormData) {
-    'use server'
-    
-    const supabase = await createClient()
-    const newAmount = parseFloat(formData.get('job_amount') as string)
-    
-    // Update job amount
-    await supabase
-      .from('jobs')
-      .update({
-        actual_amount: newAmount,
-      })
-      .eq('id', job.id)
-
-    redirect(`/jobs/${job.id}`)
-  }
-
-  async function completeJob(formData: FormData) {
-    'use server'
-    
-    const supabase = await createClient()
-    const finalAmount = parseFloat(formData.get('final_amount') as string) || amount
-    
-    // Update job status and amount
-    await supabase
-      .from('jobs')
-      .update({
-        status: 'completed',
-        paid: true,
-        actual_amount: finalAmount,
-        time_ended_at: new Date().toISOString(),
-      })
-      .eq('id', job.id)
-
-    // Create payment allocation record
-    const finalLabour = finalAmount * 0.45
-    const finalMaterials = finalAmount * 0.20
-    const finalOverhead = finalAmount * 0.15
-    const finalTax = finalAmount * 0.13
-    const finalProfit = finalAmount * 0.07
-
-    await supabase.from('payment_allocations').insert({
-      job_id: job.id,
-      labour_cost: finalLabour,
-      material_cost: finalMaterials,
-      overhead_cost: finalOverhead,
-      tax_cost: finalTax,
-      profit: finalProfit,
-    })
-
-    redirect('/?tab=jobs')
-  }
-
   const isCompleted = job.status === 'completed'
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
       <header className="bg-primary text-primary-foreground px-4 py-4">
         <div className="flex items-center gap-3">
           <Link href="/?tab=jobs" className="p-2 -ml-2 hover:bg-white/10 rounded-lg">
@@ -102,9 +104,8 @@ export default async function JobDetailPage(props: { params: Promise<{ id: strin
         </div>
       </header>
 
-      {/* Content */}
       <div className="p-4 space-y-6 max-w-2xl mx-auto">
-        
+
         {/* Job Details */}
         <div className="space-y-3">
           <h2 className="text-lg font-semibold">Job Details</h2>
@@ -123,7 +124,7 @@ export default async function JobDetailPage(props: { params: Promise<{ id: strin
             </div>
             <div className="flex justify-between p-3 bg-card rounded-lg border border-border/50">
               <span className="text-muted-foreground">Amount</span>
-              <span className="font-bold text-emerald-400">${(job.actual_amount || job.estimated_amount).toFixed(2)}</span>
+              <span className="font-bold text-emerald-400">${amount.toFixed(2)}</span>
             </div>
           </div>
         </div>
@@ -136,7 +137,6 @@ export default async function JobDetailPage(props: { params: Promise<{ id: strin
               <span className="text-muted-foreground">Subtotal</span>
               <span className="font-bold text-lg">${amount.toFixed(2)}</span>
             </div>
-            
             <div className="flex justify-between">
               <span className="text-muted-foreground">Labour (45%)</span>
               <span className="font-semibold text-blue-400">${labour.toFixed(2)}</span>
@@ -160,30 +160,31 @@ export default async function JobDetailPage(props: { params: Promise<{ id: strin
           </div>
         </div>
 
-        {/* Edit Amount Section */}
+        {/* Update Amount */}
         {!isCompleted && (
-          <form action={updateJobAmount} className="space-y-3">
+          <div className="space-y-3">
             <h3 className="font-semibold flex items-center gap-2">
               <Edit2 className="size-4" />
               Update Job Amount
             </h3>
             <div className="flex gap-2">
-              <input 
-                type="number" 
-                name="job_amount" 
-                defaultValue={amount.toFixed(2)}
+              <input
+                type="number"
+                value={newAmount}
+                onChange={(e) => setNewAmount(e.target.value)}
                 step="0.01"
-                placeholder="Enter new amount"
-                className="flex-1 p-3 rounded-lg bg-card border border-border text-foreground font-medium"
+                placeholder="Enter amount"
+                className="flex-1 p-3 rounded-lg bg-card border border-border text-foreground font-medium focus:outline-none focus:ring-2 focus:ring-primary"
               />
               <button
-                type="submit"
-                className="px-4 py-3 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-lg transition-colors"
+                onClick={handleSaveAmount}
+                disabled={saving}
+                className="px-4 py-3 bg-blue-500 hover:bg-blue-600 disabled:opacity-50 text-white font-semibold rounded-lg transition-colors"
               >
-                Save Amount
+                {saving ? 'Saving...' : 'Save'}
               </button>
             </div>
-          </form>
+          </div>
         )}
 
         {/* Job Actions */}
@@ -204,37 +205,37 @@ export default async function JobDetailPage(props: { params: Promise<{ id: strin
           </Link>
         </div>
 
-        {/* Complete Job Form */}
+        {/* Complete Job */}
         {!isCompleted && (
-          <form action={completeJob} className="space-y-4">
+          <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-muted-foreground mb-2">Final Amount (optional)</label>
-              <input 
-                type="number" 
-                name="final_amount" 
-                defaultValue={amount.toFixed(2)}
+              <label className="block text-sm font-medium text-muted-foreground mb-2">Final Amount</label>
+              <input
+                type="number"
+                value={finalAmount}
+                onChange={(e) => setFinalAmount(e.target.value)}
                 step="0.01"
-                className="w-full p-3 rounded-xl bg-card border border-border text-foreground text-lg"
+                className="w-full p-3 rounded-xl bg-card border border-border text-foreground text-lg focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
-
             <div>
               <label className="block text-sm font-medium text-muted-foreground mb-2">Notes</label>
-              <textarea 
-                name="notes" 
+              <textarea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
                 placeholder="Job completion notes..."
-                className="w-full p-3 rounded-xl bg-card border border-border text-foreground text-base"
+                className="w-full p-3 rounded-xl bg-card border border-border text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-primary"
                 rows={3}
               />
             </div>
-
             <button
-              type="submit"
-              className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-4 rounded-xl transition-colors"
+              onClick={handleComplete}
+              disabled={completing}
+              className="w-full bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 text-white font-bold py-4 rounded-xl transition-colors"
             >
-              Mark Job Complete & Create Invoice
+              {completing ? 'Saving...' : 'Mark Job Complete & Create Invoice'}
             </button>
-          </form>
+          </div>
         )}
 
         {isCompleted && (
@@ -245,10 +246,12 @@ export default async function JobDetailPage(props: { params: Promise<{ id: strin
             <Link
               href={`/api/invoices/${job.id}`}
               target="_blank"
-              className="w-full block text-center bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 rounded-xl transition-colors gap-2 flex items-center justify-center"
+              className="w-full block text-center bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 rounded-xl transition-colors"
             >
-              <FileText className="size-5" />
-              View Invoice
+              <span className="flex items-center justify-center gap-2">
+                <FileText className="size-5" />
+                View Invoice
+              </span>
             </Link>
           </div>
         )}

@@ -1,56 +1,59 @@
-import { createClient } from '@/lib/supabase/server'
-import Link from 'next/link'
-import { ArrowLeft, FileText, DollarSign, CheckCircle, Clock, X } from 'lucide-react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { redirect } from 'next/navigation'
+'use client'
 
-export const metadata = {
-  title: 'Quote Details - Bear Hub Pro',
-  description: 'View and manage quote',
+import { useEffect, useState } from 'react'
+import { useParams, useRouter } from 'next/navigation'
+import Link from 'next/link'
+import { ArrowLeft, CheckCircle, X } from 'lucide-react'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+
+interface Quote {
+  id: string
+  status: string
+  service_type: string
+  description: string
+  notes: string
+  amount: number
+  valid_until: string
+  customer_name: string
+  customer_email: string
+  customer_phone: string
+  property_address: string
+  customers: { id: string; name: string; phone: string; email: string; address: string } | null
 }
 
-export default async function QuoteDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params
-  const supabase = await createClient()
+export default function QuoteDetailPage() {
+  const { id } = useParams<{ id: string }>()
+  const router = useRouter()
+  const [quote, setQuote] = useState<Quote | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [acting, setActing] = useState(false)
 
-  const { data: quote } = await supabase
-    .from('quotes')
-    .select('*, customers(id, name, phone, email, address)')
-    .eq('id', id)
-    .single()
+  useEffect(() => {
+    async function fetchQuote() {
+      const res = await fetch(`/api/quotes/${id}/detail`)
+      if (res.ok) setQuote(await res.json())
+      setLoading(false)
+    }
+    fetchQuote()
+  }, [id])
 
-  if (!quote) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold mb-2">Quote not found</h1>
-          <Link href="/quotes" className="text-primary hover:underline">
-            Back to quotes
-          </Link>
-        </div>
-      </div>
-    )
+  async function updateStatus(status: string) {
+    setActing(true)
+    await fetch(`/api/quotes/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status }),
+    })
+    router.push('/quotes')
   }
 
-  async function acceptQuote() {
-    'use server'
-    const supabase = await createClient()
-    await supabase
-      .from('quotes')
-      .update({ status: 'accepted' })
-      .eq('id', id)
-    redirect('/quotes')
-  }
-
-  async function rejectQuote() {
-    'use server'
-    const supabase = await createClient()
-    await supabase
-      .from('quotes')
-      .update({ status: 'rejected' })
-      .eq('id', id)
-    redirect('/quotes')
-  }
+  if (loading) return <div className="min-h-screen bg-background flex items-center justify-center"><p className="text-muted-foreground">Loading...</p></div>
+  if (!quote) return <div className="min-h-screen bg-background flex items-center justify-center p-4">
+    <div className="text-center">
+      <h1 className="text-2xl font-bold mb-2">Quote not found</h1>
+      <Link href="/quotes" className="text-primary hover:underline">Back to quotes</Link>
+    </div>
+  </div>
 
   const amount = Number(quote.amount)
   const labour = amount * 0.45
@@ -58,6 +61,11 @@ export default async function QuoteDetailPage({ params }: { params: Promise<{ id
   const overhead = amount * 0.15
   const tax = amount * 0.13
   const profit = amount * 0.07
+
+  const customerName = quote.customers?.name || quote.customer_name
+  const customerPhone = quote.customers?.phone || quote.customer_phone
+  const customerEmail = quote.customers?.email || quote.customer_email
+  const customerAddress = quote.customers?.address || quote.property_address
 
   return (
     <div className="min-h-screen bg-background">
@@ -80,63 +88,30 @@ export default async function QuoteDetailPage({ params }: { params: Promise<{ id
       </header>
 
       <main className="max-w-4xl mx-auto px-4 py-8 pb-32 space-y-6">
-        {/* Customer Info */}
         <Card className="bg-card border-border/50">
           <CardHeader className="border-b border-border/50">
             <CardTitle>Customer</CardTitle>
           </CardHeader>
-          <CardContent className="p-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <p className="text-sm text-muted-foreground">Name</p>
-                <p className="font-semibold">{quote.customers?.name}</p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Phone</p>
-                <p className="font-semibold">{quote.customers?.phone}</p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Email</p>
-                <p className="font-semibold">{quote.customers?.email}</p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Address</p>
-                <p className="font-semibold">{quote.customers?.address}</p>
-              </div>
-            </div>
+          <CardContent className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div><p className="text-sm text-muted-foreground">Name</p><p className="font-semibold">{customerName}</p></div>
+            <div><p className="text-sm text-muted-foreground">Phone</p><p className="font-semibold">{customerPhone}</p></div>
+            <div><p className="text-sm text-muted-foreground">Email</p><p className="font-semibold">{customerEmail}</p></div>
+            <div><p className="text-sm text-muted-foreground">Address</p><p className="font-semibold">{customerAddress}</p></div>
           </CardContent>
         </Card>
 
-        {/* Quote Details */}
         <Card className="bg-card border-border/50">
           <CardHeader className="border-b border-border/50">
             <CardTitle>Service Details</CardTitle>
           </CardHeader>
           <CardContent className="p-6 space-y-4">
-            <div>
-              <p className="text-sm text-muted-foreground">Service Type</p>
-              <p className="font-semibold text-lg">{quote.service_type}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Description</p>
-              <p className="font-semibold">{quote.description}</p>
-            </div>
-            {quote.notes && (
-              <div>
-                <p className="text-sm text-muted-foreground">Notes</p>
-                <p className="font-semibold">{quote.notes}</p>
-              </div>
-            )}
-            {quote.valid_until && (
-              <div>
-                <p className="text-sm text-muted-foreground">Valid Until</p>
-                <p className="font-semibold">{new Date(quote.valid_until).toLocaleDateString()}</p>
-              </div>
-            )}
+            <div><p className="text-sm text-muted-foreground">Service Type</p><p className="font-semibold text-lg">{quote.service_type}</p></div>
+            {quote.description && <div><p className="text-sm text-muted-foreground">Description</p><p className="font-semibold">{quote.description}</p></div>}
+            {quote.notes && <div><p className="text-sm text-muted-foreground">Notes</p><p className="font-semibold">{quote.notes}</p></div>}
+            {quote.valid_until && <div><p className="text-sm text-muted-foreground">Valid Until</p><p className="font-semibold">{new Date(quote.valid_until).toLocaleDateString()}</p></div>}
           </CardContent>
         </Card>
 
-        {/* Payment Breakdown */}
         <Card className="bg-gradient-to-br from-primary/10 to-transparent border-primary/30">
           <CardHeader className="border-b border-border/50">
             <CardTitle>Quote Amount & Breakdown</CardTitle>
@@ -146,50 +121,30 @@ export default async function QuoteDetailPage({ params }: { params: Promise<{ id
               <span className="font-semibold">Subtotal</span>
               <span className="text-2xl font-bold">${amount.toLocaleString()}</span>
             </div>
-            <div className="flex justify-between items-center">
-              <span className="text-muted-foreground">Labour (45%)</span>
-              <span className="font-semibold">${Number(labour).toLocaleString()}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-muted-foreground">Materials (20%)</span>
-              <span className="font-semibold">${Number(materials).toLocaleString()}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-muted-foreground">Overhead (15%)</span>
-              <span className="font-semibold">${Number(overhead).toLocaleString()}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-muted-foreground">Tax (13%)</span>
-              <span className="font-semibold">${Number(tax).toLocaleString()}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-muted-foreground">Profit (7%)</span>
-              <span className="font-semibold">${Number(profit).toLocaleString()}</span>
-            </div>
+            <div className="flex justify-between"><span className="text-muted-foreground">Labour (45%)</span><span className="font-semibold">${labour.toLocaleString()}</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">Materials (20%)</span><span className="font-semibold">${materials.toLocaleString()}</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">Overhead (15%)</span><span className="font-semibold">${overhead.toLocaleString()}</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">Tax (13%)</span><span className="font-semibold">${tax.toLocaleString()}</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">Profit (7%)</span><span className="font-semibold">${profit.toLocaleString()}</span></div>
           </CardContent>
         </Card>
 
-        {/* Actions */}
         {quote.status === 'pending' && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <form action={acceptQuote}>
-              <button
-                type="submit"
-                className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
-              >
-                <CheckCircle className="size-5" />
-                Accept Quote
-              </button>
-            </form>
-            <form action={rejectQuote}>
-              <button
-                type="submit"
-                className="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
-              >
-                <X className="size-5" />
-                Reject Quote
-              </button>
-            </form>
+            <button
+              onClick={() => updateStatus('accepted')}
+              disabled={acting}
+              className="w-full bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 text-white font-bold py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
+            >
+              <CheckCircle className="size-5" /> Accept Quote
+            </button>
+            <button
+              onClick={() => updateStatus('rejected')}
+              disabled={acting}
+              className="w-full bg-red-500 hover:bg-red-600 disabled:opacity-50 text-white font-bold py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
+            >
+              <X className="size-5" /> Reject Quote
+            </button>
           </div>
         )}
 
