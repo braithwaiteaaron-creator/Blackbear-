@@ -19,27 +19,39 @@ export function JobActions({ jobId, initialAmount, isCompleted }: JobActionsProp
   const [finalAmount, setFinalAmount] = useState(String(initialAmount))
 
   async function handleSaveAmount() {
-    if (!newAmount) return
+    if (!newAmount) {
+      setError('Please enter an amount')
+      return
+    }
     setSaving(true)
     setError('')
     try {
-      console.log("[v0] Saving job amount:", { jobId, newAmount })
+      const amount = parseFloat(newAmount)
+      if (isNaN(amount)) {
+        throw new Error('Invalid amount entered')
+      }
+      console.log("[v0] Saving job amount:", { jobId, amount })
       const supabase = createClient()
-      const { error: err } = await supabase
+      const { data, error: err } = await supabase
         .from('jobs')
-        .update({ actual_amount: parseFloat(newAmount) })
+        .update({ actual_amount: amount })
         .eq('id', jobId)
+        .select()
+      
+      console.log("[v0] Update response:", { data, error: err })
       
       if (err) {
-        console.error("[v0] Supabase error:", err)
-        throw err
+        console.error("[v0] Supabase error:", err.message)
+        setError(`Error: ${err.message}`)
+      } else {
+        console.log("[v0] Job amount saved successfully")
+        setError('')
+        alert('Job amount saved! Refreshing...')
+        window.location.reload()
       }
-      console.log("[v0] Job amount saved successfully")
-      alert('Job amount updated successfully!')
-      router.refresh()
     } catch (e) {
-      const errorMsg = e instanceof Error ? e.message : 'Failed to update amount'
-      console.error("[v0] Error saving amount:", errorMsg)
+      const errorMsg = e instanceof Error ? e.message : String(e)
+      console.error("[v0] Exception saving amount:", errorMsg)
       setError(errorMsg)
     } finally {
       setSaving(false)
@@ -47,12 +59,19 @@ export function JobActions({ jobId, initialAmount, isCompleted }: JobActionsProp
   }
 
   async function handleComplete() {
+    if (!finalAmount) {
+      setError('Please enter a final amount')
+      return
+    }
     setCompleting(true)
     setError('')
     try {
-      console.log("[v0] Completing job:", { jobId, finalAmount })
-      const supabase = createClient()
       const amount = parseFloat(finalAmount)
+      if (isNaN(amount)) {
+        throw new Error('Invalid amount entered')
+      }
+      console.log("[v0] Completing job:", { jobId, amount })
+      const supabase = createClient()
       
       const { error: err1 } = await supabase
         .from('jobs')
@@ -66,8 +85,8 @@ export function JobActions({ jobId, initialAmount, isCompleted }: JobActionsProp
         .eq('id', jobId)
       
       if (err1) {
-        console.error("[v0] Error updating job:", err1)
-        throw err1
+        console.error("[v0] Error updating job:", err1.message)
+        throw new Error(`Job update failed: ${err1.message}`)
       }
 
       console.log("[v0] Job updated, creating payment allocation")
@@ -82,15 +101,15 @@ export function JobActions({ jobId, initialAmount, isCompleted }: JobActionsProp
       })
 
       if (err2) {
-        console.error("[v0] Error creating payment allocation:", err2)
-        throw err2
+        console.error("[v0] Error creating payment allocation:", err2.message)
+        throw new Error(`Payment allocation failed: ${err2.message}`)
       }
 
       console.log("[v0] Job completed successfully")
       alert('Job completed and payment split calculated!')
-      router.push('/')
+      window.location.href = '/'
     } catch (e) {
-      const errorMsg = e instanceof Error ? e.message : 'Failed to complete job'
+      const errorMsg = e instanceof Error ? e.message : String(e)
       console.error("[v0] Error completing job:", errorMsg)
       setError(errorMsg)
     } finally {
