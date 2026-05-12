@@ -11,13 +11,17 @@ interface Job {
   job_number: string
   service_type: string
   status: string
-  actual_amount: number
-  estimated_amount: number
+  actual_amount: number | null
+  estimated_amount: number | null
   description: string
   notes: string
-  customer_name: string
-  customer_phone: string
-  property_address: string
+  address: string
+  customer_phone: string | null
+  customer_email: string | null
+  customer_id: string | null
+  paid: boolean
+  completed_date: string | null
+  created_at: string
 }
 
 export default function JobDetailPage() {
@@ -33,11 +37,7 @@ export default function JobDetailPage() {
   const [notes, setNotes] = useState('')
 
   useEffect(() => {
-    if (!id) {
-      console.log("[v0] No id yet, skipping fetch")
-      return
-    }
-    console.log("[v0] Fetching job:", id)
+    if (!id) return
     setLoading(true)
     const supabase = createClient()
     supabase
@@ -46,12 +46,9 @@ export default function JobDetailPage() {
       .eq('id', id)
       .single()
       .then(({ data, error: err }) => {
-        console.log("[v0] Fetch result:", { data, error: err })
         if (err) {
-          console.error("[v0] Error fetching job:", err)
           setError(err.message)
         } else if (data) {
-          console.log("[v0] Job loaded:", data)
           setJob(data)
           const amt = (data.actual_amount || data.estimated_amount || 0).toFixed(2)
           setNewAmount(amt)
@@ -155,12 +152,12 @@ export default function JobDetailPage() {
         <div className="space-y-2">
           <h2 className="text-lg font-semibold">Job Details</h2>
           <div className="flex justify-between p-3 bg-card rounded-lg border border-border/50">
-            <span className="text-muted-foreground">Customer</span>
-            <span className="font-medium">{job.customer_name}</span>
+            <span className="text-muted-foreground">Phone</span>
+            <span className="font-medium">{job.customer_phone || 'N/A'}</span>
           </div>
           <div className="flex justify-between p-3 bg-card rounded-lg border border-border/50">
             <span className="text-muted-foreground">Address</span>
-            <span className="font-medium text-right max-w-[60%]">{job.property_address || job.description}</span>
+            <span className="font-medium text-right max-w-[60%]">{job.address || job.description}</span>
           </div>
           <div className="flex justify-between p-3 bg-card rounded-lg border border-border/50">
             <span className="text-muted-foreground">Status</span>
