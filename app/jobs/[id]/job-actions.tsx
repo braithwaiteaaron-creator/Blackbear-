@@ -23,15 +23,24 @@ export function JobActions({ jobId, initialAmount, isCompleted }: JobActionsProp
     setSaving(true)
     setError('')
     try {
+      console.log("[v0] Saving job amount:", { jobId, newAmount })
       const supabase = createClient()
       const { error: err } = await supabase
         .from('jobs')
         .update({ actual_amount: parseFloat(newAmount) })
         .eq('id', jobId)
-      if (err) throw err
+      
+      if (err) {
+        console.error("[v0] Supabase error:", err)
+        throw err
+      }
+      console.log("[v0] Job amount saved successfully")
+      alert('Job amount updated successfully!')
       router.refresh()
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to update amount')
+      const errorMsg = e instanceof Error ? e.message : 'Failed to update amount'
+      console.error("[v0] Error saving amount:", errorMsg)
+      setError(errorMsg)
     } finally {
       setSaving(false)
     }
@@ -41,10 +50,11 @@ export function JobActions({ jobId, initialAmount, isCompleted }: JobActionsProp
     setCompleting(true)
     setError('')
     try {
+      console.log("[v0] Completing job:", { jobId, finalAmount })
       const supabase = createClient()
       const amount = parseFloat(finalAmount)
       
-      await supabase
+      const { error: err1 } = await supabase
         .from('jobs')
         .update({ 
           status: 'completed', 
@@ -55,7 +65,14 @@ export function JobActions({ jobId, initialAmount, isCompleted }: JobActionsProp
         })
         .eq('id', jobId)
       
-      await supabase.from('payment_allocations').insert({
+      if (err1) {
+        console.error("[v0] Error updating job:", err1)
+        throw err1
+      }
+
+      console.log("[v0] Job updated, creating payment allocation")
+      
+      const { error: err2 } = await supabase.from('payment_allocations').insert({
         job_id: jobId,
         labour_cost: amount * 0.45,
         material_cost: amount * 0.20,
@@ -63,10 +80,19 @@ export function JobActions({ jobId, initialAmount, isCompleted }: JobActionsProp
         tax_cost: amount * 0.13,
         profit: amount * 0.07,
       })
-      
+
+      if (err2) {
+        console.error("[v0] Error creating payment allocation:", err2)
+        throw err2
+      }
+
+      console.log("[v0] Job completed successfully")
+      alert('Job completed and payment split calculated!')
       router.push('/')
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to complete job')
+      const errorMsg = e instanceof Error ? e.message : 'Failed to complete job'
+      console.error("[v0] Error completing job:", errorMsg)
+      setError(errorMsg)
     } finally {
       setCompleting(false)
     }
