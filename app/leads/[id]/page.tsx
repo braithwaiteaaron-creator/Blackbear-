@@ -4,18 +4,19 @@ import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Phone, Mail, MapPin, Calendar, UserPlus } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
 
 interface Lead {
   id: string
-  name: string
-  phone: string
-  email: string
-  address: string
+  customer_name: string
+  customer_phone: string
+  customer_email: string
+  property_address: string
+  estimated_value: number
   source: string
   notes: string
   status: string
   created_at: string
-  converted_customer_id: string | null
 }
 
 export default function LeadDetailPage() {
@@ -27,48 +28,51 @@ export default function LeadDetailPage() {
   const [converting, setConverting] = useState(false)
 
   useEffect(() => {
-    async function fetchLead() {
-      const res = await fetch(`/api/leads/${id}/detail`)
-      if (res.ok) setLead(await res.json())
-      setLoading(false)
-    }
-    fetchLead()
+    if (!id) return
+    const supabase = createClient()
+    supabase
+      .from('leads')
+      .select('*')
+      .eq('id', id)
+      .single()
+      .then(({ data, error: err }) => {
+        if (!err && data) setLead(data)
+        setLoading(false)
+      })
   }, [id])
 
   async function updateStatus(status: string) {
+    if (!lead) return
     setUpdating(true)
-    const res = await fetch(`/api/leads/${id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status }),
-    })
-    if (res.ok) setLead(prev => prev ? { ...prev, status } : prev)
+    const supabase = createClient()
+    await supabase.from('leads').update({ status }).eq('id', lead.id)
+    setLead(prev => prev ? { ...prev, status } : prev)
     setUpdating(false)
   }
 
   async function convertToCustomer() {
+    if (!lead) return
     setConverting(true)
-    const res = await fetch('/api/customers', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        name: lead!.name,
-        phone: lead!.phone,
-        email: lead!.email,
-        address: lead!.address,
+    const supabase = createClient()
+    const { data: quote } = await supabase
+      .from('quotes')
+      .insert({
+        customer_name: lead.customer_name,
+        customer_email: lead.customer_email,
+        customer_phone: lead.customer_phone,
+        property_address: lead.property_address,
+        amount: lead.estimated_value || 0,
+        status: 'pending',
         tenant_id: '00000000-0000-0000-0000-000000000001',
-      }),
-    })
-    if (res.ok) {
-      const customer = await res.json()
-      await fetch(`/api/leads/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'converted', converted_customer_id: customer.id }),
       })
-      router.push(`/customers/${customer.id}`)
+      .select()
+      .single()
+    if (quote) {
+      await supabase.from('leads').update({ status: 'converted' }).eq('id', lead.id)
+      router.push(`/quotes/${quote.id}`)
+    } else {
+      setConverting(false)
     }
-    setConverting(false)
   }
 
   if (loading) return <div className="min-h-screen bg-background flex items-center justify-center"><p className="text-muted-foreground">Loading...</p></div>
@@ -90,7 +94,7 @@ export default function LeadDetailPage() {
             <ArrowLeft className="size-5" />
           </Link>
           <div>
-            <h1 className="text-xl font-bold">{lead.name}</h1>
+            <h1 className="text-xl font-bold">{lead.customer_name}</h1>
             <p className="text-sm text-primary-foreground/70 capitalize">{lead.status} Lead</p>
           </div>
         </div>
@@ -99,19 +103,19 @@ export default function LeadDetailPage() {
       <main className="p-4 space-y-4">
         <div className="p-4 rounded-xl bg-card border border-border/50 space-y-3">
           <h2 className="font-semibold">Contact Information</h2>
-          {lead.phone && (
-            <a href={`tel:${lead.phone}`} className="flex items-center gap-3 text-muted-foreground hover:text-foreground">
-              <Phone className="size-4" /><span>{lead.phone}</span>
+          {lead.customer_phone && (
+            <a href={`tel:${lead.customer_phone}`} className="flex items-center gap-3 text-muted-foreground hover:text-foreground">
+              <Phone className="size-4" /><span>{lead.customer_phone}</span>
             </a>
           )}
-          {lead.email && (
-            <a href={`mailto:${lead.email}`} className="flex items-center gap-3 text-muted-foreground hover:text-foreground">
-              <Mail className="size-4" /><span>{lead.email}</span>
+          {lead.customer_email && (
+            <a href={`mailto:${lead.customer_email}`} className="flex items-center gap-3 text-muted-foreground hover:text-foreground">
+              <Mail className="size-4" /><span>{lead.customer_email}</span>
             </a>
           )}
-          {lead.address && (
+          {lead.property_address && (
             <div className="flex items-center gap-3 text-muted-foreground">
-              <MapPin className="size-4" /><span>{lead.address}</span>
+              <MapPin className="size-4" /><span>{lead.property_address}</span>
             </div>
           )}
           <div className="flex items-center gap-3 text-muted-foreground">
@@ -165,13 +169,10 @@ export default function LeadDetailPage() {
           </button>
         )}
 
-        {lead.status === 'converted' && lead.converted_customer_id && (
-          <Link
-            href={`/customers/${lead.converted_customer_id}`}
-            className="w-full block text-center bg-cyan-500 hover:bg-cyan-600 text-white font-bold py-4 rounded-xl transition-colors"
-          >
-            View Customer Profile
-          </Link>
+        {lead.status === 'converted' && (
+          <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-center">
+            <p className="text-emerald-400 font-medium">This lead has been converted to a quote.</p>
+          </div>
         )}
       </main>
     </div>

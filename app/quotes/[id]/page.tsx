@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, CheckCircle, X } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { createClient } from '@/lib/supabase/client'
 
 interface Quote {
   id: string
@@ -29,21 +30,41 @@ export default function QuoteDetailPage() {
   const [acting, setActing] = useState(false)
 
   useEffect(() => {
-    async function fetchQuote() {
-      const res = await fetch(`/api/quotes/${id}/detail`)
-      if (res.ok) setQuote(await res.json())
-      setLoading(false)
-    }
-    fetchQuote()
+    if (!id) return
+    const supabase = createClient()
+    supabase
+      .from('quotes')
+      .select('*')
+      .eq('id', id)
+      .single()
+      .then(({ data, error: err }) => {
+        if (!err && data) setQuote(data)
+        setLoading(false)
+      })
   }, [id])
 
   async function updateStatus(status: string) {
     setActing(true)
-    await fetch(`/api/quotes/${id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status }),
-    })
+    const supabase = createClient()
+    await supabase.from('quotes').update({ status }).eq('id', id)
+    if (status === 'accepted') {
+      // Convert to job
+      const { data: job } = await supabase
+        .from('jobs')
+        .insert({
+          customer_name: quote!.customer_name,
+          customer_email: quote!.customer_email,
+          customer_phone: quote!.customer_phone,
+          property_address: quote!.property_address,
+          description: quote!.description || quote!.service_type,
+          estimated_amount: quote!.amount,
+          status: 'in_progress',
+          tenant_id: '00000000-0000-0000-0000-000000000001',
+        })
+        .select()
+        .single()
+      if (job) { router.push(`/jobs/${job.id}`); return }
+    }
     router.push('/quotes')
   }
 
