@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, CheckCircle, FileText, Package, Camera, Edit2 } from 'lucide-react'
+import { ArrowLeft, CheckCircle } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
 interface Job {
@@ -34,63 +34,91 @@ export default function JobDetailPage() {
   const [completing, setCompleting] = useState(false)
   const [newAmount, setNewAmount] = useState('')
   const [finalAmount, setFinalAmount] = useState('')
-  const [notes, setNotes] = useState('')
 
   useEffect(() => {
-    if (!id) return
-    setLoading(true)
-    const supabase = createClient()
-    supabase
-      .from('jobs')
-      .select('*')
-      .eq('id', id)
-      .single()
-      .then(({ data, error: err }) => {
-        if (err) {
-          setError(err.message)
-        } else if (data) {
-          setJob(data)
-          const amt = (data.actual_amount || data.estimated_amount || 0).toFixed(2)
-          setNewAmount(amt)
-          setFinalAmount(amt)
-        }
+    async function load() {
+      if (!id) {
+        setError('No job ID provided')
         setLoading(false)
-      })
+        return
+      }
+      try {
+        setLoading(true)
+        const supabase = createClient()
+        const { data, error: err } = await supabase
+          .from('jobs')
+          .select('*')
+          .eq('id', id)
+          .single()
+        
+        if (err) throw new Error(err.message)
+        if (!data) throw new Error('Job not found')
+        
+        setJob(data)
+        const amt = String(data.actual_amount ?? data.estimated_amount ?? 0)
+        setNewAmount(amt)
+        setFinalAmount(amt)
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'Failed to load job')
+      } finally {
+        setLoading(false)
+      }
+    }
+    load()
   }, [id])
 
   async function handleSaveAmount() {
-    if (!job) return
+    if (!job || !newAmount) return
     setSaving(true)
-    const supabase = createClient()
-    const { error: err } = await supabase
-      .from('jobs')
-      .update({ actual_amount: parseFloat(newAmount) })
-      .eq('id', job.id)
-    if (!err) {
+    try {
+      const supabase = createClient()
+      const { error: err } = await supabase
+        .from('jobs')
+        .update({ actual_amount: parseFloat(newAmount) })
+        .eq('id', job.id)
+      if (err) throw err
       setJob({ ...job, actual_amount: parseFloat(newAmount) })
       setFinalAmount(newAmount)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to update amount')
+    } finally {
+      setSaving(false)
     }
-    setSaving(false)
   }
 
   async function handleComplete() {
     if (!job) return
     setCompleting(true)
-    const supabase = createClient()
-    const amount = parseFloat(finalAmount)
-    await supabase
-      .from('jobs')
-      .update({ status: 'completed', paid: true, actual_amount: amount, notes })
-      .eq('id', job.id)
-    await supabase.from('payment_allocations').insert({
-      job_id: job.id,
-      labour_cost: amount * 0.45,
-      material_cost: amount * 0.20,
-      overhead_cost: amount * 0.15,
-      tax_cost: amount * 0.13,
-      profit: amount * 0.07,
-    })
-    router.push('/?tab=jobs')
+    try {
+      const supabase = createClient()
+      const amount = parseFloat(finalAmount)
+      
+      await supabase
+        .from('jobs')
+        .update({ 
+          status: 'completed', 
+          paid: true, 
+          actual_amount: amount,
+          time_ended_at: new Date().toISOString(),
+          completed_date: new Date().toISOString().split('T')[0],
+        })
+        .eq('id', job.id)
+      
+      await supabase.from('payment_allocations').insert({
+        job_id: job.id,
+        labour_cost: amount * 0.45,
+        material_cost: amount * 0.20,
+        overhead_cost: amount * 0.15,
+        tax_cost: amount * 0.13,
+        profit: amount * 0.07,
+      })
+      
+      router.push('/')
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to complete job')
+    } finally {
+      setCompleting(false)
+    }
   }
 
   if (loading) return (
@@ -102,19 +130,13 @@ export default function JobDetailPage() {
     </div>
   )
 
-  if (error) return (
+  if (error || !job) return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="text-center space-y-3">
         <p className="text-red-400 font-medium">Error loading job</p>
-        <p className="text-muted-foreground text-sm">{error}</p>
-        <Link href="/?tab=jobs" className="text-primary underline">Go back to Jobs</Link>
+        <p className="text-muted-foreground text-sm">{error || 'Job not found'}</p>
+        <Link href="/" className="text-primary underline block">Go back to Dashboard</Link>
       </div>
-    </div>
-  )
-
-  if (!job) return (
-    <div className="min-h-screen bg-background flex items-center justify-center">
-      <p className="text-muted-foreground">Job not found. <Link href="/?tab=jobs" className="text-primary underline">Go back</Link></p>
     </div>
   )
 
@@ -130,7 +152,7 @@ export default function JobDetailPage() {
     <div className="min-h-screen bg-background">
       <header className="bg-primary text-primary-foreground px-4 py-4">
         <div className="flex items-center gap-3">
-          <Link href="/?tab=jobs" className="p-2 -ml-2 hover:bg-white/10 rounded-lg">
+          <Link href="/" className="p-2 -ml-2 hover:bg-white/10 rounded-lg">
             <ArrowLeft className="size-5" />
           </Link>
           <div className="flex-1">
@@ -147,7 +169,6 @@ export default function JobDetailPage() {
       </header>
 
       <div className="p-4 space-y-6 max-w-2xl mx-auto">
-
         {/* Job Details */}
         <div className="space-y-2">
           <h2 className="text-lg font-semibold">Job Details</h2>
@@ -157,7 +178,7 @@ export default function JobDetailPage() {
           </div>
           <div className="flex justify-between p-3 bg-card rounded-lg border border-border/50">
             <span className="text-muted-foreground">Address</span>
-            <span className="font-medium text-right max-w-[60%]">{job.address || job.description}</span>
+            <span className="font-medium text-right max-w-[60%]">{job.address || job.description || 'N/A'}</span>
           </div>
           <div className="flex justify-between p-3 bg-card rounded-lg border border-border/50">
             <span className="text-muted-foreground">Status</span>
@@ -203,9 +224,7 @@ export default function JobDetailPage() {
         {/* Update Amount */}
         {!isCompleted && (
           <div className="space-y-3">
-            <h3 className="font-semibold flex items-center gap-2">
-              <Edit2 className="size-4" /> Update Job Amount
-            </h3>
+            <h3 className="font-semibold">Update Job Amount</h3>
             <div className="flex gap-2">
               <input
                 type="number"
@@ -226,18 +245,6 @@ export default function JobDetailPage() {
           </div>
         )}
 
-        {/* Quick Actions */}
-        <div className="grid grid-cols-2 gap-3">
-          <Link href={`/jobs/${job.id}/materials`} className="flex items-center justify-center gap-2 p-4 rounded-xl bg-card border border-border hover:border-primary/50 transition-colors">
-            <Package className="size-5 text-amber-400" />
-            <span className="font-medium">Materials</span>
-          </Link>
-          <Link href={`/jobs/${job.id}/photos`} className="flex items-center justify-center gap-2 p-4 rounded-xl bg-card border border-border hover:border-primary/50 transition-colors">
-            <Camera className="size-5 text-blue-400" />
-            <span className="font-medium">Photos</span>
-          </Link>
-        </div>
-
         {/* Complete Job */}
         {!isCompleted && (
           <div className="space-y-4 pb-8">
@@ -252,34 +259,19 @@ export default function JobDetailPage() {
                 className="w-full p-3 rounded-xl bg-card border border-border text-foreground text-lg focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
-            <div>
-              <label className="block text-sm text-muted-foreground mb-2">Completion Notes</label>
-              <textarea
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="Notes about the completed job..."
-                className="w-full p-3 rounded-xl bg-card border border-border text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-primary"
-                rows={3}
-              />
-            </div>
             <button
               onClick={handleComplete}
               disabled={completing}
               className="w-full bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 text-white font-bold py-4 rounded-xl transition-colors"
             >
-              {completing ? 'Completing...' : 'Mark Complete & Create Invoice'}
+              {completing ? 'Completing...' : 'Mark Complete & Save'}
             </button>
           </div>
         )}
 
         {isCompleted && (
-          <div className="space-y-3 pb-8">
-            <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-center">
-              <p className="text-emerald-400 font-medium">Job completed and paid.</p>
-            </div>
-            <Link href={`/api/invoices/${job.id}`} target="_blank" className="w-full flex items-center justify-center gap-2 bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 rounded-xl transition-colors">
-              <FileText className="size-5" /> View Invoice
-            </Link>
+          <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-center pb-8">
+            <p className="text-emerald-400 font-medium">Job completed and paid.</p>
           </div>
         )}
       </div>
