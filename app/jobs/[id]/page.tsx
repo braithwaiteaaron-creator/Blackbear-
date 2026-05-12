@@ -59,11 +59,6 @@ export default function JobDetailPage() {
         }
         setLoading(false)
       })
-      .catch(err => {
-        console.error("[v0] Fetch exception:", err)
-        setError(err.message || 'Failed to load job')
-        setLoading(false)
-      })
   }, [id])
 
   async function handleSaveAmount() {
