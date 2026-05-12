@@ -1,9 +1,9 @@
-import { createClient } from '@/lib/supabase/server'
+import { createClient } from '@/lib/supabase/client'
 import { NextResponse } from 'next/server'
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const supabase = await createClient()
+  const supabase = createClient()
 
   const { data, error } = await supabase
     .from('leads')
