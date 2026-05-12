@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
 
 interface JobActionsProps {
   jobId: string
@@ -30,28 +29,28 @@ export function JobActions({ jobId, initialAmount, isCompleted }: JobActionsProp
       if (isNaN(amount)) {
         throw new Error('Invalid amount entered')
       }
-      console.log("[v0] Saving job amount:", { jobId, amount })
-      const supabase = createClient()
-      const { data, error: err } = await supabase
-        .from('jobs')
-        .update({ actual_amount: amount })
-        .eq('id', jobId)
-        .select()
+      console.log("[v0] Saving job amount via API:", { jobId, amount })
       
-      console.log("[v0] Update response:", { data, error: err })
+      const res = await fetch(`/api/jobs/${jobId}/update-amount`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ actual_amount: amount }),
+      })
+
+      const data = await res.json()
+      console.log("[v0] API response:", { status: res.status, data })
       
-      if (err) {
-        console.error("[v0] Supabase error:", err.message)
-        setError(`Error: ${err.message}`)
-      } else {
-        console.log("[v0] Job amount saved successfully")
-        setError('')
-        alert('Job amount saved! Refreshing...')
-        window.location.reload()
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to update amount')
       }
+      
+      console.log("[v0] Job amount saved successfully")
+      setError('')
+      alert('Job amount saved! Refreshing...')
+      window.location.reload()
     } catch (e) {
       const errorMsg = e instanceof Error ? e.message : String(e)
-      console.error("[v0] Exception saving amount:", errorMsg)
+      console.error("[v0] Error saving amount:", errorMsg)
       setError(errorMsg)
     } finally {
       setSaving(false)
@@ -70,41 +69,21 @@ export function JobActions({ jobId, initialAmount, isCompleted }: JobActionsProp
       if (isNaN(amount)) {
         throw new Error('Invalid amount entered')
       }
-      console.log("[v0] Completing job:", { jobId, amount })
-      const supabase = createClient()
+      console.log("[v0] Completing job via API:", { jobId, amount })
       
-      const { error: err1 } = await supabase
-        .from('jobs')
-        .update({ 
-          status: 'completed', 
-          paid: true, 
-          actual_amount: amount,
-          time_ended_at: new Date().toISOString(),
-          completed_date: new Date().toISOString().split('T')[0],
-        })
-        .eq('id', jobId)
-      
-      if (err1) {
-        console.error("[v0] Error updating job:", err1.message)
-        throw new Error(`Job update failed: ${err1.message}`)
-      }
-
-      console.log("[v0] Job updated, creating payment allocation")
-      
-      const { error: err2 } = await supabase.from('payment_allocations').insert({
-        job_id: jobId,
-        labour_cost: amount * 0.45,
-        material_cost: amount * 0.20,
-        overhead_cost: amount * 0.15,
-        tax_cost: amount * 0.13,
-        profit: amount * 0.07,
+      const res = await fetch(`/api/jobs/${jobId}/complete`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ final_amount: amount, notes: '' }),
       })
 
-      if (err2) {
-        console.error("[v0] Error creating payment allocation:", err2.message)
-        throw new Error(`Payment allocation failed: ${err2.message}`)
+      const data = await res.json()
+      console.log("[v0] Complete API response:", { status: res.status, data })
+      
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to complete job')
       }
-
+      
       console.log("[v0] Job completed successfully")
       alert('Job completed and payment split calculated!')
       window.location.href = '/'
