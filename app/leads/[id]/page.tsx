@@ -1,90 +1,20 @@
-'use client'
-
-import { useEffect, useState } from 'react'
-import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Phone, Mail, MapPin, Calendar, UserPlus } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
+import { ArrowLeft, Phone, Mail, MapPin, Calendar } from 'lucide-react'
+import { createClient } from '@/lib/supabase/server'
+import { notFound } from 'next/navigation'
+import { LeadActions } from './lead-actions'
 
-interface Lead {
-  id: string
-  customer_name: string
-  customer_phone: string
-  customer_email: string
-  property_address: string
-  estimated_value: number
-  source: string
-  notes: string
-  status: string
-  created_at: string
-}
+export default async function LeadDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  const supabase = await createClient()
 
-export default function LeadDetailPage() {
-  const { id } = useParams<{ id: string }>()
-  const router = useRouter()
-  const [lead, setLead] = useState<Lead | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [updating, setUpdating] = useState(false)
-  const [converting, setConverting] = useState(false)
+  const { data: lead, error } = await supabase
+    .from('leads')
+    .select('*')
+    .eq('id', id)
+    .single()
 
-  useEffect(() => {
-    if (!id) return
-    const supabase = createClient()
-    supabase
-      .from('leads')
-      .select('*')
-      .eq('id', id)
-      .single()
-      .then(({ data, error: err }) => {
-        if (!err && data) setLead(data)
-        setLoading(false)
-      })
-  }, [id])
-
-  async function updateStatus(status: string) {
-    if (!lead) return
-    setUpdating(true)
-    const supabase = createClient()
-    await supabase.from('leads').update({ status }).eq('id', lead.id)
-    setLead(prev => prev ? { ...prev, status } : prev)
-    setUpdating(false)
-  }
-
-  async function convertToCustomer() {
-    if (!lead) return
-    setConverting(true)
-    const supabase = createClient()
-    const { data: quote } = await supabase
-      .from('quotes')
-      .insert({
-        customer_name: lead.customer_name,
-        customer_email: lead.customer_email,
-        customer_phone: lead.customer_phone,
-        property_address: lead.property_address,
-        amount: lead.estimated_value || 0,
-        status: 'pending',
-        tenant_id: '00000000-0000-0000-0000-000000000001',
-      })
-      .select()
-      .single()
-    if (quote) {
-      await supabase.from('leads').update({ status: 'converted' }).eq('id', lead.id)
-      router.push(`/quotes/${quote.id}`)
-    } else {
-      setConverting(false)
-    }
-  }
-
-  if (loading) return <div className="min-h-screen bg-background flex items-center justify-center"><p className="text-muted-foreground">Loading...</p></div>
-  if (!lead) return <div className="min-h-screen bg-background flex items-center justify-center"><p className="text-muted-foreground">Lead not found</p></div>
-
-  const statusOptions = [
-    { value: 'new', label: 'New', color: 'bg-blue-500' },
-    { value: 'contacted', label: 'Contacted', color: 'bg-amber-500' },
-    { value: 'qualified', label: 'Qualified', color: 'bg-emerald-500' },
-    { value: 'converted', label: 'Converted', color: 'bg-cyan-500' },
-    { value: 'lost', label: 'Lost', color: 'bg-red-500' },
-  ]
+  if (error || !lead) notFound()
 
   return (
     <div className="min-h-screen bg-background">
@@ -138,42 +68,11 @@ export default function LeadDetailPage() {
           </div>
         )}
 
-        <div className="p-4 rounded-xl bg-card border border-border/50">
-          <h2 className="font-semibold mb-3">Update Status</h2>
-          <div className="flex flex-wrap gap-2">
-            {statusOptions.map((status) => (
-              <button
-                key={status.value}
-                onClick={() => updateStatus(status.value)}
-                disabled={updating}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 ${
-                  lead.status === status.value
-                    ? `${status.color} text-white`
-                    : 'bg-muted hover:bg-muted/80 text-foreground'
-                }`}
-              >
-                {status.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {lead.status !== 'converted' && (
-          <button
-            onClick={convertToCustomer}
-            disabled={converting}
-            className="w-full flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 text-white font-bold py-4 rounded-xl transition-colors"
-          >
-            <UserPlus className="size-5" />
-            {converting ? 'Converting...' : 'Convert to Customer'}
-          </button>
-        )}
-
-        {lead.status === 'converted' && (
-          <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-center">
-            <p className="text-emerald-400 font-medium">This lead has been converted to a quote.</p>
-          </div>
-        )}
+        <LeadActions
+          leadId={lead.id}
+          initialStatus={lead.status}
+          lead={lead}
+        />
       </main>
     </div>
   )
