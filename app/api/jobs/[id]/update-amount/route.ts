@@ -8,7 +8,7 @@ export async function PATCH(
   const { id } = await params
   const { actual_amount } = await request.json()
 
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const { error } = await supabase
     .from('jobs')
