@@ -17,12 +17,14 @@ export default function NewLeadPage() {
 
     const form = e.currentTarget
     const data = {
-      name: (form.elements.namedItem('name') as HTMLInputElement).value,
-      phone: (form.elements.namedItem('phone') as HTMLInputElement).value || null,
-      email: (form.elements.namedItem('email') as HTMLInputElement).value || null,
-      address: (form.elements.namedItem('address') as HTMLInputElement).value || null,
+      customer_name: (form.elements.namedItem('name') as HTMLInputElement).value,
+      customer_phone: (form.elements.namedItem('phone') as HTMLInputElement).value || null,
+      customer_email: (form.elements.namedItem('email') as HTMLInputElement).value || null,
+      property_address: (form.elements.namedItem('address') as HTMLInputElement).value || null,
       source: (form.elements.namedItem('source') as HTMLSelectElement).value || 'direct',
       notes: (form.elements.namedItem('notes') as HTMLTextAreaElement).value || null,
+      estimated_value: 0,
+      status: 'new',
       tenant_id: '00000000-0000-0000-0000-000000000001',
     }
 
