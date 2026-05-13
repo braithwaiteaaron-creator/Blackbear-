@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Skeleton } from '@/components/ui/skeleton'
 import {
   Briefcase, FileText, Users, TrendingUp, Plus,
   Wrench, ChevronRight, TreeDeciduous, UserPlus, DollarSign, AlertCircle, Calendar,
@@ -12,16 +13,18 @@ import { RevenueGauge } from '@/components/revenue-gauge'
 
 export const dynamic = 'force-dynamic'
 
-export default async function Dashboard({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
+export default async function Dashboard({ searchParams }: { searchParams: Promise<{ tab?: string; page?: string }> }) {
   const params = await searchParams
   const activeTab = params.tab || 'quotes'
+  const page = Math.max(1, parseInt(params.page || '1'))
+  const itemsPerPage = 15
   
   const supabase = await createClient()
 
   const [allJobsRes, jobsRes, quotesRes, customersRes] = await Promise.all([
     supabase.from('jobs').select('status, paid, actual_amount, estimated_amount'),
-    supabase.from('jobs').select('*, customer:customers(*)').order('created_at', { ascending: false }).limit(50),
-    supabase.from('quotes').select('*, customer:customers(*)').order('created_at', { ascending: false }).limit(20),
+    supabase.from('jobs').select('*, customer:customers(*)').order('created_at', { ascending: false }).range((page - 1) * itemsPerPage, page * itemsPerPage - 1),
+    supabase.from('quotes').select('*, customer:customers(*)').order('created_at', { ascending: false }).range((page - 1) * itemsPerPage, page * itemsPerPage - 1),
     supabase.from('customers').select('*').limit(100),
   ])
 
@@ -29,6 +32,10 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
   const jobs = jobsRes.data || []
   const quotes = quotesRes.data || []
   const customers = customersRes.data || []
+
+  // Get total counts for pagination
+  const { count: totalJobs } = await supabase.from('jobs').select('id', { count: 'exact', head: true })
+  const { count: totalQuotes } = await supabase.from('quotes').select('id', { count: 'exact', head: true })
 
   // Split jobs by type
   const quoteJobs = jobs.filter((j: any) => j.status === 'quote')
@@ -42,6 +49,12 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
   const paidJobs = completedJobs.filter((j: any) => j.paid === true)
   const unpaidJobs = completedJobs.filter((j: any) => j.paid !== true)
   const outstandingAmount = unpaidJobs.reduce((sum: number, j: any) => sum + (Number(j.actual_amount) || Number(j.estimated_amount) || 0), 0)
+
+  // Calculate pagination
+  const totalJobsCount = totalJobs || 0
+  const totalQuotesCount = totalQuotes || 0
+  const maxJobPages = Math.ceil(totalJobsCount / itemsPerPage)
+  const maxQuotePages = Math.ceil(totalQuotesCount / itemsPerPage)
 
   const stats = [
     { label: 'ACTIVE JOBS', value: scheduledJobs, icon: Briefcase, color: 'text-blue-400', bg: 'bg-blue-500/10', tab: 'jobs' },
@@ -237,6 +250,42 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
                 </>
               )}
             </div>
+            {/* Pagination for Quotes */}
+            {maxQuotePages > 1 && (
+              <div className="flex items-center justify-between pt-4 border-t border-border">
+                <p className="text-sm text-muted-foreground">Page {page} of {maxQuotePages}</p>
+                <div className="flex gap-2">
+                  {page > 1 && (
+                    <Link href={`/?tab=quotes&page=${page - 1}`}>
+                      <Button variant="outline" size="sm">Previous</Button>
+                    </Link>
+                  )}
+                  {page < maxQuotePages && (
+                    <Link href={`/?tab=quotes&page=${page + 1}`}>
+                      <Button variant="outline" size="sm">Next</Button>
+                    </Link>
+              )}
+            </div>
+            {/* Pagination for Jobs */}
+            {maxJobPages > 1 && (
+              <div className="flex items-center justify-between pt-4 border-t border-border">
+                <p className="text-sm text-muted-foreground">Page {page} of {maxJobPages}</p>
+                <div className="flex gap-2">
+                  {page > 1 && (
+                    <Link href={`/?tab=jobs&page=${page - 1}`}>
+                      <Button variant="outline" size="sm">Previous</Button>
+                    </Link>
+                  )}
+                  {page < maxJobPages && (
+                    <Link href={`/?tab=jobs&page=${page + 1}`}>
+                      <Button variant="outline" size="sm">Next</Button>
+                    </Link>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
           </div>
         )}
 
