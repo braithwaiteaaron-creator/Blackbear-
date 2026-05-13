@@ -1,11 +1,9 @@
 'use client'
 
 import { useState, useRef } from 'react'
-import SignatureCanvas from 'react-signature-canvas'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-import { FieldGroup, Field, FieldLabel, FieldDescription } from '@/components/ui/field'
 import { toast } from 'sonner'
 import { Trash2, Download } from 'lucide-react'
 
@@ -18,20 +16,34 @@ export function SignaturePad({ quoteId, onSignatureComplete }: SignaturePadProps
   const [customerName, setCustomerName] = useState('')
   const [customerEmail, setCustomerEmail] = useState('')
   const [isLoading, setIsLoading] = useState(false)
-  const signatureCanvasRef = useRef<SignatureCanvas>(null)
+  const canvasRef = useRef<HTMLCanvasElement>(null)
 
   const handleClear = () => {
-    signatureCanvasRef.current?.clear()
+    const canvas = canvasRef.current
+    if (canvas) {
+      const ctx = canvas.getContext('2d')
+      if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height)
+    }
   }
 
   const handleDownload = () => {
-    const dataUrl = signatureCanvasRef.current?.toDataURL()
-    if (!dataUrl) return
-
+    const canvas = canvasRef.current
+    if (!canvas) return
+    
+    const dataUrl = canvas.toDataURL()
     const link = document.createElement('a')
     link.href = dataUrl
     link.download = `signature-${Date.now()}.png`
     link.click()
+  }
+
+  const isCanvasEmpty = () => {
+    const canvas = canvasRef.current
+    if (!canvas) return true
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return true
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
+    return imageData.data.every((val) => val === 0)
   }
 
   const handleSubmit = async () => {
@@ -40,15 +52,17 @@ export function SignaturePad({ quoteId, onSignatureComplete }: SignaturePadProps
       return
     }
 
-    const isEmpty = signatureCanvasRef.current?.isEmpty()
-    if (isEmpty) {
+    if (isCanvasEmpty()) {
       toast.error('Please sign the document')
       return
     }
 
     setIsLoading(true)
     try {
-      const signatureData = signatureCanvasRef.current?.toDataURL()
+      const canvas = canvasRef.current
+      if (!canvas) throw new Error('Canvas not found')
+      
+      const signatureData = canvas.toDataURL()
 
       const response = await fetch(`/api/quotes/${quoteId}/signature`, {
         method: 'POST',
@@ -65,7 +79,7 @@ export function SignaturePad({ quoteId, onSignatureComplete }: SignaturePadProps
       toast.success('Quote signed successfully!')
       setCustomerName('')
       setCustomerEmail('')
-      signatureCanvasRef.current?.clear()
+      handleClear()
       onSignatureComplete?.()
     } catch (error) {
       const msg = error instanceof Error ? error.message : 'Error saving signature'
@@ -81,9 +95,9 @@ export function SignaturePad({ quoteId, onSignatureComplete }: SignaturePadProps
         <CardTitle>Customer Signature</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <FieldGroup>
-          <Field>
-            <FieldLabel htmlFor="name">Customer Name</FieldLabel>
+        <div className="space-y-3">
+          <div>
+            <label htmlFor="name" className="block text-sm font-medium mb-1">Customer Name</label>
             <Input
               id="name"
               value={customerName}
@@ -91,10 +105,10 @@ export function SignaturePad({ quoteId, onSignatureComplete }: SignaturePadProps
               placeholder="John Doe"
               disabled={isLoading}
             />
-          </Field>
+          </div>
 
-          <Field>
-            <FieldLabel htmlFor="email">Email (Optional)</FieldLabel>
+          <div>
+            <label htmlFor="email" className="block text-sm font-medium mb-1">Email (Optional)</label>
             <Input
               id="email"
               type="email"
@@ -103,21 +117,50 @@ export function SignaturePad({ quoteId, onSignatureComplete }: SignaturePadProps
               placeholder="john@example.com"
               disabled={isLoading}
             />
-          </Field>
-        </FieldGroup>
+          </div>
+        </div>
 
         <div className="border-2 border-dashed border-border rounded-lg bg-muted/30 overflow-hidden">
-          <SignatureCanvas
-            ref={signatureCanvasRef}
-            canvasProps={{
-              className: 'w-full h-48 bg-white cursor-crosshair',
-              width: 500,
-              height: 200,
+          <canvas
+            ref={canvasRef}
+            width={500}
+            height={200}
+            className="w-full h-48 bg-white cursor-crosshair block"
+            onMouseDown={(e) => {
+              const canvas = canvasRef.current
+              if (!canvas) return
+              const ctx = canvas.getContext('2d')
+              if (!ctx) return
+              const rect = canvas.getBoundingClientRect()
+              const x = e.clientX - rect.left
+              const y = e.clientY - rect.top
+              ctx.beginPath()
+              ctx.moveTo(x, y)
+              
+              const handleMouseMove = (moveE: MouseEvent) => {
+                const moveX = moveE.clientX - rect.left
+                const moveY = moveE.clientY - rect.top
+                ctx.lineTo(moveX, moveY)
+                ctx.stroke()
+              }
+              
+              const handleMouseUp = () => {
+                document.removeEventListener('mousemove', handleMouseMove)
+                document.removeEventListener('mouseup', handleMouseUp)
+              }
+              
+              ctx.lineWidth = 2
+              ctx.lineCap = 'round'
+              ctx.lineJoin = 'round'
+              ctx.strokeStyle = '#000'
+              
+              document.addEventListener('mousemove', handleMouseMove)
+              document.addEventListener('mouseup', handleMouseUp)
             }}
           />
         </div>
 
-        <FieldDescription>Sign above to approve this quote</FieldDescription>
+        <p className="text-sm text-muted-foreground">Sign above to approve this quote</p>
 
         <div className="flex gap-2 flex-wrap">
           <Button
