@@ -3,6 +3,8 @@ import { ArrowLeft, CheckCircle } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
 import { JobActions } from './job-actions'
+import { PhotoUpload } from '@/components/photo-upload'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
 export default async function JobDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -13,6 +15,12 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
     .select('*')
     .eq('id', id)
     .single()
+
+  const { data: photos } = await supabase
+    .from('job_photos')
+    .select('*')
+    .eq('job_id', id)
+    .order('created_at', { ascending: false })
 
   if (error || !job) {
     notFound()
@@ -98,6 +106,16 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
             </div>
           </div>
         </div>
+
+        {/* Photos Section */}
+        <Card className="bg-card border-border">
+          <CardHeader>
+            <CardTitle>Job Photos</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <PhotoUpload jobId={id} photos={photos || []} onPhotosChange={() => {}} />
+          </CardContent>
+        </Card>
 
         {/* Actions (Client Component) */}
         <JobActions jobId={job.id} initialAmount={amount} isCompleted={isCompleted} />
