@@ -13,6 +13,17 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
     const amount = parseFloat(final_amount)
 
+    // Get the job to find its quote_id
+    const { data: jobData, error: jobFetchError } = await supabase
+      .from('jobs')
+      .select('quote_id')
+      .eq('id', id)
+      .single()
+
+    if (jobFetchError) {
+      return NextResponse.json({ error: jobFetchError.message }, { status: 500 })
+    }
+
     const { error: jobError } = await supabase
       .from('jobs')
       .update({
@@ -26,6 +37,14 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
     if (jobError) {
       return NextResponse.json({ error: jobError.message }, { status: 500 })
+    }
+
+    // If there's a linked quote, update its amount too
+    if (jobData?.quote_id) {
+      await supabase
+        .from('quotes')
+        .update({ amount })
+        .eq('id', jobData.quote_id)
     }
 
     const { error: allocError } = await supabase

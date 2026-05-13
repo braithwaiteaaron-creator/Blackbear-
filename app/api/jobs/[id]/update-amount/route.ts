@@ -15,6 +15,18 @@ export async function PATCH(
     }
 
     const supabase = await createClient()
+    
+    // Get job with quote_id
+    const { data: jobData, error: fetchError } = await supabase
+      .from('jobs')
+      .select('quote_id')
+      .eq('id', id)
+      .single()
+
+    if (fetchError) {
+      return NextResponse.json({ error: fetchError.message }, { status: 500 })
+    }
+
     const { data, error } = await supabase
       .from('jobs')
       .update({ actual_amount: parseFloat(actual_amount) })
@@ -23,6 +35,14 @@ export async function PATCH(
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+
+    // If there's a linked quote, update its amount too
+    if (jobData?.quote_id) {
+      await supabase
+        .from('quotes')
+        .update({ amount: parseFloat(actual_amount) })
+        .eq('id', jobData.quote_id)
     }
 
     return NextResponse.json({ success: true, data })
