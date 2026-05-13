@@ -29,7 +29,6 @@ export function JobActions({ jobId, initialAmount, isCompleted }: JobActionsProp
       if (isNaN(amount)) {
         throw new Error('Invalid amount entered')
       }
-      console.log("[v0] Saving job amount via API:", { jobId, amount })
       
       const res = await fetch(`/api/jobs/${jobId}/update-amount`, {
         method: 'PATCH',
@@ -38,19 +37,16 @@ export function JobActions({ jobId, initialAmount, isCompleted }: JobActionsProp
       })
 
       const data = await res.json()
-      console.log("[v0] API response:", { status: res.status, data })
       
       if (!res.ok) {
         throw new Error(data.error || 'Failed to update amount')
       }
       
-      console.log("[v0] Job amount saved successfully")
       setError('')
-      alert('Job amount saved! Refreshing...')
+      alert('Job amount saved!')
       window.location.reload()
     } catch (e) {
       const errorMsg = e instanceof Error ? e.message : String(e)
-      console.error("[v0] Error saving amount:", errorMsg)
       setError(errorMsg)
     } finally {
       setSaving(false)
@@ -69,7 +65,6 @@ export function JobActions({ jobId, initialAmount, isCompleted }: JobActionsProp
       if (isNaN(amount)) {
         throw new Error('Invalid amount entered')
       }
-      console.log("[v0] Completing job via API:", { jobId, amount })
       
       const res = await fetch(`/api/jobs/${jobId}/complete`, {
         method: 'POST',
@@ -78,18 +73,15 @@ export function JobActions({ jobId, initialAmount, isCompleted }: JobActionsProp
       })
 
       const data = await res.json()
-      console.log("[v0] Complete API response:", { status: res.status, data })
       
       if (!res.ok) {
         throw new Error(data.error || 'Failed to complete job')
       }
       
-      console.log("[v0] Job completed successfully")
-      alert('Job completed and payment split calculated!')
+      alert('Job completed!')
       window.location.href = '/'
     } catch (e) {
       const errorMsg = e instanceof Error ? e.message : String(e)
-      console.error("[v0] Error completing job:", errorMsg)
       setError(errorMsg)
     } finally {
       setCompleting(false)
@@ -125,6 +117,7 @@ export function JobActions({ jobId, initialAmount, isCompleted }: JobActionsProp
             className="flex-1 p-3 rounded-lg bg-card border border-border text-foreground font-medium focus:outline-none focus:ring-2 focus:ring-primary"
           />
           <button
+            type="button"
             onClick={handleSaveAmount}
             disabled={saving}
             className="px-4 py-3 bg-blue-500 hover:bg-blue-600 disabled:opacity-50 text-white font-semibold rounded-lg transition-colors"
@@ -148,6 +141,7 @@ export function JobActions({ jobId, initialAmount, isCompleted }: JobActionsProp
           />
         </div>
         <button
+          type="button"
           onClick={handleComplete}
           disabled={completing}
           className="w-full bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 text-white font-bold py-4 rounded-xl transition-colors"
