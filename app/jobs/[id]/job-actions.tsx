@@ -44,7 +44,7 @@ export function JobActions({ jobId, initialAmount, isCompleted }: JobActionsProp
       
       setError('')
       alert('Job amount saved!')
-      window.location.reload()
+      router.refresh()
     } catch (e) {
       const errorMsg = e instanceof Error ? e.message : String(e)
       setError(errorMsg)
@@ -79,7 +79,8 @@ export function JobActions({ jobId, initialAmount, isCompleted }: JobActionsProp
       }
       
       alert('Job completed!')
-      window.location.href = '/'
+      router.refresh()
+      router.push('/')
     } catch (e) {
       const errorMsg = e instanceof Error ? e.message : String(e)
       setError(errorMsg)
