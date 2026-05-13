@@ -208,7 +208,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
                         </div>
                         <div className="flex items-center gap-2 shrink-0 ml-3">
                           <Badge variant="outline" className="text-xs bg-amber-500/15 text-amber-400 border-amber-500/30">Quote</Badge>
-                          <p className="text-base font-bold">${Number(job.estimated_amount || 0).toLocaleString()}</p>
+                          <p className="text-base font-bold">${Number(job.actual_amount || job.estimated_amount || 0).toLocaleString()}</p>
                           <ChevronRight className="size-4 text-muted-foreground" />
                         </div>
                       </div>
@@ -276,7 +276,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
                           <Badge variant="outline" className={`text-xs ${statusColors[job.status] || 'bg-muted text-foreground'}`}>
                             {job.status === 'in_progress' ? 'Active' : job.status.charAt(0).toUpperCase() + job.status.slice(1)}
                           </Badge>
-                          <p className="text-base font-bold">${Number(job.estimated_amount || 0).toLocaleString()}</p>
+                          <p className="text-base font-bold">${Number(job.actual_amount || job.estimated_amount || 0).toLocaleString()}</p>
                           <ChevronRight className="size-4 text-muted-foreground" />
                         </div>
                       </div>
