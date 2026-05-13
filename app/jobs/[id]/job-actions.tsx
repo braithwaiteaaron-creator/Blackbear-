@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { toast } from 'sonner'
 
 interface JobActionsProps {
   jobId: string
@@ -43,7 +44,7 @@ export function JobActions({ jobId, initialAmount, isCompleted }: JobActionsProp
       }
       
       setError('')
-      alert('Job amount saved!')
+      toast.success('Job amount saved!')
       router.refresh()
     } catch (e) {
       const errorMsg = e instanceof Error ? e.message : String(e)
@@ -78,7 +79,7 @@ export function JobActions({ jobId, initialAmount, isCompleted }: JobActionsProp
         throw new Error(data.error || 'Failed to complete job')
       }
       
-      alert('Job completed!')
+      toast.success('Job completed!')
       router.refresh()
       router.push('/')
     } catch (e) {
