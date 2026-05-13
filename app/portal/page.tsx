@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
-import { TreeDeciduous, Search, FileText, CheckCircle, Clock, AlertCircle } from 'lucide-react'
+import { TreeDeciduous, Search, FileText, CheckCircle, Clock, AlertCircle, X } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { redirect } from 'next/navigation'
 
@@ -24,6 +24,17 @@ async function lookupCustomer(formData: FormData) {
 export default async function CustomerPortalPage() {
   return (
     <div className="min-h-screen bg-background">
+      {/* Exit Button */}
+      <div className="fixed top-4 right-4 z-50">
+        <Link
+          href="/"
+          className="inline-flex items-center justify-center size-10 rounded-lg bg-card border border-border hover:bg-muted transition-colors"
+          title="Exit Portal"
+        >
+          <X className="size-5 text-foreground" />
+        </Link>
+      </div>
+
       {/* Header */}
       <header className="bg-primary text-primary-foreground">
         <div className="max-w-4xl mx-auto px-4 py-8 text-center">
@@ -131,6 +142,17 @@ export default async function CustomerPortalPage() {
             </p>
           </CardContent>
         </Card>
+
+        {/* Exit Button at Bottom */}
+        <div className="flex justify-center mt-8 mb-4">
+          <Link
+            href="/"
+            className="inline-flex items-center justify-center gap-2 px-6 py-2 bg-muted hover:bg-muted/80 text-foreground rounded-lg transition-colors text-sm"
+          >
+            <X className="size-4" />
+            Exit Portal
+          </Link>
+        </div>
       </main>
     </div>
   )
