@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { ArrowLeft, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { VoiceInput } from '@/components/voice-input'
 
 export default function NewQuotePage() {
   const router = useRouter()
@@ -81,17 +82,23 @@ export default function NewQuotePage() {
 
           <div>
             <label htmlFor="description" className="block text-sm font-medium mb-2">Property Address / Description *</label>
-            <input
-              id="description"
-              type="text"
-              name="description"
-              value={formData.description}
-              onChange={handleChange}
-              required
-              autoComplete="off"
-              className="w-full h-12 px-4 rounded-lg border border-border bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-              placeholder="123 Oak Street, Toronto, ON"
-            />
+            <div className="flex gap-2">
+              <input
+                id="description"
+                type="text"
+                name="description"
+                value={formData.description}
+                onChange={handleChange}
+                required
+                autoComplete="off"
+                className="flex-1 h-12 px-4 rounded-lg border border-border bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                placeholder="123 Oak Street, Toronto, ON"
+              />
+              <VoiceInput 
+                onTranscript={(text) => setFormData(prev => ({ ...prev, description: prev.description + ' ' + text }))} 
+                className="h-12 w-12"
+              />
+            </div>
           </div>
 
           <div>
@@ -114,16 +121,22 @@ export default function NewQuotePage() {
 
           <div>
             <label htmlFor="notes" className="block text-sm font-medium mb-2">Notes</label>
-            <textarea
-              id="notes"
-              name="notes"
-              value={formData.notes}
-              onChange={handleChange}
-              autoComplete="off"
-              className="w-full px-4 py-3 rounded-lg border border-border bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary resize-none"
-              placeholder="Additional notes..."
-              rows={3}
-            />
+            <div className="flex gap-2">
+              <textarea
+                id="notes"
+                name="notes"
+                value={formData.notes}
+                onChange={handleChange}
+                autoComplete="off"
+                className="flex-1 px-4 py-3 rounded-lg border border-border bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+                placeholder="Additional notes..."
+                rows={3}
+              />
+              <VoiceInput 
+                onTranscript={(text) => setFormData(prev => ({ ...prev, notes: prev.notes + ' ' + text }))} 
+                className="h-12 w-12"
+              />
+            </div>
           </div>
 
           <div>

@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
 import { QuoteActions } from './quote-actions'
 import { SignaturePad } from '@/components/signature-pad'
+import { SendQuoteButton } from '@/components/send-quote-button'
 
 export default async function QuoteDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -12,7 +13,7 @@ export default async function QuoteDetailPage({ params }: { params: Promise<{ id
 
   const { data: quote, error } = await supabase
     .from('quotes')
-    .select('*')
+    .select('*, customer:customers(*)')
     .eq('id', id)
     .single()
 
@@ -94,6 +95,21 @@ export default async function QuoteDetailPage({ params }: { params: Promise<{ id
             <div className="flex justify-between"><span className="text-muted-foreground">Overhead (15%)</span><span className="font-semibold text-purple-400">${overhead.toFixed(2)}</span></div>
             <div className="flex justify-between"><span className="text-muted-foreground">Tax (13%)</span><span className="font-semibold text-cyan-400">${tax.toFixed(2)}</span></div>
             <div className="flex justify-between pt-3 border-t border-border/50"><span className="text-muted-foreground">Profit (7%)</span><span className="font-bold text-emerald-400">${profit.toFixed(2)}</span></div>
+          </CardContent>
+        </Card>
+
+        {/* Email Quote Button */}
+        <Card className="bg-card border-border">
+          <CardContent className="p-4 flex items-center justify-between">
+            <div>
+              <p className="font-medium">Send Quote to Customer</p>
+              <p className="text-sm text-muted-foreground">50% deposit + 50% on completion</p>
+            </div>
+            <SendQuoteButton 
+              quoteId={id} 
+              customerEmail={quote.customer?.email || customerEmail}
+              disabled={quote.status === 'rejected'}
+            />
           </CardContent>
         </Card>
 
