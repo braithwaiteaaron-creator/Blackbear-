@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { createClient } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
 import { QuoteActions } from './quote-actions'
+import { SignaturePad } from '@/components/signature-pad'
 
 export default async function QuoteDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -13,6 +14,12 @@ export default async function QuoteDetailPage({ params }: { params: Promise<{ id
     .from('quotes')
     .select('*')
     .eq('id', id)
+    .single()
+
+  const { data: signature } = await supabase
+    .from('quote_signatures')
+    .select('*')
+    .eq('quote_id', id)
     .single()
 
   if (error || !quote) notFound()
@@ -108,6 +115,45 @@ export default async function QuoteDetailPage({ params }: { params: Promise<{ id
             <CardContent className="p-6 text-center">
               <X className="size-12 text-red-400 mx-auto mb-3" />
               <p className="text-red-400 font-semibold">This quote has been rejected</p>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Signature Section */}
+        {!signature && quote.status !== 'accepted' && quote.status !== 'rejected' && (
+          <SignaturePad quoteId={id} />
+        )}
+
+        {signature && (
+          <Card className="bg-emerald-500/10 border-emerald-500/30">
+            <CardHeader>
+              <CardTitle>Signed by Customer</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div>
+                <p className="text-sm text-muted-foreground">Customer Name</p>
+                <p className="font-semibold">{signature.customer_name}</p>
+              </div>
+              {signature.customer_email && (
+                <div>
+                  <p className="text-sm text-muted-foreground">Email</p>
+                  <p className="font-semibold">{signature.customer_email}</p>
+                </div>
+              )}
+              <div>
+                <p className="text-sm text-muted-foreground">Signed On</p>
+                <p className="font-semibold">
+                  {new Date(signature.signed_at).toLocaleDateString()}
+                </p>
+              </div>
+              <div className="mt-4 border-t border-emerald-500/30 pt-4">
+                <p className="text-xs text-muted-foreground mb-2">Signature</p>
+                <img
+                  src={signature.signature_data}
+                  alt="Customer Signature"
+                  className="border border-border rounded"
+                />
+              </div>
             </CardContent>
           </Card>
         )}
