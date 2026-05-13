@@ -45,12 +45,12 @@ export function LeadActions({ leadId, initialStatus, lead }: LeadActionsProps) {
     const { data: quote } = await supabase
       .from('quotes')
       .insert({
-        customer_name: lead.customer_name,
-        customer_email: lead.customer_email,
-        customer_phone: lead.customer_phone,
-        property_address: lead.property_address,
+        description: lead.customer_name,
+        service_type: 'pruning',
         amount: lead.estimated_value || 0,
         status: 'pending',
+        valid_until: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        notes: '',
         tenant_id: '00000000-0000-0000-0000-000000000001',
       })
       .select()
@@ -70,6 +70,7 @@ export function LeadActions({ leadId, initialStatus, lead }: LeadActionsProps) {
         <div className="flex flex-wrap gap-2">
           {STATUS_OPTIONS.map((s) => (
             <button
+              type="button"
               key={s.value}
               onClick={() => updateStatus(s.value)}
               disabled={updating}
@@ -87,6 +88,7 @@ export function LeadActions({ leadId, initialStatus, lead }: LeadActionsProps) {
 
       {status !== 'converted' && (
         <button
+          type="button"
           onClick={convertToQuote}
           disabled={converting}
           className="w-full flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 text-white font-bold py-4 rounded-xl transition-colors"

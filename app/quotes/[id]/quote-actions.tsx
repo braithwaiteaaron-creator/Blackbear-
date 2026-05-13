@@ -7,13 +7,10 @@ import { createClient } from '@/lib/supabase/client'
 
 interface Quote {
   id: string
-  customer_name: string
-  customer_email: string
-  customer_phone: string
-  property_address: string
   description: string
   service_type: string
   amount: number
+  status: string
 }
 
 export function QuoteActions({ quote }: { quote: Quote }) {
@@ -27,13 +24,13 @@ export function QuoteActions({ quote }: { quote: Quote }) {
     const { data: job } = await supabase
       .from('jobs')
       .insert({
-        customer_name: quote.customer_name,
-        customer_email: quote.customer_email,
-        customer_phone: quote.customer_phone,
-        address: quote.property_address,
-        description: quote.description || quote.service_type,
+        description: quote.description,
+        address: quote.description, // Use description as address
+        service_type: quote.service_type,
         estimated_amount: quote.amount,
-        status: 'in_progress',
+        actual_amount: quote.amount,
+        status: 'quote',
+        quote_id: quote.id,
         tenant_id: '00000000-0000-0000-0000-000000000001',
       })
       .select()
@@ -55,6 +52,7 @@ export function QuoteActions({ quote }: { quote: Quote }) {
   return (
     <div className="grid grid-cols-2 gap-4">
       <button
+        type="button"
         onClick={handleAccept}
         disabled={acting}
         className="w-full bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 text-white font-bold py-4 rounded-xl transition-colors flex items-center justify-center gap-2"
@@ -63,6 +61,7 @@ export function QuoteActions({ quote }: { quote: Quote }) {
         {acting ? 'Accepting...' : 'Accept'}
       </button>
       <button
+        type="button"
         onClick={handleReject}
         disabled={acting}
         className="w-full bg-red-500 hover:bg-red-600 disabled:opacity-50 text-white font-bold py-4 rounded-xl transition-colors flex items-center justify-center gap-2"
