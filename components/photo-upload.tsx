@@ -16,7 +16,7 @@ interface JobPhoto {
 interface PhotoUploadProps {
   jobId: string
   photos: JobPhoto[]
-  onPhotosChange: () => void
+  onPhotosChange?: () => void
 }
 
 export function PhotoUpload({ jobId, photos, onPhotosChange }: PhotoUploadProps) {
@@ -41,7 +41,7 @@ export function PhotoUpload({ jobId, photos, onPhotosChange }: PhotoUploadProps)
       if (!res.ok) throw new Error('Upload failed')
       
       toast.success(`${type === 'before' ? 'Before' : 'After'} photo uploaded`)
-      onPhotosChange()
+      onPhotosChange?.()
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Upload failed')
     } finally {
@@ -60,7 +60,7 @@ export function PhotoUpload({ jobId, photos, onPhotosChange }: PhotoUploadProps)
       if (!res.ok) throw new Error('Delete failed')
       
       toast.success('Photo deleted')
-      onPhotosChange()
+      onPhotosChange?.()
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Delete failed')
     } finally {

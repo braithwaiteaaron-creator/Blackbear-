@@ -10,16 +10,18 @@ interface VoiceInputProps {
   className?: string
 }
 
-// Check if speech recognition is available
-const isSpeechSupported = typeof window !== 'undefined' && 
-  ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window)
-
 export function VoiceInput({ onTranscript, className }: VoiceInputProps) {
   const [isListening, setIsListening] = useState(false)
+  const [isSupported, setIsSupported] = useState(false)
   const recognitionRef = useRef<any>(null)
 
   useEffect(() => {
-    if (!isSpeechSupported) return
+    // Check support on client side only to avoid hydration mismatch
+    const supported = typeof window !== 'undefined' && 
+      ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window)
+    setIsSupported(supported)
+    
+    if (!supported) return
 
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
     const recognition = new SpeechRecognition()
@@ -68,7 +70,7 @@ export function VoiceInput({ onTranscript, className }: VoiceInputProps) {
   }, [onTranscript])
 
   const toggleListening = () => {
-    if (!isSpeechSupported) {
+    if (!isSupported) {
       toast.error('Voice input not supported in this browser')
       return
     }
@@ -87,8 +89,8 @@ export function VoiceInput({ onTranscript, className }: VoiceInputProps) {
     }
   }
 
-  // Don't render if speech not supported
-  if (!isSpeechSupported) {
+  // Don't render if speech not supported (checked after hydration)
+  if (!isSupported) {
     return null
   }
 

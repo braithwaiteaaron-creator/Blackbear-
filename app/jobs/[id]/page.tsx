@@ -113,7 +113,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
             <CardTitle>Job Photos</CardTitle>
           </CardHeader>
           <CardContent>
-            <PhotoUpload jobId={id} photos={photos || []} onPhotosChange={() => {}} />
+            <PhotoUpload jobId={id} photos={photos || []} />
           </CardContent>
         </Card>
 
