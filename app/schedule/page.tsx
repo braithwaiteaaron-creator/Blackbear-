@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
-import { Calendar, Clock, MapPin, ChevronRight } from 'lucide-react'
+import { Calendar, Clock, MapPin, ChevronRight, X } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
 
@@ -30,6 +30,17 @@ export default async function SchedulePage() {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Exit Button */}
+      <div className="fixed top-4 right-4 z-50">
+        <Link
+          href="/"
+          className="inline-flex items-center justify-center size-10 rounded-lg bg-card border border-border hover:bg-muted transition-colors"
+          title="Exit Schedule"
+        >
+          <X className="size-5 text-foreground" />
+        </Link>
+      </div>
+
       {/* Header */}
       <div className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur">
         <div className="p-4 max-w-2xl">

@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
-import { ArrowLeft, Mail, Phone, MapPin, DollarSign, FileText, Calendar } from 'lucide-react'
+import { ArrowLeft, Mail, Phone, MapPin, DollarSign, FileText, Calendar, X } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 
 export default function CustomerDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -58,6 +58,17 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
   if (loading) {
     return (
       <div className="min-h-screen bg-background">
+        {/* Exit Button */}
+        <div className="fixed top-4 right-4 z-50">
+          <Link
+            href="/customers"
+            className="inline-flex items-center justify-center size-10 rounded-lg bg-card border border-border hover:bg-muted transition-colors"
+            title="Back to Customers"
+          >
+            <X className="size-5 text-foreground" />
+          </Link>
+        </div>
+
         <div className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur">
           <div className="p-4 max-w-4xl">
             <div className="flex items-center gap-2 mb-2">
@@ -76,8 +87,19 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
 
   if (!customer) {
     return (
-      <div className="min-h-screen bg-background">
-        <div className="p-4 text-center">
+    <div className="min-h-screen bg-background">
+      {/* Exit Button */}
+      <div className="fixed top-4 right-4 z-50">
+        <Link
+          href="/customers"
+          className="inline-flex items-center justify-center size-10 rounded-lg bg-card border border-border hover:bg-muted transition-colors"
+          title="Back to Customers"
+        >
+          <X className="size-5 text-foreground" />
+        </Link>
+      </div>
+
+      <div className="p-4 text-center">
           <p className="text-muted-foreground">Customer not found</p>
           <Link href="/customers" className="text-primary hover:underline mt-2 inline-block">
             Back to Customers
