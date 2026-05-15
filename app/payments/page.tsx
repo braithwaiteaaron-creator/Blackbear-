@@ -25,12 +25,11 @@ export default async function PaymentsPage() {
   const totalOutstanding = unpaidJobs.reduce((sum, j) => sum + (Number(j.actual_amount) || Number(j.estimated_amount) || 0), 0)
   const totalPending = pendingJobs.reduce((sum, j) => sum + (Number(j.estimated_amount) || 0), 0)
 
-  // Payment allocation breakdown (45/20/15/13/7) - based on COMPLETED jobs
-  const labour = totalCompleted * 0.45
-  const materials = totalCompleted * 0.20
-  const overhead = totalCompleted * 0.15
-  const taxReserve = totalCompleted * 0.13
-  const profit = totalCompleted * 0.07
+  // Payment allocation breakdown (50/20/15/15) - based on COMPLETED jobs
+  const profit = totalCompleted * 0.50
+  const labor = totalCompleted * 0.20
+  const expenses = totalCompleted * 0.15
+  const taxReserve = totalCompleted * 0.15
 
   return (
     <div className="min-h-screen bg-background">
@@ -90,40 +89,33 @@ export default async function PaymentsPage() {
           <p className="text-sm text-muted-foreground mb-4">How your ${totalRevenue.toLocaleString()} collected revenue is allocated:</p>
           
           <div className="space-y-3">
+            <div className="flex items-center justify-between pb-3 border-b border-border">
+              <div className="flex items-center gap-3">
+                <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
+                <span className="text-sm font-semibold text-emerald-400">Profit (50%)</span>
+              </div>
+              <span className="font-bold text-emerald-400">${profit.toFixed(2)}</span>
+            </div>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-3 h-3 rounded-full bg-blue-500"></div>
-                <span className="text-sm">Labour (45%)</span>
+                <span className="text-sm">Labor (20%)</span>
               </div>
-              <span className="font-semibold">${labour.toFixed(2)}</span>
+              <span className="font-semibold">${labor.toFixed(2)}</span>
             </div>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-3 h-3 rounded-full bg-amber-500"></div>
-                <span className="text-sm">Materials (20%)</span>
+                <span className="text-sm">Expenses (15%)</span>
               </div>
-              <span className="font-semibold">${materials.toFixed(2)}</span>
+              <span className="font-semibold">${expenses.toFixed(2)}</span>
             </div>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-3 h-3 rounded-full bg-purple-500"></div>
-                <span className="text-sm">Overhead (15%)</span>
-              </div>
-              <span className="font-semibold">${overhead.toFixed(2)}</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-3 h-3 rounded-full bg-red-500"></div>
-                <span className="text-sm">Tax Reserve (13%)</span>
+                <div className="w-3 h-3 rounded-full bg-cyan-500"></div>
+                <span className="text-sm">Tax Reserve (15%)</span>
               </div>
               <span className="font-semibold">${taxReserve.toFixed(2)}</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
-                <span className="text-sm">Profit (7%)</span>
-              </div>
-              <span className="font-semibold text-emerald-400">${profit.toFixed(2)}</span>
             </div>
           </div>
         </div>

@@ -27,11 +27,10 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
   }
 
   const amount = job.actual_amount ?? job.estimated_amount ?? 0
-  const labour = amount * 0.45
-  const materials = amount * 0.20
-  const overhead = amount * 0.15
-  const tax = amount * 0.13
-  const profit = amount * 0.07
+  const profit = amount * 0.50
+  const labor = amount * 0.20
+  const expenses = amount * 0.15
+  const tax = amount * 0.15
   const isCompleted = job.status === 'completed'
 
   return (
@@ -84,25 +83,21 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
               <span className="text-muted-foreground">Total</span>
               <span className="font-bold text-lg">${amount.toFixed(2)}</span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Labour (45%)</span>
-              <span className="font-semibold text-blue-400">${labour.toFixed(2)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Materials (20%)</span>
-              <span className="font-semibold text-amber-400">${materials.toFixed(2)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Overhead (15%)</span>
-              <span className="font-semibold text-purple-400">${overhead.toFixed(2)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Tax (13%)</span>
-              <span className="font-semibold text-cyan-400">${tax.toFixed(2)}</span>
-            </div>
-            <div className="flex justify-between pt-3 border-t border-border">
-              <span className="text-muted-foreground">Profit (7%)</span>
+            <div className="flex justify-between pt-3 border-b border-border pb-3">
+              <span className="text-emerald-400 font-semibold">Profit (50%)</span>
               <span className="font-bold text-emerald-400">${profit.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Labor (20%)</span>
+              <span className="font-semibold text-blue-400">${labor.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Expenses (15%)</span>
+              <span className="font-semibold text-amber-400">${expenses.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Tax Reserve (15%)</span>
+              <span className="font-semibold text-cyan-400">${tax.toFixed(2)}</span>
             </div>
           </div>
         </div>
