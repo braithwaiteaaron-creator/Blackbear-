@@ -22,10 +22,10 @@ export function ExpenseBreakdown({ jobId, jobAmount, onSave }: ExpenseBreakdownP
 
   // Fixed expense amounts (per job)
   const [dumpFees, setDumpFees] = useState(200) // Fixed dump fee
-  const [gas, setGas] = useState(0)
-  const [equipment, setEquipment] = useState(0)
-  const [truckFund, setTruckFund] = useState(0)
+  const [truckFund, setTruckFund] = useState(100) // Fixed truck fund
   const [insurance, setInsurance] = useState(50) // Fixed insurance per job
+  const [gas, setGas] = useState(0) // Variable
+  const [equipment, setEquipment] = useState(0) // Variable
 
   // Calculate labor amount based on type
   const laborAmount = laborType === 'hourly' ? hourlyRate * hoursWorked : flatLaborAmount
@@ -183,6 +183,21 @@ export function ExpenseBreakdown({ jobId, jobAmount, onSave }: ExpenseBreakdownP
 
             <div className="space-y-2">
               <div className="flex justify-between items-center">
+                <label className="text-sm">Truck Fund</label>
+                <span className="text-sm font-semibold text-red-400">
+                  ${truckFund.toFixed(2)} ({truckFundPct.toFixed(1)}%)
+                </span>
+              </div>
+              <Input
+                type="number"
+                value={truckFund}
+                onChange={(e) => setTruckFund(Number(e.target.value))}
+                className="h-10"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
                 <label className="text-sm">Insurance</label>
                 <span className="text-sm font-semibold text-pink-400">
                   ${insurance.toFixed(2)} ({insurancePct.toFixed(1)}%)
@@ -204,7 +219,6 @@ export function ExpenseBreakdown({ jobId, jobAmount, onSave }: ExpenseBreakdownP
             {[
               { label: 'Gas', value: gas, setValue: setGas, color: 'text-yellow-400' },
               { label: 'Equipment (chains, oil, bars)', value: equipment, setValue: setEquipment, color: 'text-orange-400' },
-              { label: 'Truck Fund', value: truckFund, setValue: setTruckFund, color: 'text-red-400' },
             ].map(({ label, value, setValue, color }) => (
               <div key={label} className="space-y-2">
                 <div className="flex justify-between items-center">
@@ -240,12 +254,15 @@ export function ExpenseBreakdown({ jobId, jobAmount, onSave }: ExpenseBreakdownP
             <span>${dumpFees.toFixed(2)} ({dumpFeesPct.toFixed(1)}%)</span>
           </div>
           <div className="flex justify-between text-sm">
+            <span className="text-muted-foreground">Truck Fund</span>
+            <span>${truckFund.toFixed(2)} ({truckFundPct.toFixed(1)}%)</span>
+          </div>
+          <div className="flex justify-between text-sm">
             <span className="text-muted-foreground">Insurance</span>
             <span>${insurance.toFixed(2)} ({insurancePct.toFixed(1)}%)</span>
           </div>
           {gas > 0 && <div className="flex justify-between text-sm"><span className="text-muted-foreground">Gas</span><span>${gas.toFixed(2)}</span></div>}
           {equipment > 0 && <div className="flex justify-between text-sm"><span className="text-muted-foreground">Equipment</span><span>${equipment.toFixed(2)}</span></div>}
-          {truckFund > 0 && <div className="flex justify-between text-sm"><span className="text-muted-foreground">Truck Fund</span><span>${truckFund.toFixed(2)}</span></div>}
           <div className="flex justify-between pt-2 border-t border-border">
             <span className="text-muted-foreground">Total Expenses & Labor</span>
             <span className="font-semibold">${totalExpenseAmount.toFixed(2)} ({totalExpensePct.toFixed(1)}%)</span>
