@@ -25,11 +25,11 @@ export default async function PaymentsPage() {
   const totalOutstanding = unpaidJobs.reduce((sum, j) => sum + (Number(j.actual_amount) || Number(j.estimated_amount) || 0), 0)
   const totalPending = pendingJobs.reduce((sum, j) => sum + (Number(j.estimated_amount) || 0), 0)
 
-  // Payment allocation breakdown (50/20/15/15) - based on COMPLETED jobs
-  const profit = totalCompleted * 0.50
+  // Payment allocation breakdown (55/20/15/10) - based on COMPLETED jobs
+  const profit = totalCompleted * 0.55
   const labor = totalCompleted * 0.20
   const expenses = totalCompleted * 0.15
-  const taxReserve = totalCompleted * 0.15
+  const taxReserve = totalCompleted * 0.10
 
   return (
     <div className="min-h-screen bg-background">
@@ -92,7 +92,7 @@ export default async function PaymentsPage() {
             <div className="flex items-center justify-between pb-3 border-b border-border">
               <div className="flex items-center gap-3">
                 <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
-                <span className="text-sm font-semibold text-emerald-400">Profit (50%)</span>
+                <span className="text-sm font-semibold text-emerald-400">Profit (55%)</span>
               </div>
               <span className="font-bold text-emerald-400">${profit.toFixed(2)}</span>
             </div>
@@ -113,7 +113,7 @@ export default async function PaymentsPage() {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-3 h-3 rounded-full bg-cyan-500"></div>
-                <span className="text-sm">Tax Reserve (15%)</span>
+                <span className="text-sm">Tax Reserve (10%)</span>
               </div>
               <span className="font-semibold">${taxReserve.toFixed(2)}</span>
             </div>

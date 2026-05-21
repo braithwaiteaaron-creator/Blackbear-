@@ -28,10 +28,10 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
   }
 
   const amount = job.actual_amount ?? job.estimated_amount ?? 0
-  const profit = amount * 0.50
+  const profit = amount * 0.55
   const labor = amount * 0.20
   const expenses = amount * 0.15
-  const tax = amount * 0.15
+  const tax = amount * 0.10
   const isCompleted = job.status === 'completed'
 
   return (
@@ -85,7 +85,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
               <span className="font-bold text-lg">${amount.toFixed(2)}</span>
             </div>
             <div className="flex justify-between pt-3 border-b border-border pb-3">
-              <span className="text-emerald-400 font-semibold">Profit (50%)</span>
+              <span className="text-emerald-400 font-semibold">Profit (55%)</span>
               <span className="font-bold text-emerald-400">${profit.toFixed(2)}</span>
             </div>
             <div className="flex justify-between">
@@ -97,7 +97,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
               <span className="font-semibold text-amber-400">${expenses.toFixed(2)}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Tax Reserve (15%)</span>
+              <span className="text-muted-foreground">Tax Reserve (10%)</span>
               <span className="font-semibold text-cyan-400">${tax.toFixed(2)}</span>
             </div>
           </div>

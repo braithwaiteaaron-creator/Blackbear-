@@ -15,17 +15,17 @@ interface ExpenseBreakdownProps {
 
 export function ExpenseBreakdown({ jobId, jobAmount, onSave }: ExpenseBreakdownProps) {
   const [isLoading, setIsLoading] = useState(false)
-  const [laborType, setLaborType] = useState<'hourly' | 'flat'>('flat')
-  const [hourlyRate, setHourlyRate] = useState(50)
+  const [laborType, setLaborType] = useState<'hourly' | 'flat'>('hourly')
+  const [hourlyRate, setHourlyRate] = useState(35) // Reduced from 50
   const [hoursWorked, setHoursWorked] = useState(2)
-  const [flatLaborAmount, setFlatLaborAmount] = useState(100)
+  const [flatLaborAmount, setFlatLaborAmount] = useState(70) // Reduced from 100
 
   // Expense percentages (add up to ≤100%)
   const [dumpFeesPct, setDumpFeesPct] = useState(10)
   const [gasPct, setGasPct] = useState(5)
   const [equipmentPct, setEquipmentPct] = useState(8)
   const [truckFundPct, setTruckFundPct] = useState(7)
-  const [insurancePct, setInsurancePct] = useState(5)
+  const [insurancePct, setInsurancePct] = useState(3) // Reduced from 5 (amortized $1000/year)
 
   // Calculate labor amount based on type
   const laborAmount = laborType === 'hourly' ? hourlyRate * hoursWorked : flatLaborAmount
