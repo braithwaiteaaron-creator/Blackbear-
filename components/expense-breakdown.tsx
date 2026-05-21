@@ -15,32 +15,33 @@ interface ExpenseBreakdownProps {
 
 export function ExpenseBreakdown({ jobId, jobAmount, onSave }: ExpenseBreakdownProps) {
   const [isLoading, setIsLoading] = useState(false)
-  const [laborType, setLaborType] = useState<'hourly' | 'flat'>('hourly')
-  const [hourlyRate, setHourlyRate] = useState(35) // Reduced from 50
+  const [laborType, setLaborType] = useState<'hourly' | 'flat'>('flat')
+  const [hourlyRate, setHourlyRate] = useState(35)
   const [hoursWorked, setHoursWorked] = useState(2)
-  const [flatLaborAmount, setFlatLaborAmount] = useState(70) // Reduced from 100
+  const [flatLaborAmount, setFlatLaborAmount] = useState(400) // Fixed labor cost
 
-  // Expense percentages (add up to ≤100%)
-  const [dumpFeesPct, setDumpFeesPct] = useState(10)
-  const [gasPct, setGasPct] = useState(5)
-  const [equipmentPct, setEquipmentPct] = useState(8)
-  const [truckFundPct, setTruckFundPct] = useState(7)
-  const [insurancePct, setInsurancePct] = useState(3) // Reduced from 5 (amortized $1000/year)
+  // Fixed expense amounts (per job)
+  const [dumpFees, setDumpFees] = useState(200) // Fixed dump fee
+  const [gas, setGas] = useState(0)
+  const [equipment, setEquipment] = useState(0)
+  const [truckFund, setTruckFund] = useState(0)
+  const [insurance, setInsurance] = useState(50) // Fixed insurance per job
 
   // Calculate labor amount based on type
   const laborAmount = laborType === 'hourly' ? hourlyRate * hoursWorked : flatLaborAmount
   const laborPct = (laborAmount / jobAmount) * 100
 
-  // Calculate expense amounts
-  const dumpFeesAmount = (jobAmount * dumpFeesPct) / 100
-  const gasAmount = (jobAmount * gasPct) / 100
-  const equipmentAmount = (jobAmount * equipmentPct) / 100
-  const truckFundAmount = (jobAmount * truckFundPct) / 100
-  const insuranceAmount = (jobAmount * insurancePct) / 100
+  // Calculate percentages for display
+  const dumpFeesPct = (dumpFees / jobAmount) * 100
+  const gasPct = (gas / jobAmount) * 100
+  const equipmentPct = (equipment / jobAmount) * 100
+  const truckFundPct = (truckFund / jobAmount) * 100
+  const insurancePct = (insurance / jobAmount) * 100
 
   // Total expenses
-  const totalExpensePct = dumpFeesPct + gasPct + equipmentPct + truckFundPct + insurancePct + laborPct
-  const profit = jobAmount - laborAmount - dumpFeesAmount - gasAmount - equipmentAmount - truckFundAmount - insuranceAmount
+  const totalExpenseAmount = laborAmount + dumpFees + gas + equipment + truckFund + insurance
+  const totalExpensePct = (totalExpenseAmount / jobAmount) * 100
+  const profit = jobAmount - totalExpenseAmount
   const profitPct = (profit / jobAmount) * 100
 
   const handleSave = async () => {
@@ -64,11 +65,11 @@ export function ExpenseBreakdown({ jobId, jobAmount, onSave }: ExpenseBreakdownP
           hourly_rate: hourlyRate,
           hours_worked: hoursWorked,
           flat_labor_amount: flatLaborAmount,
-          dump_fees: dumpFeesAmount,
-          gas: gasAmount,
-          equipment: equipmentAmount,
-          truck_fund: truckFundAmount,
-          insurance: insuranceAmount,
+          dump_fees: dumpFees,
+          gas,
+          equipment,
+          truck_fund: truckFund,
+          insurance,
         }),
       })
 
@@ -158,33 +159,70 @@ export function ExpenseBreakdown({ jobId, jobAmount, onSave }: ExpenseBreakdownP
         </div>
 
         {/* Expense Categories */}
-        <div className="space-y-3">
-          <h3 className="font-semibold text-amber-400">Operating Expenses (% of Job)</h3>
+        <div className="space-y-4">
+          <h3 className="font-semibold text-amber-400">Operating Expenses</h3>
 
-          {[
-            { label: 'Dump Fees', pct: dumpFeesPct, setPct: setDumpFeesPct, color: 'text-amber-400' },
-            { label: 'Gas', pct: gasPct, setPct: setGasPct, color: 'text-yellow-400' },
-            { label: 'Equipment (chains, oil, bars)', pct: equipmentPct, setPct: setEquipmentPct, color: 'text-orange-400' },
-            { label: 'Truck Fund', pct: truckFundPct, setPct: setTruckFundPct, color: 'text-red-400' },
-            { label: 'Insurance', pct: insurancePct, setPct: setInsurancePct, color: 'text-pink-400' },
-          ].map(({ label, pct, setPct, color }) => (
-            <div key={label} className="space-y-1">
+          {/* Fixed amounts */}
+          <div className="space-y-3 p-3 bg-muted/20 rounded-lg border border-border">
+            <h4 className="text-xs font-semibold text-muted-foreground">Fixed Per Job</h4>
+            
+            <div className="space-y-2">
               <div className="flex justify-between items-center">
-                <label className="text-sm">{label}</label>
-                <span className={`text-sm font-semibold ${color}`}>
-                  {pct}% (${((jobAmount * pct) / 100).toFixed(2)})
+                <label className="text-sm">Dump Fees</label>
+                <span className="text-sm font-semibold text-amber-400">
+                  ${dumpFees.toFixed(2)} ({dumpFeesPct.toFixed(1)}%)
                 </span>
               </div>
-              <input
-                type="range"
-                min="0"
-                max="50"
-                value={pct}
-                onChange={(e) => setPct(Number(e.target.value))}
-                className="w-full h-2 bg-muted rounded-lg cursor-pointer"
+              <Input
+                type="number"
+                value={dumpFees}
+                onChange={(e) => setDumpFees(Number(e.target.value))}
+                className="h-10"
               />
             </div>
-          ))}
+
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <label className="text-sm">Insurance</label>
+                <span className="text-sm font-semibold text-pink-400">
+                  ${insurance.toFixed(2)} ({insurancePct.toFixed(1)}%)
+                </span>
+              </div>
+              <Input
+                type="number"
+                value={insurance}
+                onChange={(e) => setInsurance(Number(e.target.value))}
+                className="h-10"
+              />
+            </div>
+          </div>
+
+          {/* Variable expenses */}
+          <div className="space-y-3 p-3 bg-muted/20 rounded-lg border border-border">
+            <h4 className="text-xs font-semibold text-muted-foreground">Variable Expenses (Optional)</h4>
+            
+            {[
+              { label: 'Gas', value: gas, setValue: setGas, color: 'text-yellow-400' },
+              { label: 'Equipment (chains, oil, bars)', value: equipment, setValue: setEquipment, color: 'text-orange-400' },
+              { label: 'Truck Fund', value: truckFund, setValue: setTruckFund, color: 'text-red-400' },
+            ].map(({ label, value, setValue, color }) => (
+              <div key={label} className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <label className="text-sm">{label}</label>
+                  <span className={`text-sm font-semibold ${color}`}>
+                    ${value.toFixed(2)} ({((value / jobAmount) * 100).toFixed(1)}%)
+                  </span>
+                </div>
+                <Input
+                  type="number"
+                  value={value}
+                  onChange={(e) => setValue(Number(e.target.value))}
+                  className="h-10"
+                  placeholder="0.00"
+                />
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* Summary */}
@@ -193,9 +231,24 @@ export function ExpenseBreakdown({ jobId, jobAmount, onSave }: ExpenseBreakdownP
             <span className="text-muted-foreground">Job Amount</span>
             <span className="font-semibold">${jobAmount.toFixed(2)}</span>
           </div>
-          <div className="flex justify-between">
+          <div className="flex justify-between text-sm">
+            <span className="text-muted-foreground">Labor</span>
+            <span>${laborAmount.toFixed(2)} ({laborPct.toFixed(1)}%)</span>
+          </div>
+          <div className="flex justify-between text-sm">
+            <span className="text-muted-foreground">Dump Fees</span>
+            <span>${dumpFees.toFixed(2)} ({dumpFeesPct.toFixed(1)}%)</span>
+          </div>
+          <div className="flex justify-between text-sm">
+            <span className="text-muted-foreground">Insurance</span>
+            <span>${insurance.toFixed(2)} ({insurancePct.toFixed(1)}%)</span>
+          </div>
+          {gas > 0 && <div className="flex justify-between text-sm"><span className="text-muted-foreground">Gas</span><span>${gas.toFixed(2)}</span></div>}
+          {equipment > 0 && <div className="flex justify-between text-sm"><span className="text-muted-foreground">Equipment</span><span>${equipment.toFixed(2)}</span></div>}
+          {truckFund > 0 && <div className="flex justify-between text-sm"><span className="text-muted-foreground">Truck Fund</span><span>${truckFund.toFixed(2)}</span></div>}
+          <div className="flex justify-between pt-2 border-t border-border">
             <span className="text-muted-foreground">Total Expenses & Labor</span>
-            <span className="font-semibold">${(laborAmount + dumpFeesAmount + gasAmount + equipmentAmount + truckFundAmount + insuranceAmount).toFixed(2)} ({totalExpensePct.toFixed(1)}%)</span>
+            <span className="font-semibold">${totalExpenseAmount.toFixed(2)} ({totalExpensePct.toFixed(1)}%)</span>
           </div>
           <div className="flex justify-between pt-2 border-t border-border">
             <span className="font-semibold text-emerald-400">Profit</span>
