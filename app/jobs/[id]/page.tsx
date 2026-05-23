@@ -4,7 +4,6 @@ import { createClient } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
 import { JobActions } from './job-actions'
 import { PhotoUpload } from '@/components/photo-upload'
-import { ExpenseBreakdown } from '@/components/expense-breakdown'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
 export default async function JobDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -102,9 +101,6 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
             </div>
           </div>
         </div>
-
-        {/* Expense Breakdown */}
-        <ExpenseBreakdown jobId={id} jobAmount={amount} />
 
         {/* Photos Section */}
         <Card className="bg-card border-border">
