@@ -7,7 +7,17 @@ export async function POST(request: Request) {
 
   const { data, error } = await supabase
     .from('leads')
-    .insert({ ...body, status: 'new' })
+    .insert({
+      customer_name: body.customer_name,
+      customer_phone: body.customer_phone,
+      customer_email: body.customer_email,
+      property_address: body.property_address,
+      source: body.source,
+      notes: body.notes,
+      estimated_value: body.estimated_value,
+      status: body.status || 'new',
+      tenant_id: body.tenant_id,
+    })
     .select()
     .single()
 

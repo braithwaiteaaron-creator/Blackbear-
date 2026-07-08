@@ -1,92 +1,40 @@
-'use client'
-
-import { useEffect, useState } from 'react'
-import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, CheckCircle, X } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { createClient } from '@/lib/supabase/client'
+import { createClient } from '@/lib/supabase/server'
+import { notFound } from 'next/navigation'
+import { QuoteActions } from './quote-actions'
+import { SignaturePad } from '@/components/signature-pad'
+import { SendQuoteButton } from '@/components/send-quote-button'
 
-interface Quote {
-  id: string
-  status: string
-  service_type: string
-  description: string
-  notes: string
-  amount: number
-  valid_until: string
-  customer_name: string
-  customer_email: string
-  customer_phone: string
-  property_address: string
-  customers: { id: string; name: string; phone: string; email: string; address: string } | null
-}
+export default async function QuoteDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  const supabase = await createClient()
 
-export default function QuoteDetailPage() {
-  const { id } = useParams<{ id: string }>()
-  const router = useRouter()
-  const [quote, setQuote] = useState<Quote | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [acting, setActing] = useState(false)
+  const { data: quote, error } = await supabase
+    .from('quotes')
+    .select('*, customer:customers(*)')
+    .eq('id', id)
+    .single()
 
-  useEffect(() => {
-    if (!id) return
-    const supabase = createClient()
-    supabase
-      .from('quotes')
-      .select('*')
-      .eq('id', id)
-      .single()
-      .then(({ data, error: err }) => {
-        if (!err && data) setQuote(data)
-        setLoading(false)
-      })
-  }, [id])
+  const { data: signature } = await supabase
+    .from('quote_signatures')
+    .select('*')
+    .eq('quote_id', id)
+    .single()
 
-  async function updateStatus(status: string) {
-    setActing(true)
-    const supabase = createClient()
-    await supabase.from('quotes').update({ status }).eq('id', id)
-    if (status === 'accepted') {
-      // Convert to job
-      const { data: job } = await supabase
-        .from('jobs')
-        .insert({
-          customer_name: quote!.customer_name,
-          customer_email: quote!.customer_email,
-          customer_phone: quote!.customer_phone,
-          property_address: quote!.property_address,
-          description: quote!.description || quote!.service_type,
-          estimated_amount: quote!.amount,
-          status: 'in_progress',
-          tenant_id: '00000000-0000-0000-0000-000000000001',
-        })
-        .select()
-        .single()
-      if (job) { router.push(`/jobs/${job.id}`); return }
-    }
-    router.push('/quotes')
-  }
+  if (error || !quote) notFound()
 
-  if (loading) return <div className="min-h-screen bg-background flex items-center justify-center"><p className="text-muted-foreground">Loading...</p></div>
-  if (!quote) return <div className="min-h-screen bg-background flex items-center justify-center p-4">
-    <div className="text-center">
-      <h1 className="text-2xl font-bold mb-2">Quote not found</h1>
-      <Link href="/quotes" className="text-primary hover:underline">Back to quotes</Link>
-    </div>
-  </div>
+  const amount = Number(quote.amount || 0)
+  const profit = amount * 0.55
+  const labor = amount * 0.20
+  const expenses = amount * 0.15
+  const tax = amount * 0.10
 
-  const amount = Number(quote.amount)
-  const labour = amount * 0.45
-  const materials = amount * 0.20
-  const overhead = amount * 0.15
-  const tax = amount * 0.13
-  const profit = amount * 0.07
-
-  const customerName = quote.customers?.name || quote.customer_name
-  const customerPhone = quote.customers?.phone || quote.customer_phone
-  const customerEmail = quote.customers?.email || quote.customer_email
-  const customerAddress = quote.customers?.address || quote.property_address
+  const customerName = quote.customer_name
+  const customerPhone = quote.customer_phone
+  const customerEmail = quote.customer_email
+  const customerAddress = quote.property_address
 
   return (
     <div className="min-h-screen bg-background">
@@ -129,44 +77,42 @@ export default function QuoteDetailPage() {
             <div><p className="text-sm text-muted-foreground">Service Type</p><p className="font-semibold text-lg">{quote.service_type}</p></div>
             {quote.description && <div><p className="text-sm text-muted-foreground">Description</p><p className="font-semibold">{quote.description}</p></div>}
             {quote.notes && <div><p className="text-sm text-muted-foreground">Notes</p><p className="font-semibold">{quote.notes}</p></div>}
-            {quote.valid_until && <div><p className="text-sm text-muted-foreground">Valid Until</p><p className="font-semibold">{new Date(quote.valid_until).toLocaleDateString()}</p></div>}
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-primary/10 to-transparent border-primary/30">
+        <Card className="bg-card border-primary/30">
           <CardHeader className="border-b border-border/50">
-            <CardTitle>Quote Amount & Breakdown</CardTitle>
+            <CardTitle>Amount & Breakdown</CardTitle>
           </CardHeader>
           <CardContent className="p-6 space-y-3">
             <div className="flex justify-between items-center pb-3 border-b border-border/50">
-              <span className="font-semibold">Subtotal</span>
+              <span className="font-semibold">Total</span>
               <span className="text-2xl font-bold">${amount.toLocaleString()}</span>
             </div>
-            <div className="flex justify-between"><span className="text-muted-foreground">Labour (45%)</span><span className="font-semibold">${labour.toLocaleString()}</span></div>
-            <div className="flex justify-between"><span className="text-muted-foreground">Materials (20%)</span><span className="font-semibold">${materials.toLocaleString()}</span></div>
-            <div className="flex justify-between"><span className="text-muted-foreground">Overhead (15%)</span><span className="font-semibold">${overhead.toLocaleString()}</span></div>
-            <div className="flex justify-between"><span className="text-muted-foreground">Tax (13%)</span><span className="font-semibold">${tax.toLocaleString()}</span></div>
-            <div className="flex justify-between"><span className="text-muted-foreground">Profit (7%)</span><span className="font-semibold">${profit.toLocaleString()}</span></div>
+            <div className="flex justify-between pt-3 border-b border-border/50 pb-3"><span className="text-emerald-400 font-semibold">Profit (55%)</span><span className="font-bold text-emerald-400">${profit.toFixed(2)}</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">Labor (20%)</span><span className="font-semibold text-blue-400">${labor.toFixed(2)}</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">Expenses (15%)</span><span className="font-semibold text-amber-400">${expenses.toFixed(2)}</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">Tax Reserve (10%)</span><span className="font-semibold text-cyan-400">${tax.toFixed(2)}</span></div>
+          </CardContent>
+        </Card>
+
+        {/* Email Quote Button */}
+        <Card className="bg-card border-border">
+          <CardContent className="p-4 flex items-center justify-between">
+            <div>
+              <p className="font-medium">Send Quote to Customer</p>
+              <p className="text-sm text-muted-foreground">50% deposit + 50% on completion</p>
+            </div>
+            <SendQuoteButton 
+              quoteId={id} 
+              customerEmail={quote.customer?.email || customerEmail}
+              disabled={quote.status === 'rejected'}
+            />
           </CardContent>
         </Card>
 
         {quote.status === 'pending' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <button
-              onClick={() => updateStatus('accepted')}
-              disabled={acting}
-              className="w-full bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 text-white font-bold py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
-            >
-              <CheckCircle className="size-5" /> Accept Quote
-            </button>
-            <button
-              onClick={() => updateStatus('rejected')}
-              disabled={acting}
-              className="w-full bg-red-500 hover:bg-red-600 disabled:opacity-50 text-white font-bold py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
-            >
-              <X className="size-5" /> Reject Quote
-            </button>
-          </div>
+          <QuoteActions quote={quote} />
         )}
 
         {quote.status === 'accepted' && (
@@ -183,6 +129,45 @@ export default function QuoteDetailPage() {
             <CardContent className="p-6 text-center">
               <X className="size-12 text-red-400 mx-auto mb-3" />
               <p className="text-red-400 font-semibold">This quote has been rejected</p>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Signature Section */}
+        {!signature && quote.status !== 'accepted' && quote.status !== 'rejected' && (
+          <SignaturePad quoteId={id} />
+        )}
+
+        {signature && (
+          <Card className="bg-emerald-500/10 border-emerald-500/30">
+            <CardHeader>
+              <CardTitle>Signed by Customer</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div>
+                <p className="text-sm text-muted-foreground">Customer Name</p>
+                <p className="font-semibold">{signature.customer_name}</p>
+              </div>
+              {signature.customer_email && (
+                <div>
+                  <p className="text-sm text-muted-foreground">Email</p>
+                  <p className="font-semibold">{signature.customer_email}</p>
+                </div>
+              )}
+              <div>
+                <p className="text-sm text-muted-foreground">Signed On</p>
+                <p className="font-semibold">
+                  {new Date(signature.signed_at).toLocaleDateString()}
+                </p>
+              </div>
+              <div className="mt-4 border-t border-emerald-500/30 pt-4">
+                <p className="text-xs text-muted-foreground mb-2">Signature</p>
+                <img
+                  src={signature.signature_data}
+                  alt="Customer Signature"
+                  className="border border-border rounded"
+                />
+              </div>
             </CardContent>
           </Card>
         )}

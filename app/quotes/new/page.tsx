@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { ArrowLeft, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { VoiceInput } from '@/components/voice-input'
 
 export default function NewQuotePage() {
   const router = useRouter()
@@ -13,13 +14,10 @@ export default function NewQuotePage() {
   const [error, setError] = useState('')
 
   const [formData, setFormData] = useState({
-    customer_name: '',
-    customer_email: '',
-    customer_phone: '',
-    property_address: '',
-    service_type: '',
     description: '',
+    service_type: '',
     amount: '',
+    notes: '',
   })
 
 
@@ -40,14 +38,12 @@ export default function NewQuotePage() {
         .from('quotes')
         .insert([
           {
-            customer_name: formData.customer_name,
-            customer_email: formData.customer_email,
-            customer_phone: formData.customer_phone,
-            property_address: formData.property_address,
-            service_type: formData.service_type,
             description: formData.description,
+            service_type: formData.service_type,
             amount: parseFloat(formData.amount),
+            notes: formData.notes,
             status: 'pending',
+            valid_until: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
             tenant_id: '00000000-0000-0000-0000-000000000001',
           }
         ])
@@ -85,61 +81,24 @@ export default function NewQuotePage() {
           )}
 
           <div>
-            <label htmlFor="customer_name" className="block text-sm font-medium mb-2">Customer Name *</label>
-            <input
-              id="customer_name"
-              type="text"
-              name="customer_name"
-              value={formData.customer_name}
-              onChange={handleChange}
-              required
-              autoComplete="off"
-              className="w-full h-12 px-4 rounded-lg border border-border bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-              placeholder="John Smith"
-            />
-          </div>
-
-          <div>
-            <label htmlFor="customer_email" className="block text-sm font-medium mb-2">Email</label>
-            <input
-              id="customer_email"
-              type="email"
-              name="customer_email"
-              value={formData.customer_email}
-              onChange={handleChange}
-              autoComplete="off"
-              className="w-full h-12 px-4 rounded-lg border border-border bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-              placeholder="john@example.com"
-            />
-          </div>
-
-          <div>
-            <label htmlFor="customer_phone" className="block text-sm font-medium mb-2">Phone</label>
-            <input
-              id="customer_phone"
-              type="tel"
-              name="customer_phone"
-              value={formData.customer_phone}
-              onChange={handleChange}
-              autoComplete="off"
-              className="w-full h-12 px-4 rounded-lg border border-border bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-              placeholder="(555) 123-4567"
-            />
-          </div>
-
-          <div>
-            <label htmlFor="property_address" className="block text-sm font-medium mb-2">Property Address *</label>
-            <input
-              id="property_address"
-              type="text"
-              name="property_address"
-              value={formData.property_address}
-              onChange={handleChange}
-              required
-              autoComplete="off"
-              className="w-full h-12 px-4 rounded-lg border border-border bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-              placeholder="123 Oak Street, Toronto, ON"
-            />
+            <label htmlFor="description" className="block text-sm font-medium mb-2">Property Address / Description *</label>
+            <div className="flex gap-2">
+              <input
+                id="description"
+                type="text"
+                name="description"
+                value={formData.description}
+                onChange={handleChange}
+                required
+                autoComplete="off"
+                className="flex-1 h-12 px-4 rounded-lg border border-border bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                placeholder="123 Oak Street, Toronto, ON"
+              />
+              <VoiceInput 
+                onTranscript={(text) => setFormData(prev => ({ ...prev, description: prev.description + ' ' + text }))} 
+                className="h-12 w-12"
+              />
+            </div>
           </div>
 
           <div>
@@ -161,17 +120,23 @@ export default function NewQuotePage() {
           </div>
 
           <div>
-            <label htmlFor="description" className="block text-sm font-medium mb-2">Description</label>
-            <textarea
-              id="description"
-              name="description"
-              value={formData.description}
-              onChange={handleChange}
-              autoComplete="off"
-              className="w-full px-4 py-3 rounded-lg border border-border bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary resize-none"
-              placeholder="Work description..."
-              rows={3}
-            />
+            <label htmlFor="notes" className="block text-sm font-medium mb-2">Notes</label>
+            <div className="flex gap-2">
+              <textarea
+                id="notes"
+                name="notes"
+                value={formData.notes}
+                onChange={handleChange}
+                autoComplete="off"
+                className="flex-1 px-4 py-3 rounded-lg border border-border bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+                placeholder="Additional notes..."
+                rows={3}
+              />
+              <VoiceInput 
+                onTranscript={(text) => setFormData(prev => ({ ...prev, notes: prev.notes + ' ' + text }))} 
+                className="h-12 w-12"
+              />
+            </div>
           </div>
 
           <div>
